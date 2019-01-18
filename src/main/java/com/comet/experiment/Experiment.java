@@ -11,8 +11,8 @@ public class Experiment {
     private Connection connection;
     private Optional<String> experimentKey = Optional.empty();
 
-    private Optional<String> projectName = Optional.empty();
-    private Optional<String> workspace = Optional.empty();
+    private String projectName;
+    private String workspace;
     private Optional<String> experimentName = Optional.empty();
     private Optional<StdOutLogger> stdOutLogger = Optional.empty();
     private Optional<StdOutLogger> stdErrLogger = Optional.empty();
@@ -23,8 +23,8 @@ public class Experiment {
     private String context = "";
 
     private Experiment(String restApiKey, String projectName, String workspace, boolean debug) {
-        this.projectName = Optional.of(projectName);
-        this.workspace = Optional.of(workspace);
+        this.projectName = projectName;
+        this.workspace = workspace;
         this.debug = debug;
         this.connection = new Connection(restApiKey);
     }
@@ -44,29 +44,21 @@ public class Experiment {
         return experiment;
     }
 
-    public static ExperimentBuilder builder() {
-        return new ExperimentBuilder();
+    public static ExperimentBuilder builder(String projectName, String workspace) {
+        return new ExperimentBuilder(projectName, workspace);
     }
 
     public static class ExperimentBuilder {
         Experiment experiment;
 
-        public ExperimentBuilder() {
+        public ExperimentBuilder(String projectName, String workspace) {
             this.experiment = new Experiment();
+            this.experiment.projectName = projectName;
+            this.experiment.workspace = workspace;
         }
 
         public ExperimentBuilder withRestApiKey(String restApiKey) {
             this.experiment.connection = new Connection(restApiKey);
-            return this;
-        }
-
-        public ExperimentBuilder withProjectName(String projectName) {
-            this.experiment.projectName = Optional.of(projectName);
-            return this;
-        }
-
-        public ExperimentBuilder withWorkspace(String workspace) {
-            this.experiment.workspace = Optional.of(workspace);
             return this;
         }
 
@@ -104,10 +96,8 @@ public class Experiment {
 
     private boolean registerExperiment() {
         JSONObject obj = new JSONObject();
-        this.projectName.ifPresent(
-                project -> obj.put("project_name", project));
-        this.workspace.ifPresent(
-                workspaceName -> obj.put("workspace", workspaceName));
+        obj.put("project_name", projectName);
+        obj.put("workspace", workspace);
         this.experimentName.ifPresent(
                 experiment -> obj.put("experiment_name", experiment));
         Optional<String> responseOptional = connection.sendPost(obj.toString(), "/new-experiment");

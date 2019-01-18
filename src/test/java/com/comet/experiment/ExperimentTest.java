@@ -19,20 +19,16 @@ public class ExperimentTest {
     @Test
     public void testExperimentBuilder() throws IOException {
         Experiment experiment =
-                Experiment.builder()
+                Experiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
-                        .withProjectName(projectName)
-                        .withWorkspace(workspace)
                         .build();
     }
 
     @Test
     public void testStepOperations() throws IOException {
         Experiment experiment =
-                Experiment.builder()
+                Experiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
-                        .withProjectName(projectName)
-                        .withWorkspace(workspace)
                         .build();
         experiment.setStep(7);
         experiment.nextStep();
@@ -94,10 +90,8 @@ public class ExperimentTest {
     @Test
     public void testCopyStdout() throws IOException, InterruptedException {
         Experiment experiment =
-                Experiment.builder()
+                Experiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
-                        .withProjectName(projectName)
-                        .withWorkspace(workspace)
                         .interceptStdout()
                         .build();
 
@@ -118,10 +112,8 @@ public class ExperimentTest {
     private Experiment createAndRegisterExperiment() {
         try {
             Experiment experiment =
-                    Experiment.builder()
+                    Experiment.builder(projectName, workspace)
                             .withRestApiKey(restApiKey)
-                            .withProjectName(projectName)
-                            .withWorkspace(workspace)
                             .build();
             experiment.setContext("context");
             return experiment;
