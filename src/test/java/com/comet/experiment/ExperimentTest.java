@@ -13,7 +13,7 @@ public class ExperimentTest {
 
     @Test
     public void testCreateExperiment() {
-        Experiment experiment = Experiment.of("restApiKey", "projectName", "workspace");
+        Experiment experiment = Experiment.of(restApiKey, projectName, workspace);
     }
 
     @Test
@@ -37,11 +37,6 @@ public class ExperimentTest {
         experiment.setStep(7);
         experiment.nextStep();
         Assert.assertEquals(8, experiment.getStep());
-    }
-
-    @Test
-    public void testRegisterExperiment() {
-        createAndRegisterExperiment();
     }
 
     @Test
@@ -105,7 +100,6 @@ public class ExperimentTest {
                         .withWorkspace(workspace)
                         .interceptStdout()
                         .build();
-        Assert.assertTrue(experiment.registerExperiment());
 
         System.out.println("This should end up in Comet ML.");
         System.out.println("So should this.");
@@ -129,7 +123,6 @@ public class ExperimentTest {
                             .withProjectName(projectName)
                             .withWorkspace(workspace)
                             .build();
-            Assert.assertTrue(experiment.registerExperiment());
             experiment.setContext("context");
             return experiment;
         } catch (IOException ex) {

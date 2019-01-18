@@ -36,7 +36,12 @@ public class Experiment {
     }
 
     public static Experiment of(String apiKey, String projectName, String workspace, boolean debug) {
-        return new Experiment(apiKey, projectName, workspace, debug);
+        Experiment experiment = new Experiment(apiKey, projectName, workspace, debug);
+        boolean success = experiment.registerExperiment();
+        if (!success) {
+            throw new RuntimeException();
+        }
+        return experiment;
     }
 
     public static ExperimentBuilder builder() {
@@ -89,8 +94,31 @@ public class Experiment {
             if (this.experiment.interceptStdout) {
                 this.experiment.captureStdout();
             }
+            boolean success = this.experiment.registerExperiment();
+            if (!success) {
+                throw new RuntimeException();
+            }
             return this.experiment;
         }
+    }
+
+    private boolean registerExperiment() {
+        JSONObject obj = new JSONObject();
+        this.projectName.ifPresent(
+                project -> obj.put("project_name", project));
+        this.workspace.ifPresent(
+                workspaceName -> obj.put("workspace", workspaceName));
+        this.experimentName.ifPresent(
+                experiment -> obj.put("experiment_name", experiment));
+        Optional<String> responseOptional = connection.sendPost(obj.toString(), "/new-experiment");
+
+        responseOptional.ifPresent(response -> {
+            JSONObject result = new JSONObject(response);
+            if (result.has("experimentKey")) {
+                this.experimentKey = Optional.ofNullable(result.getString("experimentKey"));
+            }
+        });
+        return this.experimentKey.isPresent();
     }
 
     public void setInterceptStdout() throws IOException {
@@ -134,25 +162,6 @@ public class Experiment {
 
     public Optional<String> getExperimentKey() {
         return this.experimentKey;
-    }
-
-    public boolean registerExperiment() {
-        JSONObject obj = new JSONObject();
-        this.projectName.ifPresent(
-            project -> obj.put("project_name", project));
-        this.workspace.ifPresent(
-            workspaceName -> obj.put("workspace", workspaceName));
-        this.experimentName.ifPresent(
-                experiment -> obj.put("experiment_name", experiment));
-        Optional<String> responseOptional = connection.sendPost(obj.toString(), "/new-experiment");
-
-        responseOptional.ifPresent(response -> {
-            JSONObject result = new JSONObject(response);
-            if (result.has("experimentKey")) {
-                this.experimentKey = Optional.ofNullable(result.getString("experimentKey"));
-            }
-        });
-        return this.experimentKey.isPresent();
     }
 
     public void logMetric(String metricName, String metricValue) {
