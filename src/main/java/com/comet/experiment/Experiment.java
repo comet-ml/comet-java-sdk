@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.logging.Level;
 
 public class Experiment {
     private Connection connection;
