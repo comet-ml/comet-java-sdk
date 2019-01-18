@@ -1,49 +1,64 @@
 package com.comet.experiment;
 
 import java.io.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class StdOutLogger implements Runnable {
-    PrintStream originalOut;
-    Experiment experiment;
-    BufferedReader stdoutReader;
-    int offset = 0;
-    Thread loggerThread;
+    static AtomicInteger offset = new AtomicInteger();
 
-    private StdOutLogger(PrintStream originalOut, Experiment experiment, BufferedReader stdoutReader) {
-        this.originalOut = originalOut;
+    PrintStream original;
+    Experiment experiment;
+    BufferedReader reader;
+    boolean stdOut;
+
+    private StdOutLogger(PrintStream original, Experiment experiment, BufferedReader reader, boolean stdOut) {
+        this.original = original;
         this.experiment = experiment;
-        this.stdoutReader = stdoutReader;
+        this.reader = reader;
+        this.stdOut = stdOut;
     }
 
     @Override
     public void run() {
         for (;;) {
             try {
-                System.err.println("reading line");
-                String line = stdoutReader.readLine();
-                System.err.println("read line: " + line);
-                experiment.logLine(line, offset);
-                offset++;
+                String line = reader.readLine();
+                experiment.logLine(line, offset.incrementAndGet(), !stdOut);
             } catch (IOException ex) {
                 break;
             }
         }
     }
 
-    public void stop() throws IOException {
-        System.setOut(originalOut);
-        //stdoutReader.close();
-        System.err.println("closed");
+    public void stop() {
+        if (stdOut) {
+            System.setOut(original);
+        } else {
+            System.setErr(original);
+        }
     }
 
     public static StdOutLogger createStdoutLogger(Experiment experiment) throws IOException {
+        return createLogger(experiment, System.out,true);
+    }
+
+    public static StdOutLogger createStderrLogger(Experiment experiment) throws IOException {
+        return createLogger(experiment, System.err, false);
+    }
+
+    private static StdOutLogger createLogger(Experiment experiment, PrintStream original, boolean stdOut) throws IOException {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream out = new PipedOutputStream(in);
-        PrintStream originalOut = System.out;
-        OutputStream copyStream = new CopyOutputStream(originalOut, out);
-        System.setOut(new PrintStream(copyStream));
+        OutputStream copyStream = new CopyOutputStream(original, out);
+        PrintStream replacement = new PrintStream(copyStream);
+        if (stdOut) {
+            System.setOut(replacement);
+        } else {
+            System.setErr(replacement);
+        }
+
         BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(new BufferedInputStream(in)));
-        StdOutLogger logger = new StdOutLogger(originalOut, experiment, stdoutReader);
+        StdOutLogger logger = new StdOutLogger(original, experiment, stdoutReader, stdOut);
         Thread loggerThread = new Thread(logger);
         loggerThread.start();
         return logger;

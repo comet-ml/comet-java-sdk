@@ -12,8 +12,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 public class Connection {
+    private static Logger logger = Logger.getLogger(Connection.class.getName());
     static AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
     static ExecutorService executorService = Executors.newSingleThreadExecutor();
     String restApiKey;
@@ -26,8 +28,6 @@ public class Connection {
     public Optional<String> sendPost(String body, String endpoint) {
         try {
             String url = cometBaseUrl + endpoint;
-            System.err.println(url);
-            System.err.println(body);
             Response response = asyncHttpClient
                     .preparePost(url)
                     .setBody(body)
@@ -35,11 +35,10 @@ public class Connection {
                     .addHeader("Authorization", restApiKey)
                     .execute().get();
 
-            System.err.println(response.getStatusCode());
-            System.err.println(response.getResponseBody());
+            logger.info(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
             return Optional.ofNullable(response.getResponseBody());
         } catch (Exception e) {
-            System.err.println("Failed to post to " + endpoint);
+            logger.severe("Failed to post to " + endpoint);
             e.printStackTrace();
             return Optional.empty();
         }
@@ -48,8 +47,6 @@ public class Connection {
     public void sendPostAsync(String body, String endpoint) {
         try {
             String url = cometBaseUrl + endpoint;
-            System.err.println(url);
-            System.err.println(body);
             ListenableFuture<Response> future = asyncHttpClient
                     .preparePost(url)
                     .setBody(body)
@@ -58,7 +55,7 @@ public class Connection {
                     .execute();
             future.addListener(new ResponseListener(body, endpoint, future), executorService);
         } catch (Exception e) {
-            System.err.println("Failed to post to " + endpoint);
+            logger.severe("Failed to post to " + endpoint);
             e.printStackTrace();
         }
     }
@@ -75,7 +72,7 @@ public class Connection {
 
             return Optional.ofNullable(response.getResponseBody());
         } catch (Exception e) {
-            System.err.println("Failed to post to " + endpoint);
+            logger.severe("Failed to post to " + endpoint);
             e.printStackTrace();
             return Optional.empty();
         }
@@ -93,6 +90,7 @@ public class Connection {
 }
 
 class ResponseListener implements Runnable {
+    private static Logger logger = Logger.getLogger(ResponseListener.class.getName());
     private String body;
     private String endpoint;
     private ListenableFuture<Response> future;
@@ -104,12 +102,14 @@ class ResponseListener implements Runnable {
 
     @Override
     public void run() {
-        try {
-            Response response = future.get();
-            System.err.format("for body %s and endpoint %s response %s", body, endpoint, response.getResponseBody());
-        } catch (Exception ex) {
-            System.err.println("failed to get response for " + endpoint);
-            ex.printStackTrace();
+        if (!endpoint.equals("/output")) { // Prevent infinite loop of log lines
+            try {
+                Response response = future.get();
+                logger.info(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
+            } catch (Exception ex) {
+                logger.severe("failed to get response for " + endpoint);
+                ex.printStackTrace();
+            }
         }
     }
 }

@@ -15,21 +15,28 @@ public class Experiment {
     private Optional<String> workspace = Optional.empty();
     private Optional<String> experimentName = Optional.empty();
     private Optional<StdOutLogger> stdOutLogger = Optional.empty();
+    private Optional<StdOutLogger> stdErrLogger = Optional.empty();
     private boolean interceptStdout = false;
+    private boolean debug = false;
 
     private long step = 0;
     private String context = "";
 
-    private Experiment(String restApiKey, String projectName, String workspace) {
+    private Experiment(String restApiKey, String projectName, String workspace, boolean debug) {
         this.projectName = Optional.of(projectName);
         this.workspace = Optional.of(workspace);
+        this.debug = debug;
         this.connection = new Connection(restApiKey);
     }
 
     private Experiment() {}
 
     public static Experiment of(String apiKey, String projectName, String workspace) {
-        return new Experiment(apiKey, projectName, workspace);
+        return of(apiKey, projectName, workspace, false);
+    }
+
+    public static Experiment of(String apiKey, String projectName, String workspace, boolean debug) {
+        return new Experiment(apiKey, projectName, workspace, debug);
     }
 
     public static ExperimentBuilder builder() {
@@ -63,6 +70,16 @@ public class Experiment {
             return this;
         }
 
+        public ExperimentBuilder withDebug() {
+            this.experiment.debug = true;
+            return this;
+        }
+
+        public ExperimentBuilder withDebug(boolean debug) {
+            this.experiment.debug = debug;
+            return this;
+        }
+
         public ExperimentBuilder interceptStdout() {
             this.experiment.interceptStdout = true;
             return this;
@@ -83,10 +100,15 @@ public class Experiment {
         }
     }
 
-    public void stopInterceptStdout() throws IOException {
+    public void stopInterceptStdout() {
         if (stdOutLogger.isPresent()) {
             stdOutLogger.get().stop();
+            stdOutLogger = Optional.empty();
             interceptStdout = false;
+        }
+        if (stdErrLogger.isPresent()) {
+            stdErrLogger.get().stop();
+            stdErrLogger = Optional.empty();
         }
     }
 
@@ -225,12 +247,16 @@ public class Experiment {
     private void captureStdout() throws IOException {
         StdOutLogger logger = StdOutLogger.createStdoutLogger(this);
         stdOutLogger = Optional.of(logger);
+
+        StdOutLogger errorLogger = StdOutLogger.createStderrLogger(this);
+        stdErrLogger = Optional.of(errorLogger);
     }
 
-    protected void logLine(String line, int offset) {
+    protected void logLine(String line, int offset, boolean stderr) {
         this.experimentKey.ifPresent(key -> {
             JSONObject stdoutLine = new JSONObject();
             stdoutLine.put("stdout", line);
+            stdoutLine.put("stderr", stderr);
             stdoutLine.put("local_timestamp", System.currentTimeMillis());
             stdoutLine.put("offset", offset);
 

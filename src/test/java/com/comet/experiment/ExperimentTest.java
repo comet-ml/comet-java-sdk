@@ -10,6 +10,7 @@ public class ExperimentTest {
     private final String restApiKey = "PUT YOUR REST API KEY HERE TO RUN TESTS";
     private final String projectName = "Testing Java Comet Library";
     private final String workspace = "PUT YOUR USER NAME HERE TO RUN TESTS";
+
     @Test
     public void testCreateExperiment() {
         Experiment experiment = Experiment.of("restApiKey", "projectName", "workspace");
@@ -108,13 +109,16 @@ public class ExperimentTest {
 
         System.out.println("This should end up in Comet ML.");
         System.out.println("So should this.");
+        System.err.println("This error should also get to Comet ML.");
         System.out.flush();
+        System.err.flush();
 
         Thread.sleep(1000);
         experiment.stopInterceptStdout();
         Thread.sleep(1000);
 
         System.out.println("This should not end up in Comet ML.");
+        System.out.println("This error should also not end up in Comet ML.");
     }
 
     private Experiment createAndRegisterExperiment() {
