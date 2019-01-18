@@ -1,0 +1,8 @@
+.cache
+.idea
+.vagrant
+*.iml
+**/.DS_Store
+/target
+target
+build/
