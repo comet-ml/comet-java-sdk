@@ -5,15 +5,17 @@ import com.ning.http.client.ListenableFuture;
 import com.ning.http.client.Response;
 import com.ning.http.client.multipart.FilePart;
 import org.apache.http.client.utils.URIBuilder;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Connection {
-    AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+    static AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+    static ExecutorService executorService = Executors.newSingleThreadExecutor();
     String restApiKey;
     String cometBaseUrl = "https://staging.comet.ml/api/rest/v1/write";
 
@@ -54,6 +56,7 @@ public class Connection {
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Authorization", restApiKey)
                     .execute();
+            future.addListener(new ResponseListener(body, endpoint, future), executorService);
         } catch (Exception e) {
             System.err.println("Failed to post to " + endpoint);
             e.printStackTrace();
