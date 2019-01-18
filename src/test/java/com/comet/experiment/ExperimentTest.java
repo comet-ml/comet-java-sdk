@@ -4,7 +4,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOException;
 
 public class ExperimentTest {
     private final String restApiKey = "PUT YOUR REST API KEY HERE TO RUN TESTS";
@@ -17,7 +16,7 @@ public class ExperimentTest {
     }
 
     @Test
-    public void testExperimentBuilder() throws IOException {
+    public void testExperimentBuilder() {
         Experiment experiment =
                 Experiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
@@ -25,7 +24,7 @@ public class ExperimentTest {
     }
 
     @Test
-    public void testStepOperations() throws IOException {
+    public void testStepOperations() {
         Experiment experiment =
                 Experiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
@@ -88,13 +87,15 @@ public class ExperimentTest {
     }
 
     @Test
-    public void testCopyStdout() throws IOException, InterruptedException {
+    public void testCopyStdout() throws InterruptedException {
         Experiment experiment =
                 Experiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
                         .interceptStdout()
                         .build();
 
+        System.out.println(experiment.getExperimentKey().get());
+        System.out.println(experiment.getExperimentLink().get());
         System.out.println("This should end up in Comet ML.");
         System.out.println("So should this.");
         System.err.println("This error should also get to Comet ML.");
@@ -110,16 +111,11 @@ public class ExperimentTest {
     }
 
     private Experiment createAndRegisterExperiment() {
-        try {
-            Experiment experiment =
-                    Experiment.builder(projectName, workspace)
-                            .withRestApiKey(restApiKey)
-                            .build();
-            experiment.setContext("context");
-            return experiment;
-        } catch (IOException ex) {
-            Assert.fail(ex.getMessage());
-            return null; // unreachable
-        }
+        Experiment experiment =
+                Experiment.builder(projectName, workspace)
+                        .withRestApiKey(restApiKey)
+                        .build();
+        experiment.setContext("context");
+        return experiment;
     }
 }

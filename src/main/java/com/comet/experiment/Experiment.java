@@ -2,14 +2,18 @@ package com.comet.experiment;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.logging.Level;
 
 public class Experiment {
     private Connection connection;
     private Optional<String> experimentKey = Optional.empty();
+    private Optional<String> experimentLink = Optional.empty();
 
     private String projectName;
     private String workspace;
@@ -17,26 +21,24 @@ public class Experiment {
     private Optional<StdOutLogger> stdOutLogger = Optional.empty();
     private Optional<StdOutLogger> stdErrLogger = Optional.empty();
     private boolean interceptStdout = false;
-    private boolean debug = false;
+
+    private Logger logger = LoggerFactory.getLogger(Experiment.class);
+    private Optional<String> restApiKey = Optional.empty();
 
     private long step = 0;
     private String context = "";
 
-    private Experiment(String restApiKey, String projectName, String workspace, boolean debug) {
+    private Experiment(String restApiKey, String projectName, String workspace) {
         this.projectName = projectName;
         this.workspace = workspace;
-        this.debug = debug;
-        this.connection = new Connection(restApiKey);
+        this.restApiKey = Optional.of(restApiKey);
+        this.connection = new Connection(restApiKey, logger);
     }
 
     private Experiment() {}
 
     public static Experiment of(String apiKey, String projectName, String workspace) {
-        return of(apiKey, projectName, workspace, false);
-    }
-
-    public static Experiment of(String apiKey, String projectName, String workspace, boolean debug) {
-        Experiment experiment = new Experiment(apiKey, projectName, workspace, debug);
+        Experiment experiment = new Experiment(apiKey, projectName, workspace);
         boolean success = experiment.registerExperiment();
         if (!success) {
             throw new RuntimeException();
@@ -58,7 +60,7 @@ public class Experiment {
         }
 
         public ExperimentBuilder withRestApiKey(String restApiKey) {
-            this.experiment.connection = new Connection(restApiKey);
+            this.experiment.restApiKey = Optional.of(restApiKey);
             return this;
         }
 
@@ -67,13 +69,8 @@ public class Experiment {
             return this;
         }
 
-        public ExperimentBuilder withDebug() {
-            this.experiment.debug = true;
-            return this;
-        }
-
-        public ExperimentBuilder withDebug(boolean debug) {
-            this.experiment.debug = debug;
+        public ExperimentBuilder withLogger(Logger logger) {
+            this.experiment.logger = logger;
             return this;
         }
 
@@ -82,15 +79,39 @@ public class Experiment {
             return this;
         }
 
-        public Experiment build() throws IOException {
-            if (this.experiment.interceptStdout) {
-                this.experiment.captureStdout();
+        public Experiment build() {
+            setupConnection();
+            setupStdOutIntercept();
+            registerExperiment();
+
+            return this.experiment;
+        }
+
+        private void setupConnection() {
+            if (!this.experiment.restApiKey.isPresent()) {
+                throw new RuntimeException("Rest Api Key required");
             }
+            this.experiment.connection =
+                    new Connection(
+                            this.experiment.restApiKey.get(),
+                            this.experiment.logger);
+        }
+
+        private void setupStdOutIntercept() {
+            if (this.experiment.interceptStdout) {
+                try {
+                    this.experiment.captureStdout();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        private void registerExperiment() {
             boolean success = this.experiment.registerExperiment();
             if (!success) {
-                throw new RuntimeException();
+                throw new RuntimeException("Failed to register experiment with Comet ML");
             }
-            return this.experiment;
         }
     }
 
@@ -106,6 +127,7 @@ public class Experiment {
             JSONObject result = new JSONObject(response);
             if (result.has("experimentKey")) {
                 this.experimentKey = Optional.ofNullable(result.getString("experimentKey"));
+                this.experimentLink = Optional.ofNullable(result.getString("link"));
             }
         });
         return this.experimentKey.isPresent();
@@ -152,6 +174,10 @@ public class Experiment {
 
     public Optional<String> getExperimentKey() {
         return this.experimentKey;
+    }
+
+    public Optional<String> getExperimentLink() {
+        return this.experimentLink;
     }
 
     public void logMetric(String metricName, String metricValue) {
