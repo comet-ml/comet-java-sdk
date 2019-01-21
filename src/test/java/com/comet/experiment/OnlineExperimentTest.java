@@ -6,9 +6,9 @@ import org.junit.Test;
 import java.io.File;
 
 public class OnlineExperimentTest {
-    private final String restApiKey = "cp54MW3lEnSDlxAyaVk4oKplb";
+    private final String restApiKey = "PUT YOUR REST API KEY HERE TO RUN TESTS";
     private final String projectName = "Testing Java Comet Library";
-    private final String workspace = "corneliusphi";
+    private final String workspace = "PUT YOUR USER NAME HERE TO RUN TESTS";
 
     @Test
     public void testCreateExperiment() {
