@@ -29,8 +29,7 @@ public class Connection {
     public Optional<String> sendPost(String body, String endpoint) {
         try {
             String url = cometBaseUrl + endpoint;
-            System.out.println(url);
-            System.out.println(body);
+            logger.debug("sending {} to {}", body, url);
             Response response = asyncHttpClient
                     .preparePost(url)
                     .setBody(body)
@@ -105,7 +104,7 @@ public class Connection {
         public void run() {
             try {
                 Response response = future.get();
-                logger.debug(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
+                logger.debug(String.format("for body {} and endpoint {} response {}\n", body, endpoint, response.getResponseBody()));
             } catch (Exception ex) {
                 logger.error("failed to get response for " + endpoint);
                 ex.printStackTrace();

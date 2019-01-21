@@ -131,7 +131,7 @@ public class OnlineExperiment implements Experiment {
         this.experimentName.ifPresent(
                 experiment -> obj.put("experiment_name", experiment));
         Optional<String> responseOptional = connection.sendPost(obj.toString(), "/new-experiment");
-        System.out.println(responseOptional);
+        logger.debug(responseOptional.toString());
 
         responseOptional.ifPresent(response -> {
             JSONObject result = new JSONObject(response);
@@ -195,6 +195,7 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void logMetric(String metricName, String metricValue) {
+        logger.debug("logMetric {} {}", metricName, metricValue);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
             obj.put("experimentKey", key);
@@ -206,6 +207,7 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void logParam(String paramName, String paramValue) {
+        logger.debug("logParam {} {}", paramName, paramValue);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
             obj.put("experimentKey", key);
@@ -217,6 +219,7 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void logHtml(String html, boolean override) {
+        logger.debug("logHtml {} {}", html, override);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
             obj.put("experimentKey", key);
@@ -227,6 +230,7 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void logOther(String key, String value) {
+        logger.debug("logOther {} {}", key, value);
         this.experimentKey.ifPresent(expKey -> {
             JSONObject obj = new JSONObject();
             obj.put("experimentKey", expKey);
@@ -241,6 +245,7 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void logStartTime(long startTimeMillis) {
+        logger.debug("logStartTime {}", startTimeMillis);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
             obj.put("experimentKey", key);
@@ -250,6 +255,7 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void logEndTime(long endTimeMillis) {
+        logger.debug("logEndTime {}", endTimeMillis);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
             obj.put("experimentKey", key);
@@ -259,6 +265,7 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void uploadAsset(File asset, String fileName, boolean overwrite) {
+        logger.debug("uploadAsset {} {} {}", asset.getName(), fileName, overwrite);
         this.experimentKey.ifPresent(key ->
             connection.sendPost(asset, "/upload-asset", new HashMap<String, String>() {{
                 put("experimentKey", key);
@@ -270,6 +277,7 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void uploadImage(File image, String imageName, boolean overwrite) {
+        logger.debug("uploadAsset {} {} {}", image.getName(), imageName, overwrite);
         this.experimentKey.ifPresent(key -> {
             connection.sendPost(image, "/upload-image", new HashMap<String, String>() {{
                 put("experimentKey", key);
