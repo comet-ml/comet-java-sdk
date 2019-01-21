@@ -14,6 +14,7 @@ public interface Experiment {
     String getContext();
     Optional<String> getExperimentKey();
     Optional<String> getExperimentLink();
+    void setName(String name);
     void logMetric(String metricName, String metricValue);
     void logParam(String paramName, String paramValue);
     void logHtml(String html, boolean override);

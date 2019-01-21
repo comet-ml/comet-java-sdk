@@ -190,6 +190,10 @@ public class OnlineExperiment implements Experiment {
         return this.experimentLink;
     }
 
+    public void setName(String name) {
+        logOther("Name", name);
+    }
+
     public void logMetric(String metricName, String metricValue) {
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
