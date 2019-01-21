@@ -121,6 +121,7 @@ public class Experiment {
         this.experimentName.ifPresent(
                 experiment -> obj.put("experiment_name", experiment));
         Optional<String> responseOptional = connection.sendPost(obj.toString(), "/new-experiment");
+        System.out.println(responseOptional);
 
         responseOptional.ifPresent(response -> {
             JSONObject result = new JSONObject(response);
