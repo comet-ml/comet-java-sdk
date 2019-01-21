@@ -29,6 +29,8 @@ public class Connection {
     public Optional<String> sendPost(String body, String endpoint) {
         try {
             String url = cometBaseUrl + endpoint;
+            System.out.println(url);
+            System.out.println(body);
             Response response = asyncHttpClient
                     .preparePost(url)
                     .setBody(body)

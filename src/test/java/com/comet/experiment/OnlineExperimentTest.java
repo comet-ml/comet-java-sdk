@@ -5,33 +5,33 @@ import org.junit.Test;
 
 import java.io.File;
 
-public class ExperimentTest {
+public class OnlineExperimentTest {
     private final String restApiKey = "PUT YOUR REST API KEY HERE TO RUN TESTS";
     private final String projectName = "Testing Java Comet Library";
     private final String workspace = "PUT YOUR USER NAME HERE TO RUN TESTS";
 
     @Test
     public void testCreateExperiment() {
-        Experiment experiment = Experiment.of(restApiKey, projectName, workspace);
+        Experiment experiment = OnlineExperiment.of(restApiKey, projectName, workspace);
     }
 
     @Test
     public void testExperimentBuilder() {
-        Experiment experiment =
-                Experiment.builder(projectName, workspace)
+        Experiment onlineExperiment =
+                OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
                         .build();
     }
 
     @Test
     public void testStepOperations() {
-        Experiment experiment =
-                Experiment.builder(projectName, workspace)
+        Experiment onlineExperiment =
+                OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
                         .build();
-        experiment.setStep(7);
-        experiment.nextStep();
-        Assert.assertEquals(8, experiment.getStep());
+        onlineExperiment.setStep(7);
+        onlineExperiment.nextStep();
+        Assert.assertEquals(8, onlineExperiment.getStep());
     }
 
     @Test
@@ -88,8 +88,8 @@ public class ExperimentTest {
 
     @Test
     public void testCopyStdout() throws InterruptedException {
-        Experiment experiment =
-                Experiment.builder(projectName, workspace)
+        OnlineExperiment experiment =
+                OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
                         .interceptStdout()
                         .build();
@@ -111,11 +111,11 @@ public class ExperimentTest {
     }
 
     private Experiment createAndRegisterExperiment() {
-        Experiment experiment =
-                Experiment.builder(projectName, workspace)
+        OnlineExperiment onlineExperiment =
+                OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
                         .build();
-        experiment.setContext("context");
-        return experiment;
+        onlineExperiment.setContext("context");
+        return onlineExperiment;
     }
 }
