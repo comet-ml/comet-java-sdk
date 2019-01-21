@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 public interface Experiment {
+    void exit();
     void setInterceptStdout() throws IOException;
     void stopInterceptStdout();
     void setStep(long step);
