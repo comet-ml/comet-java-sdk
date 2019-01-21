@@ -7,13 +7,13 @@ public class StdOutLogger implements Runnable {
     static AtomicInteger offset = new AtomicInteger();
 
     PrintStream original;
-    Experiment experiment;
+    OnlineExperiment onlineExperiment;
     BufferedReader reader;
     boolean stdOut;
 
-    private StdOutLogger(PrintStream original, Experiment experiment, BufferedReader reader, boolean stdOut) {
+    private StdOutLogger(PrintStream original, OnlineExperiment onlineExperiment, BufferedReader reader, boolean stdOut) {
         this.original = original;
-        this.experiment = experiment;
+        this.onlineExperiment = onlineExperiment;
         this.reader = reader;
         this.stdOut = stdOut;
     }
@@ -23,7 +23,7 @@ public class StdOutLogger implements Runnable {
         for (;;) {
             try {
                 String line = reader.readLine();
-                experiment.logLine(line, offset.incrementAndGet(), !stdOut);
+                onlineExperiment.logLine(line, offset.incrementAndGet(), !stdOut);
             } catch (IOException ex) {
                 break;
             }
@@ -38,15 +38,15 @@ public class StdOutLogger implements Runnable {
         }
     }
 
-    public static StdOutLogger createStdoutLogger(Experiment experiment) throws IOException {
-        return createLogger(experiment, System.out,true);
+    public static StdOutLogger createStdoutLogger(OnlineExperiment onlineExperiment) throws IOException {
+        return createLogger(onlineExperiment, System.out,true);
     }
 
-    public static StdOutLogger createStderrLogger(Experiment experiment) throws IOException {
-        return createLogger(experiment, System.err, false);
+    public static StdOutLogger createStderrLogger(OnlineExperiment onlineExperiment) throws IOException {
+        return createLogger(onlineExperiment, System.err, false);
     }
 
-    private static StdOutLogger createLogger(Experiment experiment, PrintStream original, boolean stdOut) throws IOException {
+    private static StdOutLogger createLogger(OnlineExperiment onlineExperiment, PrintStream original, boolean stdOut) throws IOException {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream out = new PipedOutputStream(in);
         OutputStream copyStream = new CopyOutputStream(original, out);
@@ -58,7 +58,7 @@ public class StdOutLogger implements Runnable {
         }
 
         BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(new BufferedInputStream(in)));
-        StdOutLogger logger = new StdOutLogger(original, experiment, stdoutReader, stdOut);
+        StdOutLogger logger = new StdOutLogger(original, onlineExperiment, stdoutReader, stdOut);
         Thread loggerThread = new Thread(logger);
         loggerThread.start();
         return logger;
