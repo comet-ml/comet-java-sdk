@@ -8,8 +8,12 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class OnlineExperiment implements Experiment {
+    private static ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     private Connection connection;
     private Optional<String> experimentKey = Optional.empty();
     private Optional<String> experimentLink = Optional.empty();
@@ -36,8 +40,8 @@ public class OnlineExperiment implements Experiment {
 
     private OnlineExperiment() {}
 
-    public static OnlineExperiment of(String apiKey, String projectName, String workspace) {
-        OnlineExperiment onlineExperiment = new OnlineExperiment(apiKey, projectName, workspace);
+    public static OnlineExperiment of(String restApiKey, String projectName, String workspace) {
+        OnlineExperiment onlineExperiment = new OnlineExperiment(restApiKey, projectName, workspace);
         boolean success = onlineExperiment.registerExperiment();
         if (!success) {
             throw new RuntimeException();
@@ -138,6 +142,9 @@ public class OnlineExperiment implements Experiment {
             if (result.has("experimentKey")) {
                 this.experimentKey = Optional.ofNullable(result.getString("experimentKey"));
                 this.experimentLink = Optional.ofNullable(result.getString("link"));
+
+                scheduledExecutorService.scheduleAtFixedRate(
+                        new StatusPing(this), 1, 3, TimeUnit.SECONDS);
             }
         });
         return this.experimentKey.isPresent();
@@ -317,5 +324,27 @@ public class OnlineExperiment implements Experiment {
 
             connection.sendPostAsync(obj.toString(), "/output");
         });
+    }
+
+    protected void pingStatus() {
+        this.experimentKey.ifPresent(key -> {
+            logger.debug("pingStatus");
+            JSONObject obj = new JSONObject();
+            obj.put("experimentKey", key);
+            connection.sendPostAsync(obj.toString(), "/experiment-status");
+        });
+    }
+
+    static class StatusPing implements Runnable {
+        OnlineExperiment onlineExperiment;
+
+        StatusPing(OnlineExperiment onlineExperiment) {
+            this.onlineExperiment = onlineExperiment;
+        }
+
+        @Override
+        public void run() {
+            onlineExperiment.pingStatus();
+        }
     }
 }

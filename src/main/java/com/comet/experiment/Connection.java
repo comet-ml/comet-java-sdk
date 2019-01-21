@@ -55,7 +55,9 @@ public class Connection {
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Authorization", restApiKey)
                     .execute();
-            future.addListener(new ResponseListener(body, endpoint, future), executorService);
+            if (!endpoint.equals("/output")) {
+                future.addListener(new ResponseListener(body, endpoint, future), executorService);
+            }
         } catch (Exception e) {
             logger.error("Failed to post to " + endpoint);
             e.printStackTrace();
