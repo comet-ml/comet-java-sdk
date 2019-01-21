@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class OnlineExperiment implements Experiment {
@@ -27,6 +28,7 @@ public class OnlineExperiment implements Experiment {
 
     private Logger logger = LoggerFactory.getLogger(OnlineExperiment.class);
     private Optional<String> restApiKey = Optional.empty();
+    private Optional<ScheduledFuture> pingStatusFuture = Optional.empty();
 
     private long step = 0;
     private String context = "";
@@ -143,11 +145,18 @@ public class OnlineExperiment implements Experiment {
                 this.experimentKey = Optional.ofNullable(result.getString("experimentKey"));
                 this.experimentLink = Optional.ofNullable(result.getString("link"));
 
-                scheduledExecutorService.scheduleAtFixedRate(
-                        new StatusPing(this), 1, 3, TimeUnit.SECONDS);
+                pingStatusFuture = Optional.of(scheduledExecutorService.scheduleAtFixedRate(
+                        new StatusPing(this), 1, 3, TimeUnit.SECONDS));
             }
         });
         return this.experimentKey.isPresent();
+    }
+
+    public void exit() {
+        if (pingStatusFuture.isPresent()) {
+            pingStatusFuture.get().cancel(true);
+            pingStatusFuture = Optional.empty();
+        }
     }
 
     public void setInterceptStdout() throws IOException {

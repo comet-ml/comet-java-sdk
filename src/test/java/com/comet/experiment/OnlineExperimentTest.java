@@ -11,6 +11,15 @@ public class OnlineExperimentTest {
     private final String workspace = "PUT YOUR USER NAME HERE TO RUN TESTS";
 
     @Test
+    public void testOnlineExperiment() {
+        OnlineExperiment onlineExperiment =
+                OnlineExperiment.builder(projectName, workspace)
+                        .withRestApiKey(restApiKey)
+                        .build();
+        onlineExperiment.exit();
+    }
+
+    @Test
     public void testCreateExperiment() {
         Experiment experiment = OnlineExperiment.of(restApiKey, projectName, workspace);
     }
