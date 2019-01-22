@@ -121,9 +121,6 @@ public class OnlineExperiment implements Experiment {
         if (!this.restApiKey.isPresent()) {
             throw new RuntimeException("Rest Api Key required");
         }
-        System.out.println(config);
-        System.out.println(config.toString());
-        System.out.println(config.entrySet());
         this.connection =
                 new Connection(
                         this.config.getString("comet.url"),
