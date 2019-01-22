@@ -66,7 +66,7 @@ public class OnlineExperiment implements Experiment {
         /**
          * Create a builder to construct an Experiment Object
          * @param projectName The project under which the experiment should run
-         * @param workspace The workspace under which the experiment should be run
+         * @param workspace   The workspace under which the experiment should be run
          */
         private OnlineExperimentBuilder(String projectName, String workspace, String apiKey) {
             this.onlineExperiment = new OnlineExperiment();
@@ -171,15 +171,12 @@ public class OnlineExperiment implements Experiment {
         this.experimentName.ifPresent(
                 experiment -> obj.put(Contstants.EXPERIMENT_NAME, experiment));
         Optional<String> responseOptional = connection.sendPost(obj.toString(), Contstants.NEW_EXPERIMENT);
-        logger.debug(responseOptional.toString());
-
-        System.out.println(responseOptional.toString());
         responseOptional.ifPresent(response -> {
             JSONObject result = new JSONObject(response);
             if (result.has(Contstants.EXPERIMENT_KEY)) {
                 this.experimentKey = Optional.ofNullable(result.getString(Contstants.EXPERIMENT_KEY));
                 this.experimentLink = Optional.ofNullable(result.getString(Contstants.LINK));
-
+                logger.info("Experiment is live on comet.ml " + this.experimentLink.orElse(""));
                 pingStatusFuture = Optional.of(scheduledExecutorService.scheduleAtFixedRate(
                         new StatusPing(this), 1, 3, TimeUnit.SECONDS));
             }
@@ -260,38 +257,38 @@ public class OnlineExperiment implements Experiment {
     }
 
     @Override
-    public void logMetric(String metricName, String metricValue) {
+    public void logMetric(String metricName, Object metricValue) {
         logMetric(metricName, metricValue, step);
     }
 
     @Override
-    public void logMetric(String metricName, String metricValue, long step){
+    public void logMetric(String metricName, Object metricValue, long step) {
         this.setStep(step);
         logger.debug("logMetric {} {}", metricName, metricValue);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
             obj.put(Contstants.EXPERIMENT_KEY, key);
             obj.put("metricName", metricName);
-            obj.put("metricValue", metricValue);
+            obj.put("metricValue", getObjectValue(metricValue));
             obj.put("step", step);
             connection.sendPostAsync(obj.toString(), Contstants.METRIC);
         });
     }
 
     @Override
-    public void logParameter(String parameterName, String paramValue) {
+    public void logParameter(String parameterName, Object paramValue) {
         logParameter(parameterName, paramValue, step);
     }
 
     @Override
-    public void logParameter(String parameterName, String paramValue, long step){
+    public void logParameter(String parameterName, Object paramValue, long step) {
         this.setStep(step);
         logger.debug("logParameter {} {}", parameterName, paramValue);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
             obj.put(Contstants.EXPERIMENT_KEY, key);
             obj.put("paramName", parameterName);
-            obj.put("paramValue", paramValue);
+            obj.put("paramValue", getObjectValue(paramValue));
             obj.put("step", step);
             connection.sendPostAsync(obj.toString(), Contstants.PARAMETER);
         });
@@ -310,13 +307,13 @@ public class OnlineExperiment implements Experiment {
     }
 
     @Override
-    public void logOther(String key, String value) {
+    public void logOther(String key, Object value) {
         logger.debug("logOther {} {}", key, value);
         this.experimentKey.ifPresent(expKey -> {
             JSONObject obj = new JSONObject();
             obj.put(Contstants.EXPERIMENT_KEY, expKey);
             obj.put("key", key);
-            obj.put("val", value);
+            obj.put("val", getObjectValue(value));
             connection.sendPostAsync(obj.toString(), Contstants.LOG_OTHER);
         });
     }
@@ -351,13 +348,13 @@ public class OnlineExperiment implements Experiment {
     public void uploadAsset(File asset, String fileName, boolean overwrite) {
         logger.debug("uploadAsset {} {} {}", asset.getName(), fileName, overwrite);
         this.experimentKey.ifPresent(key ->
-            connection.sendPost(asset, Contstants.UPLOAD_ASSET, new HashMap<String, String>() {{
-                put(Contstants.EXPERIMENT_KEY, key);
-                put("fileName", fileName);
-                put("step", Long.toString(step));
-                put("context", context);
-                put("overwrite", Boolean.toString(overwrite));
-            }}));
+                connection.sendPost(asset, Contstants.UPLOAD_ASSET, new HashMap<String, String>() {{
+                    put(Contstants.EXPERIMENT_KEY, key);
+                    put("fileName", fileName);
+                    put("step", Long.toString(step));
+                    put("context", context);
+                    put("overwrite", Boolean.toString(overwrite));
+                }}));
     }
 
     @Override
@@ -424,5 +421,9 @@ public class OnlineExperiment implements Experiment {
         public void run() {
             onlineExperiment.pingStatus();
         }
+    }
+
+    private String getObjectValue(Object val) {
+        return val.toString();
     }
 }

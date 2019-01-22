@@ -73,7 +73,7 @@ public interface Experiment {
      * @param metricName The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      */
-    void logMetric(String metricName, String metricValue);
+    void logMetric(String metricName, Object metricValue);
 
     /**
      * Logs a metric with Comet.  Metrics are generally values that change from step to step
@@ -81,7 +81,7 @@ public interface Experiment {
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      * @param step The current step for this metric, this will set the given step for this experiment
      */
-    void logMetric(String metricName, String metricValue, long step);
+    void logMetric(String metricName, Object metricValue, long step);
 
 
     /**
@@ -89,7 +89,7 @@ public interface Experiment {
      * @param parameterName The name of the param being logged
      * @param paramValue The value for the param being logged
      */
-    void logParameter(String parameterName, String paramValue);
+    void logParameter(String parameterName, Object paramValue);
 
     /**
      * Logs a param with Comet.  Params should be set at the start of the experiment
@@ -97,7 +97,7 @@ public interface Experiment {
      * @param paramValue The value for the param being logged
      * @param step The current step for this metric, this will set the given step for this experiment
      */
-    void logParameter(String parameterName, String paramValue, long step);
+    void logParameter(String parameterName, Object paramValue, long step);
 
     /**
      * Let's you create an html report for the experiment
@@ -111,7 +111,7 @@ public interface Experiment {
      * @param key The key for the data to be stored
      * @param value The value for said key
      */
-    void logOther(String key, String value);
+    void logOther(String key, Object value);
 
     /**
      * Logs the start time of the experiment
