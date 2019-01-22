@@ -37,6 +37,7 @@ public class OnlineExperimentTest {
         Experiment onlineExperiment =
                 OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
+                        .withConfig(getOverrideConfig())
                         .build();
         onlineExperiment.setStep(7);
         onlineExperiment.nextStep();

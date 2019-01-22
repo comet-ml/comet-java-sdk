@@ -45,7 +45,8 @@ public class OnlineExperiment implements Experiment {
     }
 
     private OnlineExperiment() {
-        this.config = ConfigFactory.parseResources("defaults.conf");
+        this.config = ConfigFactory.parseFile(
+                new File(getClass().getClassLoader().getResource("defaults.conf").getFile()));
     }
 
     public static OnlineExperiment of(String restApiKey, String projectName, String workspace) {
@@ -106,7 +107,6 @@ public class OnlineExperiment implements Experiment {
 
         public OnlineExperiment build() {
             this.onlineExperiment.initializeExperiment();
-
             return this.onlineExperiment;
         }
     }
