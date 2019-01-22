@@ -1,1 +1,1 @@
-# comet-java-client
+# comet-java-sdk
