@@ -95,6 +95,11 @@ public class OnlineExperiment implements Experiment {
             return this;
         }
 
+        public OnlineExperimentBuilder withExistingExperimentKey(String experimentKey) {
+            this.onlineExperiment.experimentKey = Optional.of(experimentKey);
+            return this;
+        }
+
         public OnlineExperimentBuilder withLogger(Logger logger) {
             this.onlineExperiment.logger = logger;
             return this;
@@ -147,6 +152,11 @@ public class OnlineExperiment implements Experiment {
     }
 
     private void registerExperiment() {
+        if (experimentKey.isPresent()) {
+            logger.debug("Not registering a new experiment.  Using experiment key {}", experimentKey.get());
+            return;
+        }
+
         JSONObject obj = new JSONObject();
         obj.put("project_name", projectName);
         obj.put("workspace", workspace);

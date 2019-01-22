@@ -59,7 +59,7 @@ public class Connection {
                     .setBody(body)
                     .addHeader("Content-Type", "application/json");
             builder = addAuth(builder);
-            ListenableFuture<Response> future = builder .execute();
+            ListenableFuture<Response> future = builder.execute();
             if (!endpoint.equals("/output")) {
                 future.addListener(new ResponseListener(body, endpoint, future), executorService);
             }
@@ -90,11 +90,9 @@ public class Connection {
     private BoundRequestBuilder addAuth(BoundRequestBuilder builderArg) {
         BoundRequestBuilder builder = builderArg;
         if (restApiKey.isPresent()) {
-            System.out.println("Using rest api key: " + restApiKey);
             builder = builder.addHeader("Authorization", restApiKey.get());
         }
         if (apiKey.isPresent()) {
-            System.out.println("Using api key: " + apiKey);
             builder = builder.addHeader("Comet-Sdk-Api", apiKey.get());
         }
         return builder;
@@ -124,7 +122,7 @@ public class Connection {
         public void run() {
             try {
                 Response response = future.get();
-                logger.debug(String.format("for body {} and endpoint {} response {}\n", body, endpoint, response.getResponseBody()));
+                logger.debug("for body {} and endpoint {} response {}\n", body, endpoint, response.getResponseBody());
             } catch (Exception ex) {
                 logger.error("failed to get response for " + endpoint);
                 ex.printStackTrace();

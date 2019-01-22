@@ -10,6 +10,7 @@ public class OnlineExperimentTest {
     private final String restApiKey = "PUT YOUR REST API KEY HERE TO RUN TESTS";
     private final String projectName = "Testing Java Comet Library";
     private final String workspace = "PUT YOUR USER NAME HERE TO RUN TESTS";
+    private final String existingExperimentKey = "PUT AN EXISTING EXPERIMENT KEY HERE";
 
     @Test
     public void testOnlineExperiment() {
@@ -33,6 +34,17 @@ public class OnlineExperimentTest {
                         .withRestApiKey(restApiKey)
                         .withConfig(getOverrideConfig())
                         .build();
+    }
+
+    @Test
+    public void testExistingExperiment() {
+        Experiment onlineExperiment =
+                OnlineExperiment.builder(projectName, workspace)
+                        .withRestApiKey(restApiKey)
+                        .withConfig(getOverrideConfig())
+                        .withExistingExperimentKey(existingExperimentKey)
+                        .build();
+        onlineExperiment.logEndTime(System.currentTimeMillis());
     }
 
     @Test
