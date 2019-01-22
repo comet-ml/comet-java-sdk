@@ -56,17 +56,23 @@ public class OnlineExperiment implements Experiment {
         return onlineExperiment;
     }
 
-    public static OnlineExperimentBuilder builder(String projectName, String workspace) {
-        return new OnlineExperimentBuilder(projectName, workspace);
+    public static OnlineExperimentBuilder builder(String projectName, String workspace, String apiKey) {
+        return new OnlineExperimentBuilder(projectName, workspace, apiKey);
     }
 
     public static class OnlineExperimentBuilder implements ExperimentBuilder {
         OnlineExperiment onlineExperiment;
 
-        private OnlineExperimentBuilder(String projectName, String workspace) {
+        /**
+         * Create a builder to construct an Experiment Object
+         * @param projectName The project under which the experiment should run
+         * @param workspace The workspace under which the experiment should be run
+         */
+        private OnlineExperimentBuilder(String projectName, String workspace, String apiKey) {
             this.onlineExperiment = new OnlineExperiment();
             this.onlineExperiment.projectName = projectName;
             this.onlineExperiment.workspace = workspace;
+            this.onlineExperiment.apiKey = Optional.of(apiKey);
         }
 
         public OnlineExperimentBuilder withProjectName(String projectName) {
@@ -221,16 +227,16 @@ public class OnlineExperiment implements Experiment {
         return this.context;
     }
 
-    public Optional<String> getExperimentKey() {
-        return this.experimentKey;
+    public String getExperimentKey() {
+        return this.experimentKey.get();
     }
 
     public Optional<String> getExperimentLink() {
         return this.experimentLink;
     }
 
-    public void setName(String name) {
-        logOther("Name", name);
+    public void setExperimentName(String experimentName) {
+        logOther("Name", experimentName);
     }
 
     public void logMetric(String metricName, String metricValue) {

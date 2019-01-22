@@ -106,7 +106,7 @@ public class OnlineExperimentTest {
                         .withConfig(getOverrideConfig())
                         .build();
 
-        System.out.println(experiment.getExperimentKey().get());
+        System.out.println(experiment.getExperimentKey());
         System.out.println(experiment.getExperimentLink().get());
         System.out.println("This should end up in Comet ML.");
         System.out.println("So should this.");
