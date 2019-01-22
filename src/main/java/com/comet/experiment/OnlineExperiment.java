@@ -33,17 +33,16 @@ public class OnlineExperiment implements Experiment {
 
     private Logger logger = LoggerFactory.getLogger(OnlineExperiment.class);
     private Optional<String> apiKey = Optional.empty();
-    private Optional<String> restApiKey = Optional.empty();
     private Optional<ScheduledFuture> pingStatusFuture = Optional.empty();
 
     private long step = 0;
     private String context = "";
 
-    private OnlineExperiment(String restApiKey, String projectName, String workspace) {
+    private OnlineExperiment(String apiKey, String projectName, String workspace) {
         this();
         this.projectName = projectName;
         this.workspace = workspace;
-        this.restApiKey = Optional.of(restApiKey);
+        this.apiKey = Optional.of(apiKey);
     }
 
     private OnlineExperiment() {
@@ -51,8 +50,8 @@ public class OnlineExperiment implements Experiment {
                 new File(getClass().getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
     }
 
-    public static OnlineExperiment of(String restApiKey, String projectName, String workspace) {
-        OnlineExperiment onlineExperiment = new OnlineExperiment(restApiKey, projectName, workspace);
+    public static OnlineExperiment of(String apiKey, String projectName, String workspace) {
+        OnlineExperiment onlineExperiment = new OnlineExperiment(apiKey, projectName, workspace);
         onlineExperiment.initializeExperiment();
         return onlineExperiment;
     }
@@ -82,11 +81,6 @@ public class OnlineExperiment implements Experiment {
 
         public OnlineExperimentBuilder withApiKey(String apiKey) {
             this.onlineExperiment.apiKey = Optional.of(apiKey);
-            return this;
-        }
-
-        public OnlineExperimentBuilder withRestApiKey(String restApiKey) {
-            this.onlineExperiment.restApiKey = Optional.of(restApiKey);
             return this;
         }
 
@@ -130,14 +124,13 @@ public class OnlineExperiment implements Experiment {
     }
 
     private void setupConnection() {
-        if (!this.apiKey.isPresent() && !restApiKey.isPresent()) {
-            throw new RuntimeException("One of Api Key and Rest Api Key are required");
+        if (!this.apiKey.isPresent()) {
+            throw new RuntimeException("Api Key required");
         }
         this.connection =
                 new Connection(
                         this.config.getString(Contstants.COMET_URL),
-                        this.apiKey,
-                        this.restApiKey,
+                        this.apiKey.get(),
                         this.logger);
     }
 
@@ -165,6 +158,7 @@ public class OnlineExperiment implements Experiment {
         Optional<String> responseOptional = connection.sendPost(obj.toString(), Contstants.NEW_EXPERIMENT);
         logger.debug(responseOptional.toString());
 
+        System.out.println(responseOptional.toString());
         responseOptional.ifPresent(response -> {
             JSONObject result = new JSONObject(response);
             if (result.has(Contstants.EXPERIMENT_KEY)) {

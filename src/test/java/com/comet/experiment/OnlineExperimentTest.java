@@ -7,7 +7,6 @@ import java.io.File;
 
 public class OnlineExperimentTest {
     private final String apiKey = "PUT YOUR API KEY HERE TO RUN TESTS";
-    private final String restApiKey = "PUT YOUR REST API KEY HERE TO RUN TESTS";
     private final String projectName = "Testing Java Comet Library";
     private final String workspace = "PUT YOUR USER NAME HERE TO RUN TESTS";
     private final String existingExperimentKey = "PUT AN EXISTING EXPERIMENT KEY HERE";
@@ -16,7 +15,7 @@ public class OnlineExperimentTest {
     public void testOnlineExperiment() {
         OnlineExperiment onlineExperiment =
                 OnlineExperiment.builder(projectName, workspace)
-                        .withRestApiKey(restApiKey)
+                        .withApiKey(apiKey)
                         .withConfig(getOverrideConfig())
                         .build();
         onlineExperiment.exit();
@@ -24,23 +23,14 @@ public class OnlineExperimentTest {
 
     @Test
     public void testCreateExperiment() {
-        Experiment experiment = OnlineExperiment.of(restApiKey, projectName, workspace);
-    }
-
-    @Test
-    public void testExperimentBuilder() {
-        Experiment onlineExperiment =
-                OnlineExperiment.builder(projectName, workspace)
-                        .withRestApiKey(restApiKey)
-                        .withConfig(getOverrideConfig())
-                        .build();
+        Experiment experiment = OnlineExperiment.of(apiKey, projectName, workspace);
     }
 
     @Test
     public void testExistingExperiment() {
         Experiment onlineExperiment =
                 OnlineExperiment.builder(projectName, workspace)
-                        .withRestApiKey(restApiKey)
+                        .withApiKey(apiKey)
                         .withConfig(getOverrideConfig())
                         .withExistingExperimentKey(existingExperimentKey)
                         .build();
@@ -48,25 +38,11 @@ public class OnlineExperimentTest {
     }
 
     @Test
-    public void testApiKey() {
-        Experiment onlineExperiment =
-                OnlineExperiment.builder(projectName, workspace)
-                        .withApiKey(apiKey)
-                        .withConfig(getOverrideConfig())
-                        .build();
-    }
-
-    @Test
     public void testStepOperations() {
-        Experiment onlineExperiment =
-                OnlineExperiment.builder(projectName, workspace)
-                        .withRestApiKey(restApiKey)
-                        .withConfig(getOverrideConfig())
-                        .withConfig(getOverrideConfig())
-                        .build();
-        onlineExperiment.setStep(7);
-        onlineExperiment.nextStep();
-        Assert.assertEquals(8, onlineExperiment.getStep());
+        Experiment experiment = createAndRegisterExperiment();
+        experiment.setStep(7);
+        experiment.nextStep();
+        Assert.assertEquals(8, experiment.getStep());
     }
 
     @Test
@@ -125,7 +101,7 @@ public class OnlineExperimentTest {
     public void testCopyStdout() throws InterruptedException {
         OnlineExperiment experiment =
                 OnlineExperiment.builder(projectName, workspace)
-                        .withRestApiKey(restApiKey)
+                        .withApiKey(apiKey)
                         .interceptStdout()
                         .withConfig(getOverrideConfig())
                         .build();
@@ -149,7 +125,7 @@ public class OnlineExperimentTest {
     private Experiment createAndRegisterExperiment() {
         OnlineExperiment onlineExperiment =
                 OnlineExperiment.builder(projectName, workspace)
-                        .withRestApiKey(restApiKey)
+                        .withApiKey(apiKey)
                         .withConfig(getOverrideConfig())
                         .build();
         onlineExperiment.setContext("context");

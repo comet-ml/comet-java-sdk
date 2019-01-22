@@ -14,20 +14,16 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.ning.http.client.AsyncHttpClient.BoundRequestBuilder;
-
 public class Connection {
     private Logger logger;
     static AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
     static ExecutorService executorService = Executors.newSingleThreadExecutor();
-    Optional<String> apiKey;
-    Optional<String> restApiKey;
+    String apiKey;
     String cometBaseUrl;
 
-    protected Connection(String cometBaseUrl, Optional<String> apiKey, Optional<String> restApiKey, Logger logger) {
+    protected Connection(String cometBaseUrl, String apiKey, Logger logger) {
         this.cometBaseUrl = cometBaseUrl;
         this.apiKey = apiKey;
-        this.restApiKey = restApiKey;
         this.logger = logger;
     }
 
@@ -35,12 +31,12 @@ public class Connection {
         try {
             String url = cometBaseUrl + endpoint;
             logger.debug("sending {} to {}", body, url);
-            BoundRequestBuilder builder = asyncHttpClient
+            Response response = asyncHttpClient
                     .preparePost(url)
                     .setBody(body)
-                    .addHeader("Content-Type", "application/json");
-            builder = addAuth(builder);
-            Response response = builder .execute().get();
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Comet-Sdk-Api", apiKey)
+                    .execute().get();
 
             logger.debug("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody());
             return Optional.ofNullable(response.getResponseBody());
@@ -54,12 +50,12 @@ public class Connection {
     public void sendPostAsync(String body, String endpoint) {
         try {
             String url = cometBaseUrl + endpoint;
-            BoundRequestBuilder builder = asyncHttpClient
+            ListenableFuture<Response> future = asyncHttpClient
                     .preparePost(url)
                     .setBody(body)
-                    .addHeader("Content-Type", "application/json");
-            builder = addAuth(builder);
-            ListenableFuture<Response> future = builder.execute();
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Comet-Sdk-Api", apiKey)
+                    .execute();
             if (!endpoint.equals("/output")) {
                 future.addListener(new ResponseListener(body, endpoint, future), executorService);
             }
@@ -72,12 +68,12 @@ public class Connection {
     public Optional<String> sendPost(File file, String endpoint, Map<String, String> params) {
         try {
             String url = getUrl(cometBaseUrl + endpoint, params);
-            BoundRequestBuilder builder = asyncHttpClient
+            Response response = asyncHttpClient
                     .preparePost(url)
                     .addBodyPart(new FilePart("file", file))
-                    .addHeader("Content-Type", "multipart/form-data");
-            builder = addAuth(builder);
-            Response response = builder .execute().get();
+                    .addHeader("Content-Type", "multipart/form-data")
+                    .addHeader("Comet-Sdk-Api", apiKey)
+                    .execute().get();
 
             return Optional.ofNullable(response.getResponseBody());
         } catch (Exception e) {
@@ -85,17 +81,6 @@ public class Connection {
             e.printStackTrace();
             return Optional.empty();
         }
-    }
-
-    private BoundRequestBuilder addAuth(BoundRequestBuilder builderArg) {
-        BoundRequestBuilder builder = builderArg;
-        if (restApiKey.isPresent()) {
-            builder = builder.addHeader("Authorization", restApiKey.get());
-        }
-        if (apiKey.isPresent()) {
-            builder = builder.addHeader("Comet-Sdk-Api", apiKey.get());
-        }
-        return builder;
     }
 
     private static String getUrl(String url, Map<String, String> params) {
