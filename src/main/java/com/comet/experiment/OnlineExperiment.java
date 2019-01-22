@@ -1,5 +1,7 @@
 package com.comet.experiment;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -16,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 public class OnlineExperiment implements Experiment {
     private static ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     private Connection connection;
+    private Config config;
+
     private Optional<String> experimentKey = Optional.empty();
     private Optional<String> experimentLink = Optional.empty();
 
@@ -34,20 +38,19 @@ public class OnlineExperiment implements Experiment {
     private String context = "";
 
     private OnlineExperiment(String restApiKey, String projectName, String workspace) {
+        this();
         this.projectName = projectName;
         this.workspace = workspace;
         this.restApiKey = Optional.of(restApiKey);
-        this.connection = new Connection(restApiKey, logger);
     }
 
-    private OnlineExperiment() {}
+    private OnlineExperiment() {
+        this.config = ConfigFactory.parseResources("defaults.conf");
+    }
 
     public static OnlineExperiment of(String restApiKey, String projectName, String workspace) {
         OnlineExperiment onlineExperiment = new OnlineExperiment(restApiKey, projectName, workspace);
-        boolean success = onlineExperiment.registerExperiment();
-        if (!success) {
-            throw new RuntimeException();
-        }
+        onlineExperiment.initializeExperiment();
         return onlineExperiment;
     }
 
@@ -89,48 +92,53 @@ public class OnlineExperiment implements Experiment {
             return this;
         }
 
+        public OnlineExperimentBuilder withConfig(File overrideConfig) {
+            this.onlineExperiment.config = ConfigFactory.parseFile(overrideConfig)
+                    .withFallback(this.onlineExperiment.config)
+                    .resolve();
+            return this;
+        }
+
         public OnlineExperimentBuilder interceptStdout() {
             this.onlineExperiment.interceptStdout = true;
             return this;
         }
 
         public OnlineExperiment build() {
-            setupConnection();
-            setupStdOutIntercept();
-            registerExperiment();
+            this.onlineExperiment.initializeExperiment();
 
             return this.onlineExperiment;
         }
+    }
 
-        private void setupConnection() {
-            if (!this.onlineExperiment.restApiKey.isPresent()) {
-                throw new RuntimeException("Rest Api Key required");
-            }
-            this.onlineExperiment.connection =
-                    new Connection(
-                            this.onlineExperiment.restApiKey.get(),
-                            this.onlineExperiment.logger);
+    private void initializeExperiment() {
+        setupConnection();
+        setupStdOutIntercept();
+        registerExperiment();
+    }
+
+    private void setupConnection() {
+        if (!this.restApiKey.isPresent()) {
+            throw new RuntimeException("Rest Api Key required");
         }
+        this.connection =
+                new Connection(
+                        this.config.getString("comet.url"),
+                        this.restApiKey.get(),
+                        this.logger);
+    }
 
-        private void setupStdOutIntercept() {
-            if (this.onlineExperiment.interceptStdout) {
-                try {
-                    this.onlineExperiment.captureStdout();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-
-        private void registerExperiment() {
-            boolean success = this.onlineExperiment.registerExperiment();
-            if (!success) {
-                throw new RuntimeException("Failed to register onlineExperiment with Comet ML");
+    private void setupStdOutIntercept() {
+        if (this.interceptStdout) {
+            try {
+                this.captureStdout();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
     }
 
-    private boolean registerExperiment() {
+    private void registerExperiment() {
         JSONObject obj = new JSONObject();
         obj.put("project_name", projectName);
         obj.put("workspace", workspace);
@@ -149,7 +157,10 @@ public class OnlineExperiment implements Experiment {
                         new StatusPing(this), 1, 3, TimeUnit.SECONDS));
             }
         });
-        return this.experimentKey.isPresent();
+
+        if (!this.experimentKey.isPresent()) {
+            throw new RuntimeException("Failed to register onlineExperiment with Comet ML");
+        }
     }
 
     public void exit() {

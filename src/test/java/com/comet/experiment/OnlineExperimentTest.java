@@ -101,6 +101,7 @@ public class OnlineExperimentTest {
                 OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
                         .interceptStdout()
+                        .withConfig(getOverrideConfig())
                         .build();
 
         System.out.println(experiment.getExperimentKey().get());
@@ -123,8 +124,13 @@ public class OnlineExperimentTest {
         OnlineExperiment onlineExperiment =
                 OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
+                        .withConfig(getOverrideConfig())
                         .build();
         onlineExperiment.setContext("context");
         return onlineExperiment;
+    }
+
+    private File getOverrideConfig() {
+        return new File(getClass().getClassLoader().getResource("overrides.conf").getFile());
     }
 }
