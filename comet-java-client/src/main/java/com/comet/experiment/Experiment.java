@@ -114,6 +114,12 @@ public interface Experiment {
     void logOther(String key, Object value);
 
     /**
+     * Logs a graph to Comet
+     * @param graph The graph to be logged
+     */
+    void logGraph(String graph);
+
+    /**
      * Logs the start time of the experiment
      * @param startTimeMillis When you want to say that the experiment started
      */

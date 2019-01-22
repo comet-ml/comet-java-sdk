@@ -318,8 +318,17 @@ public class OnlineExperiment implements Experiment {
         });
     }
 
-    public void logGraph() {
+    @Override
+    public void logGraph(String graph) {
+        logger.debug("logOther {}", graph);
 
+        this.experimentKey.ifPresent(expKey -> {
+            JSONObject obj = new JSONObject();
+            obj.put(Contstants.EXPERIMENT_KEY, expKey);
+            obj.put("graph", graph);
+            obj.put("offset", step);
+            connection.sendPostAsync(obj.toString(), Contstants.GRAPH);
+        });
     }
 
     @Override
