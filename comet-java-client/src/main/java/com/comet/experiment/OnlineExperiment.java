@@ -39,15 +39,26 @@ public class OnlineExperiment implements Experiment {
     private String context = "";
 
     private OnlineExperiment(String apiKey, String projectName, String workspace) {
-        this();
+        this.config = ConfigFactory.parseFile(
+                new File(getClass().getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
+
         this.projectName = projectName;
         this.workspace = workspace;
         this.apiKey = Optional.of(apiKey);
+        this.initializeExperiment();
     }
 
-    private OnlineExperiment() {
+    public OnlineExperiment() {
         this.config = ConfigFactory.parseFile(
                 new File(getClass().getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
+
+        String apiKey = config.getString("comet.apiKey");
+        String project = config.getString("comet.project");
+        String workspace = config.getString("comet.workspace");
+        this.projectName = project;
+        this.workspace = workspace;
+        this.apiKey = Optional.of(apiKey);
+        this.initializeExperiment();
     }
 
     public static OnlineExperiment of(String apiKey, String projectName, String workspace) {
@@ -364,6 +375,11 @@ public class OnlineExperiment implements Experiment {
                     put("context", context);
                     put("overwrite", Boolean.toString(overwrite));
                 }}));
+    }
+
+    @Override
+    public void uploadAsset(File asset, boolean overwrite){
+        uploadAsset(asset, asset.getName(), overwrite);
     }
 
     @Override

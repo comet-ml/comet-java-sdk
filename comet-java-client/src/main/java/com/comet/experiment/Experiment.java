@@ -138,6 +138,7 @@ public interface Experiment {
      * @param overwrite Whether to overwrite files of the same name in Comet
      */
     void uploadAsset(File asset, String fileName, boolean overwrite);
+    void uploadAsset(File asset, boolean overwrite);
 
     /**
      * Upload an image to be associated with the experiment

@@ -38,7 +38,12 @@ public class Connection {
                     .addHeader("Comet-Sdk-Api", apiKey)
                     .execute().get();
 
-            logger.debug("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody());
+            if (response.getStatusCode() != 200){
+                logger.error(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
+            }else {
+                logger.debug(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
+            }
+
             return Optional.ofNullable(response.getResponseBody());
         } catch (Exception e) {
             logger.error("Failed to post to " + endpoint);
