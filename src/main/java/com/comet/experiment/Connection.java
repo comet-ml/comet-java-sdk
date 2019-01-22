@@ -19,9 +19,10 @@ public class Connection {
     static AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
     static ExecutorService executorService = Executors.newSingleThreadExecutor();
     String restApiKey;
-    String cometBaseUrl = "https://staging.comet.ml/api/rest/v1/write";
+    String cometBaseUrl;
 
-    protected Connection(String restApiKey, Logger logger) {
+    protected Connection(String cometBaseUrl, String restApiKey, Logger logger) {
+        this.cometBaseUrl = cometBaseUrl;
         this.restApiKey = restApiKey;
         this.logger = logger;
     }
