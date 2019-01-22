@@ -76,11 +76,28 @@ public interface Experiment {
     void logMetric(String metricName, String metricValue);
 
     /**
+     * Logs a metric with Comet.  Metrics are generally values that change from step to step
+     * @param metricName The name for the metric to be logged
+     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
+     * @param step The current step for this metric, this will set the given step for this experiment
+     */
+    void logMetric(String metricName, String metricValue, long step);
+
+
+    /**
      * Logs a param with Comet.  Params should be set at the start of the experiment
-     * @param paramName The name of the param being logged
+     * @param parameterName The name of the param being logged
      * @param paramValue The value for the param being logged
      */
-    void logParam(String paramName, String paramValue);
+    void logParameter(String parameterName, String paramValue);
+
+    /**
+     * Logs a param with Comet.  Params should be set at the start of the experiment
+     * @param parameterName The name of the param being logged
+     * @param paramValue The value for the param being logged
+     * @param step The current step for this metric, this will set the given step for this experiment
+     */
+    void logParameter(String parameterName, String paramValue, long step);
 
     /**
      * Let's you create an html report for the experiment

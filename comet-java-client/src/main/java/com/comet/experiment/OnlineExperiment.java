@@ -240,6 +240,11 @@ public class OnlineExperiment implements Experiment {
     }
 
     public void logMetric(String metricName, String metricValue) {
+        logMetric(metricName, metricValue, step);
+    }
+
+    public void logMetric(String metricName, String metricValue, long step){
+        this.setStep(step);
         logger.debug("logMetric {} {}", metricName, metricValue);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
@@ -251,12 +256,17 @@ public class OnlineExperiment implements Experiment {
         });
     }
 
-    public void logParam(String paramName, String paramValue) {
-        logger.debug("logParam {} {}", paramName, paramValue);
+    public void logParameter(String parameterName, String paramValue) {
+        logParameter(parameterName, paramValue, step);
+    }
+
+    public void logParameter(String parameterName, String paramValue, long step){
+        this.setStep(step);
+        logger.debug("logParameter {} {}", parameterName, paramValue);
         this.experimentKey.ifPresent(key -> {
             JSONObject obj = new JSONObject();
             obj.put(Contstants.EXPERIMENT_KEY, key);
-            obj.put("paramName", paramName);
+            obj.put("paramName", parameterName);
             obj.put("paramValue", paramValue);
             obj.put("step", step);
             connection.sendPostAsync(obj.toString(), Contstants.PARAMETER);

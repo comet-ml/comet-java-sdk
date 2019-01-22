@@ -52,7 +52,7 @@ public class OnlineExperimentTest {
     @Test
     public void testLogParam() {
         Experiment experiment = createAndRegisterExperiment();
-        experiment.logParam("paramName", "paramValue");
+        experiment.logParameter("paramName", "paramValue");
     }
 
     @Test
