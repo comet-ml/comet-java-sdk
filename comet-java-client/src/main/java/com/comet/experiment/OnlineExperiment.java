@@ -75,36 +75,43 @@ public class OnlineExperiment implements Experiment {
             this.onlineExperiment.apiKey = Optional.of(apiKey);
         }
 
+        @Override
         public OnlineExperimentBuilder withProjectName(String projectName) {
             this.onlineExperiment.projectName = projectName;
             return this;
         }
 
+        @Override
         public OnlineExperimentBuilder withWorkspace(String workspace) {
             this.onlineExperiment.workspace = workspace;
             return this;
         }
 
+        @Override
         public OnlineExperimentBuilder withApiKey(String apiKey) {
             this.onlineExperiment.apiKey = Optional.of(apiKey);
             return this;
         }
 
+        @Override
         public OnlineExperimentBuilder withExperimentName(String experimentName) {
             this.onlineExperiment.experimentName = Optional.of(experimentName);
             return this;
         }
 
+        @Override
         public OnlineExperimentBuilder withExistingExperimentKey(String experimentKey) {
             this.onlineExperiment.experimentKey = Optional.of(experimentKey);
             return this;
         }
 
+        @Override
         public OnlineExperimentBuilder withLogger(Logger logger) {
             this.onlineExperiment.logger = logger;
             return this;
         }
 
+        @Override
         public OnlineExperimentBuilder withConfig(File overrideConfig) {
             this.onlineExperiment.config = ConfigFactory.parseFile(overrideConfig)
                     .withFallback(this.onlineExperiment.config)
@@ -112,11 +119,13 @@ public class OnlineExperiment implements Experiment {
             return this;
         }
 
+        @Override
         public OnlineExperimentBuilder interceptStdout() {
             this.onlineExperiment.interceptStdout = true;
             return this;
         }
 
+        @Override
         public OnlineExperiment build() {
             this.onlineExperiment.initializeExperiment();
             return this.onlineExperiment;
@@ -181,6 +190,7 @@ public class OnlineExperiment implements Experiment {
         }
     }
 
+    @Override
     public void exit() {
         if (pingStatusFuture.isPresent()) {
             pingStatusFuture.get().cancel(true);
@@ -188,6 +198,7 @@ public class OnlineExperiment implements Experiment {
         }
     }
 
+    @Override
     public void setInterceptStdout() throws IOException {
         if (!interceptStdout) {
             interceptStdout = true;
@@ -195,6 +206,7 @@ public class OnlineExperiment implements Experiment {
         }
     }
 
+    @Override
     public void stopInterceptStdout() {
         if (stdOutLogger.isPresent()) {
             stdOutLogger.get().stop();
@@ -207,42 +219,52 @@ public class OnlineExperiment implements Experiment {
         }
     }
 
+    @Override
     public void setStep(long step) {
         this.step = step;
     }
 
+    @Override
     public void nextStep() {
         step++;
     }
 
+    @Override
     public long getStep() {
         return step;
     }
 
+    @Override
     public void setContext(String context) {
         this.context = context;
     }
 
+    @Override
     public String getContext() {
         return this.context;
     }
 
+    @Override
     public String getExperimentKey() {
         return this.experimentKey.get();
     }
 
+    @Override
     public Optional<String> getExperimentLink() {
         return this.experimentLink;
     }
 
+    @Override
     public void setExperimentName(String experimentName) {
         logOther("Name", experimentName);
     }
 
+    @Override
     public void logMetric(String metricName, String metricValue) {
         logMetric(metricName, metricValue, step);
     }
 
+    @Override
     public void logMetric(String metricName, String metricValue, long step){
         this.setStep(step);
         logger.debug("logMetric {} {}", metricName, metricValue);
@@ -256,10 +278,12 @@ public class OnlineExperiment implements Experiment {
         });
     }
 
+    @Override
     public void logParameter(String parameterName, String paramValue) {
         logParameter(parameterName, paramValue, step);
     }
 
+    @Override
     public void logParameter(String parameterName, String paramValue, long step){
         this.setStep(step);
         logger.debug("logParameter {} {}", parameterName, paramValue);
@@ -273,6 +297,7 @@ public class OnlineExperiment implements Experiment {
         });
     }
 
+    @Override
     public void logHtml(String html, boolean override) {
         logger.debug("logHtml {} {}", html, override);
         this.experimentKey.ifPresent(key -> {
@@ -284,6 +309,7 @@ public class OnlineExperiment implements Experiment {
         });
     }
 
+    @Override
     public void logOther(String key, String value) {
         logger.debug("logOther {} {}", key, value);
         this.experimentKey.ifPresent(expKey -> {
@@ -299,6 +325,7 @@ public class OnlineExperiment implements Experiment {
 
     }
 
+    @Override
     public void logStartTime(long startTimeMillis) {
         logger.debug("logStartTime {}", startTimeMillis);
         this.experimentKey.ifPresent(key -> {
@@ -309,6 +336,7 @@ public class OnlineExperiment implements Experiment {
         });
     }
 
+    @Override
     public void logEndTime(long endTimeMillis) {
         logger.debug("logEndTime {}", endTimeMillis);
         this.experimentKey.ifPresent(key -> {
@@ -319,6 +347,7 @@ public class OnlineExperiment implements Experiment {
         });
     }
 
+    @Override
     public void uploadAsset(File asset, String fileName, boolean overwrite) {
         logger.debug("uploadAsset {} {} {}", asset.getName(), fileName, overwrite);
         this.experimentKey.ifPresent(key ->
@@ -331,6 +360,7 @@ public class OnlineExperiment implements Experiment {
             }}));
     }
 
+    @Override
     public void uploadImage(File image, String imageName, boolean overwrite) {
         logger.debug("uploadAsset {} {} {}", image.getName(), imageName, overwrite);
         this.experimentKey.ifPresent(key -> {
