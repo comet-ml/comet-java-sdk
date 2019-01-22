@@ -126,7 +126,7 @@ public class OnlineExperiment implements Experiment {
         System.out.println(config.entrySet());
         this.connection =
                 new Connection(
-                        this.config.getString("conf.comet.url"),
+                        this.config.getString("comet.url"),
                         this.restApiKey.get(),
                         this.logger);
     }
