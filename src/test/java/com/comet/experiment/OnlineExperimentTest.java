@@ -6,6 +6,7 @@ import org.junit.Test;
 import java.io.File;
 
 public class OnlineExperimentTest {
+    private final String apiKey = "PUT YOUR API KEY HERE TO RUN TESTS";
     private final String restApiKey = "PUT YOUR REST API KEY HERE TO RUN TESTS";
     private final String projectName = "Testing Java Comet Library";
     private final String workspace = "PUT YOUR USER NAME HERE TO RUN TESTS";
@@ -15,6 +16,7 @@ public class OnlineExperimentTest {
         OnlineExperiment onlineExperiment =
                 OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
+                        .withConfig(getOverrideConfig())
                         .build();
         onlineExperiment.exit();
     }
@@ -29,6 +31,16 @@ public class OnlineExperimentTest {
         Experiment onlineExperiment =
                 OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
+                        .withConfig(getOverrideConfig())
+                        .build();
+    }
+
+    @Test
+    public void testApiKey() {
+        Experiment onlineExperiment =
+                OnlineExperiment.builder(projectName, workspace)
+                        .withApiKey(apiKey)
+                        .withConfig(getOverrideConfig())
                         .build();
     }
 
@@ -37,6 +49,7 @@ public class OnlineExperimentTest {
         Experiment onlineExperiment =
                 OnlineExperiment.builder(projectName, workspace)
                         .withRestApiKey(restApiKey)
+                        .withConfig(getOverrideConfig())
                         .withConfig(getOverrideConfig())
                         .build();
         onlineExperiment.setStep(7);
