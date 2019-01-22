@@ -68,6 +68,12 @@ public class OnlineExperimentTest {
     }
 
     @Test
+    public void testLogGraph() {
+        Experiment experiment = createAndRegisterExperiment();
+        experiment.logGraph("graph");
+    }
+
+    @Test
     public void testLogStartTime() {
         Experiment experiment = createAndRegisterExperiment();
         experiment.logStartTime(System.currentTimeMillis());

@@ -11,6 +11,7 @@ public class Contstants {
     public static final String PARAMETER = "/parameter";
     public static final String HTML = "/html";
     public static final String LOG_OTHER = "/log-other";
+    public static final String GRAPH = "/graph";
     public static final String EXPERIMENT_START_END_TIME = "/experiment-start-end-time";
     public static final String UPLOAD_ASSET = "/upload-asset";
     public static final String UPLOAD_IMAGE = "/upload-image";
