@@ -39,6 +39,7 @@ public class OnlineExperimentExample {
 
         experiment.logOther("dataset link", "/tmp/1.csv");
 
+        experiment.logGraph(loadGraph("graph.json"));
         //will close connection, if not called connection will close on jvm exit
         //experiment.exit();
     }
@@ -75,4 +76,10 @@ public class OnlineExperimentExample {
         File file = new File(OnlineExperimentExample.class.getClassLoader().getResource("report.html").getFile());
         return FileUtils.readFileToString(file, "UTF-8");
     }
+
+    private static String loadGraph(String fileName) throws IOException {
+        File file = new File(OnlineExperimentExample.class.getClassLoader().getResource(fileName).getFile());
+        return FileUtils.readFileToString(file, "UTF-8");
+    }
+
 }
