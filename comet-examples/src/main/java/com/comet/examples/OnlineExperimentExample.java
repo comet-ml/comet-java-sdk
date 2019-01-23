@@ -35,7 +35,7 @@ public class OnlineExperimentExample {
         experiment.logParameter("batch_size", "500");
         experiment.logParameter("learning_rate", 12);
 
-        experiment.uploadImage(getFile("chart.png"), "comet logo", false);
+        experiment.uploadImage(getFile("chart.png"), "amazing chart", false);
         experiment.uploadAsset(getFile("model.hd5"), false);
 
         experiment.logOther("dataset-link", "/tmp/1.csv");

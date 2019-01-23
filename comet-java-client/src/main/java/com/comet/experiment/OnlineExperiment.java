@@ -391,7 +391,7 @@ public class OnlineExperiment implements Experiment {
         this.experimentKey.ifPresent(key -> {
             connection.sendPost(image, UPLOAD_IMAGE, new HashMap<String, String>() {{
                 put(EXPERIMENT_KEY, key);
-                put("fileName", imageName);
+                put("figureName", imageName);
                 put("step", Long.toString(step));
                 put("context", context);
                 put("overwrite", Boolean.toString(overwrite));
