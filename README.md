@@ -14,4 +14,4 @@
         </repository>
     </repositories>
 ```
-* create experiment - [example](/tree/master/comet-examples/src/main/java/com/comet/examples)
+* create experiment - [example](/comet-examples/src/main/java/com/comet/examples)
