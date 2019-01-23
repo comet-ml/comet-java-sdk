@@ -3,16 +3,17 @@ package com.comet.examples;
 import com.comet.experiment.Experiment;
 import com.comet.experiment.OnlineExperiment;
 import org.apache.commons.io.FileUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
+
 
 public class OnlineExperimentExample {
 
     public static void main(String[] args) throws IOException {
         //this will take configs from /comet-java-sdk/comet-examples/src/main/resources/defaults.conf
         Experiment experiment = new OnlineExperiment();
+        experiment.setInterceptStdout();
 
         //you can use a builder or just inject params
         //OnlineExperiment.builder();
@@ -37,9 +38,13 @@ public class OnlineExperimentExample {
         experiment.uploadImage(getFile("chart.png"), "comet logo", false);
         experiment.uploadAsset(getFile("model.hd5"), false);
 
-        experiment.logOther("dataset link", "/tmp/1.csv");
+        experiment.logOther("dataset-link", "/tmp/1.csv");
+
+        System.out.println("Epoch 1/20");
+        System.out.println("- loss: 0.7858 - acc: 0.7759 - val_loss: 0.3416 - val_acc: 0.9026");
 
         experiment.logGraph(loadGraph("graph.json"));
+
         //will close connection, if not called connection will close on jvm exit
         //experiment.exit();
     }

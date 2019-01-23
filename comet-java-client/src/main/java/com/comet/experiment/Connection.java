@@ -30,7 +30,7 @@ public class Connection {
     public Optional<String> sendPost(String body, String endpoint) {
         try {
             String url = cometBaseUrl + endpoint;
-            logger.debug("sending {} to {}", body, url);
+            logger.debug(String.format("sending {} to {}", body, url));
             Response response = asyncHttpClient
                     .preparePost(url)
                     .setBody(body)
@@ -80,6 +80,11 @@ public class Connection {
                     .addHeader("Comet-Sdk-Api", apiKey)
                     .execute().get();
 
+            if (response.getStatusCode() != 200){
+                logger.error(String.format("endpoint %s response %s", endpoint, response.getResponseBody()));
+            }else {
+                logger.debug(String.format("endpoint %s response %s", endpoint, response.getResponseBody()));
+            }
             return Optional.ofNullable(response.getResponseBody());
         } catch (Exception e) {
             logger.error("Failed to post to " + endpoint);
@@ -112,7 +117,11 @@ public class Connection {
         public void run() {
             try {
                 Response response = future.get();
-                logger.debug("for body {} and endpoint {} response {}\n", body, endpoint, response.getResponseBody());
+                if (response.getStatusCode() != 200){
+                    logger.error(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
+                }else {
+                    logger.debug(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
+                }
             } catch (Exception ex) {
                 logger.error("failed to get response for " + endpoint);
                 ex.printStackTrace();
