@@ -35,19 +35,34 @@ public class OnlineExperiment implements Experiment {
     private boolean interceptStdout = false;
 
     private Logger logger = LoggerFactory.getLogger(OnlineExperiment.class);
-    private Optional<String> apiKey = Optional.empty();
+    private Optional<String> apiKey;
     private Optional<ScheduledFuture> pingStatusFuture = Optional.empty();
 
     private long step = 0;
     private String context = "";
 
-    private OnlineExperiment(String apiKey, String projectName, String workspace) {
-        this.config = ConfigFactory.parseFile(
-                new File(getClass().getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
+    private OnlineExperiment(
+            String apiKey,
+            String projectName,
+            String workspace,
+            Optional<String> experimentName,
+            Optional<String> experimentKey,
+            Optional<Logger> logger,
+            Config config,
+            boolean interceptStdout) {
+        this.config = config;
 
         this.projectName = projectName;
         this.workspace = workspace;
         this.apiKey = Optional.of(apiKey);
+        this.experimentName = experimentName;
+        this.experimentKey = experimentKey;
+        this.interceptStdout = interceptStdout;
+
+        if (logger.isPresent()) {
+            this.logger = logger.get();
+        }
+
         this.initializeExperiment();
     }
 
@@ -65,84 +80,92 @@ public class OnlineExperiment implements Experiment {
     }
 
     public static OnlineExperiment of(String apiKey, String projectName, String workspace) {
-        OnlineExperiment onlineExperiment = new OnlineExperiment(apiKey, projectName, workspace);
-        onlineExperiment.initializeExperiment();
+        Config config = ConfigFactory.parseFile(
+            new File(OnlineExperiment.class.getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
+        OnlineExperiment onlineExperiment = new OnlineExperiment(apiKey, projectName, workspace, Optional.empty(), Optional.empty(), Optional.empty(), config, true);
         return onlineExperiment;
     }
 
-    public static OnlineExperimentBuilder builder(String projectName, String workspace, String apiKey) {
-        return new OnlineExperimentBuilder(projectName, workspace, apiKey);
+    public static OnlineExperimentBuilder builder(String apiKey, String projectName, String workspace) {
+        return new OnlineExperimentBuilder(apiKey, projectName, workspace);
     }
 
     public static class OnlineExperimentBuilder implements ExperimentBuilder {
-        OnlineExperiment onlineExperiment;
+        private String projectName;
+        private String workspace;
+        private String apiKey;
+        private Optional<String> experimentName = Optional.empty();
+        private Optional<String> experimentKey = Optional.empty();
+        private Optional<Logger> logger = Optional.empty();
+        private Config config;
+        private boolean interceptStdout = false;
 
         /**
          * Create a builder to construct an Experiment Object
          * @param projectName The project under which the experiment should run
          * @param workspace   The workspace under which the experiment should be run
          */
-        private OnlineExperimentBuilder(String projectName, String workspace, String apiKey) {
-            this.onlineExperiment = new OnlineExperiment();
-            this.onlineExperiment.projectName = projectName;
-            this.onlineExperiment.workspace = workspace;
-            this.onlineExperiment.apiKey = Optional.of(apiKey);
+        private OnlineExperimentBuilder(String apiKey, String projectName, String workspace) {
+            this.config = ConfigFactory.parseFile(
+                    new File(getClass().getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
+            this.projectName = projectName;
+            this.workspace = workspace;
+            this.apiKey = apiKey;
         }
 
         @Override
         public OnlineExperimentBuilder withProjectName(String projectName) {
-            this.onlineExperiment.projectName = projectName;
+            this.projectName = projectName;
             return this;
         }
 
         @Override
         public OnlineExperimentBuilder withWorkspace(String workspace) {
-            this.onlineExperiment.workspace = workspace;
+            this.workspace = workspace;
             return this;
         }
 
         @Override
         public OnlineExperimentBuilder withApiKey(String apiKey) {
-            this.onlineExperiment.apiKey = Optional.of(apiKey);
+            this.apiKey = apiKey;
             return this;
         }
 
         @Override
         public OnlineExperimentBuilder withExperimentName(String experimentName) {
-            this.onlineExperiment.experimentName = Optional.of(experimentName);
+            this.experimentName = Optional.of(experimentName);
             return this;
         }
 
         @Override
         public OnlineExperimentBuilder withExistingExperimentKey(String experimentKey) {
-            this.onlineExperiment.experimentKey = Optional.of(experimentKey);
+            this.experimentKey = Optional.of(experimentKey);
             return this;
         }
 
         @Override
         public OnlineExperimentBuilder withLogger(Logger logger) {
-            this.onlineExperiment.logger = logger;
+            this.logger = Optional.ofNullable(logger);
             return this;
         }
 
         @Override
         public OnlineExperimentBuilder withConfig(File overrideConfig) {
-            this.onlineExperiment.config = ConfigFactory.parseFile(overrideConfig)
-                    .withFallback(this.onlineExperiment.config)
+            this.config = ConfigFactory.parseFile(overrideConfig)
+                    .withFallback(this.config)
                     .resolve();
             return this;
         }
 
         @Override
         public OnlineExperimentBuilder interceptStdout() {
-            this.onlineExperiment.interceptStdout = true;
+            this.interceptStdout = true;
             return this;
         }
 
         @Override
         public OnlineExperiment build() {
-            this.onlineExperiment.initializeExperiment();
-            return this.onlineExperiment;
+            return new OnlineExperiment(apiKey, projectName, workspace, experimentName, experimentKey, logger, config, interceptStdout);
         }
     }
 
