@@ -14,7 +14,7 @@ public class OnlineExperimentTest {
     @Test
     public void testOnlineExperiment() {
         OnlineExperiment onlineExperiment =
-                OnlineExperiment.builder(projectName, workspace, apiKey)
+                OnlineExperiment.builder(apiKey, projectName, workspace)
                         .withConfig(getOverrideConfig())
                         .build();
         onlineExperiment.exit();
@@ -28,7 +28,7 @@ public class OnlineExperimentTest {
     @Test
     public void testExistingExperiment() {
         Experiment onlineExperiment =
-                OnlineExperiment.builder(projectName, workspace, apiKey)
+                OnlineExperiment.builder(apiKey, projectName, workspace)
                         .withConfig(getOverrideConfig())
                         .withExistingExperimentKey(existingExperimentKey)
                         .build();
@@ -104,7 +104,7 @@ public class OnlineExperimentTest {
     @Test
     public void testCopyStdout() throws InterruptedException {
         OnlineExperiment experiment =
-                OnlineExperiment.builder(projectName, workspace, apiKey)
+                OnlineExperiment.builder(apiKey, projectName, workspace)
                         .interceptStdout()
                         .withConfig(getOverrideConfig())
                         .build();
@@ -127,7 +127,7 @@ public class OnlineExperimentTest {
 
     private Experiment createAndRegisterExperiment() {
         OnlineExperiment onlineExperiment =
-                OnlineExperiment.builder(projectName, workspace, apiKey)
+                OnlineExperiment.builder(apiKey, projectName, workspace)
                         .withConfig(getOverrideConfig())
                         .build();
         onlineExperiment.setContext("context");

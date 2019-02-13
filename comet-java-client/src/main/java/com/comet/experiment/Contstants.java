@@ -1,6 +1,7 @@
 package com.comet.experiment;
 
 public class Contstants {
+    public static final String OVERRIDES_CONF = "overrides.conf";
     public static final String DEFAULTS_CONF = "defaults.conf";
     public static final String COMET_URL = "comet.url";
     public static final String EXPERIMENT_NAME = "experiment_name";
