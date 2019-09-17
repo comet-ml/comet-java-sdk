@@ -40,6 +40,7 @@ public class OnlineExperiment implements Experiment {
 
     private long step = 0;
     private String context = "";
+    private int maxAuthRetries = 4;
 
     private OnlineExperiment(
             String apiKey,
@@ -183,7 +184,8 @@ public class OnlineExperiment implements Experiment {
                 new Connection(
                         this.config.getString(Contstants.COMET_URL),
                         this.apiKey.get(),
-                        this.logger);
+                        this.logger,
+                        this.maxAuthRetries);
     }
 
     private void setupStdOutIntercept() {

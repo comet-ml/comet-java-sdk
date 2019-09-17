@@ -20,30 +20,44 @@ public class Connection {
     static ExecutorService executorService = Executors.newSingleThreadExecutor();
     String apiKey;
     String cometBaseUrl;
+    int maxAuthRetries;
 
-    protected Connection(String cometBaseUrl, String apiKey, Logger logger) {
+    protected Connection(String cometBaseUrl, String apiKey, Logger logger, int maxAuthRetries) {
         this.cometBaseUrl = cometBaseUrl;
         this.apiKey = apiKey;
         this.logger = logger;
+        this.maxAuthRetries = maxAuthRetries;
     }
 
     public Optional<String> sendPost(String body, String endpoint) {
         try {
             String url = cometBaseUrl + endpoint;
             logger.debug(String.format("sending {} to {}", body, url));
-            Response response = asyncHttpClient
-                    .preparePost(url)
-                    .setBody(body)
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Comet-Sdk-Api", apiKey)
-                    .execute().get();
+            Response response = null;
+            for (int i = 1; i < maxAuthRetries; i++) {
+                response = asyncHttpClient
+                        .preparePost(url)
+                        .setBody(body)
+                        .addHeader("Content-Type", "application/json")
+                        .addHeader("Comet-Sdk-Api", apiKey)
+                        .execute().get();
 
-            if (response.getStatusCode() != 200){
-                logger.error(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
-            }else {
-                logger.debug(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
+                if (response.getStatusCode() != 200) {
+                    if (i < maxAuthRetries) {
+                        logger.error(String.format("for body %s and endpoint %s response %s, retrying\n", body, endpoint, response.getResponseBody()));
+                        Thread.sleep((2^i) * 1000);
+                    } else {
+                        logger.error(String.format("for body %s and endpoint %s response %s, last retry failed\n", body, endpoint, response.getResponseBody()));
+                    }
+                } else {
+                    logger.debug(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
+                    break;
+                }
             }
 
+            if (response == null) {
+                return Optional.empty();
+            }
             return Optional.ofNullable(response.getResponseBody());
         } catch (Exception e) {
             logger.error("Failed to post to " + endpoint);
@@ -80,9 +94,9 @@ public class Connection {
                     .addHeader("Comet-Sdk-Api", apiKey)
                     .execute().get();
 
-            if (response.getStatusCode() != 200){
+            if (response.getStatusCode() != 200) {
                 logger.error(String.format("endpoint %s response %s", endpoint, response.getResponseBody()));
-            }else {
+            } else {
                 logger.debug(String.format("endpoint %s response %s", endpoint, response.getResponseBody()));
             }
             return Optional.ofNullable(response.getResponseBody());
@@ -119,7 +133,7 @@ public class Connection {
                 Response response = future.get();
                 if (response.getStatusCode() != 200){
                     logger.error(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
-                }else {
+                } else {
                     logger.debug(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));
                 }
             } catch (Exception ex) {
