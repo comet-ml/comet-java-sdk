@@ -40,7 +40,7 @@ public class OnlineExperiment implements Experiment {
 
     private long step = 0;
     private String context = "";
-    private int maxAuthRetries = 4;
+    private final int maxAuthRetries = 4;
 
     private OnlineExperiment(
             String apiKey,
