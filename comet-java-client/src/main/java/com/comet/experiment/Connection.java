@@ -44,7 +44,7 @@ public class Connection {
 
                 if (response.getStatusCode() != 200) {
                     if (i < maxAuthRetries) {
-                        logger.error(String.format("for body %s and endpoint %s response %s, retrying\n", body, endpoint, response.getResponseBody()));
+                        logger.debug(String.format("for body %s and endpoint %s response %s, retrying\n", body, endpoint, response.getResponseBody()));
                         Thread.sleep((2^i) * 1000);
                     } else {
                         logger.error(String.format("for body %s and endpoint %s response %s, last retry failed\n", body, endpoint, response.getResponseBody()));
