@@ -19,6 +19,7 @@ public class Constants {
     public static final String UPLOAD_IMAGE = "/upload-image";
     public static final String EXPERIMENT_STATUS = "/experiment-status";
     public static final String SET_GIT_METADATA = "/git_metadata";
+    public static final String ADD_TAG = "/add-tags-to-experiment";
 
     public static final String WORKSPACES = "/workspaces";
     public static final String PROJECTS = "/projects";
@@ -30,4 +31,16 @@ public class Constants {
     public static final String GET_GRAPH = "/experiment/graph";
     public static final String GET_PARAMETERS = "/experiment/params";
     public static final String GET_METRICS = "/experiment/metrics";
+    public static final String GET_LOG_OTHER = "/experiment/log-other";
+    public static final String GET_TAGS = "/experiment/tags";
+    public static final String GET_ASSET_INFO = "/asset/get-asset-list";
+
+    public static final String ASSET_TYPE_ALL = "all";
+    public static final String ASSET_TYPE_UNKNOWN = "unknown";
+    public static final String ASSET_TYPE_AUDIO = "audio";
+    public static final String ASSET_TYPE_VIDEO = "video";
+    public static final String ASSET_TYPE_IMAGE = "image";
+    public static final String ASSET_TYPE_HISTOGRAM_2D = "histogram2d";
+    public static final String ASSET_TYPE_HISTOGRAM_COMBINED = "histogram_combined_3d";
+    public static final String ASSET_TYPE_CONFUSION_MATRIX = "confusion-matrix";
 }

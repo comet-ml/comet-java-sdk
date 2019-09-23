@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -368,6 +369,17 @@ public class OnlineExperiment implements Experiment {
             obj.put("key", key);
             obj.put("val", getObjectValue(value));
             connection.sendPostAsync(obj.toString(), LOG_OTHER);
+        });
+    }
+
+    @Override
+    public void addTag(String tag) {
+        logger.debug("logTag {}", tag);
+        this.experimentKey.ifPresent(expKey -> {
+            JSONObject obj = new JSONObject();
+            obj.put(EXPERIMENT_KEY, expKey);
+            obj.put("addedTags", Collections.singletonList(tag));
+            connection.sendPostAsync(obj.toString(), ADD_TAG);
         });
     }
 

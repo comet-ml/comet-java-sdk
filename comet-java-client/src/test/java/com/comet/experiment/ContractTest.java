@@ -8,12 +8,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.comet.experiment.Constants.*;
+
 public class ContractTest {
-    private static final String apiKey = "FQAIzqTEbRX1Bws9MuOlUXC9v";
-    private static final String restApiKey = "DnCevKEUVJuADTkCXKofBUfEJ";
+    private static final String apiKey = "PUT YOUR API KEY HERE";
+    private static final String restApiKey = "PUT YOUR REST API KEY HERE";
     private static final String projectName = "testing-java-comet-library";
-    private static final String workspace = "corneliusphi";
-    private static final String existingExperimentKey = "rest2b10ece6d40e440c8a50cb75495171c5";
+    private static final String workspace = "PUT YOUR WORKSPACE/USER NAME HERE";
+    private static final String existingExperimentKey = "PUT THE KEY OF AN EXISTING EXPERIMENT HERE";
 
     private static Experiment sharedExperiment = null;
     private static CometApi sharedCometApi = null;
@@ -72,10 +74,12 @@ public class ContractTest {
     }
 
     @Test
-    public void testGitMetadata() {
+    public void testGitMetadata() throws InterruptedException {
         sharedExperiment = createAndRegisterExperiment();
         GitMetadata gitMetadata = new GitMetadata("user", "root", "branch", "parent", "origin");
         sharedExperiment.logGitMetadata(gitMetadata);
+
+        Thread.sleep(1000);
 
         Optional<GitMetadata> gitMetadataFetch = sharedCometApi.getGitMetadata(sharedExperiment.getExperimentKey());
 
@@ -88,9 +92,11 @@ public class ContractTest {
     }
 
     @Test
-    public void testLogHtml() {
+    public void testLogHtml() throws InterruptedException {
         String html = "html";
         sharedExperiment.logHtml(html, false);
+
+        Thread.sleep(1000);
 
         Optional<String> htmlFetch = sharedCometApi.getHtml(sharedExperiment.getExperimentKey());
 
@@ -99,9 +105,11 @@ public class ContractTest {
     }
 
     @Test
-    public void testLogCode() {
+    public void testLogCode() throws InterruptedException {
         String code = "code";
         sharedExperiment.logCode(code);
+
+        Thread.sleep(1000);
 
         Optional<String> codeFetch = sharedCometApi.getCode(sharedExperiment.getExperimentKey());
 
@@ -144,9 +152,11 @@ public class ContractTest {
     }
 
     @Test
-    public void testLogGraph() {
+    public void testLogGraph() throws InterruptedException {
         String graph = "graph";
         sharedExperiment.logGraph("graph");
+
+        Thread.sleep(1000);
 
         Optional<String> graphFetch = sharedCometApi.getGraph(sharedExperiment.getExperimentKey());
 
@@ -160,7 +170,7 @@ public class ContractTest {
         String paramValue = "paramValue";
         sharedExperiment.logParameter(paramName, paramValue);
 
-        Thread.sleep(10000);
+        Thread.sleep(3000);
 
         Optional<ParametersResponse> response = sharedCometApi.getParameters(sharedExperiment.getExperimentKey());
 
@@ -173,10 +183,10 @@ public class ContractTest {
     @Test
     public void testLogMetric() throws InterruptedException {
         String metricName = "metricName";
-        String metricValue = "metricValue";
+        String metricValue = "1.0";
         sharedExperiment.logMetric(metricName, metricValue);
 
-        Thread.sleep(10000);
+        Thread.sleep(3000);
 
         Optional<MetricsResponse> response = sharedCometApi.getMetrics(sharedExperiment.getExperimentKey());
 
@@ -184,6 +194,62 @@ public class ContractTest {
         Assert.assertEquals(1, response.get().getResults().size());
         Assert.assertEquals(metricName, response.get().getResults().get(0).getName());
         Assert.assertEquals(metricValue, response.get().getResults().get(0).getValueCurrent());
+    }
+
+    @Test
+    public void testLogOther() throws InterruptedException {
+        String logOtherName = "logOtherName";
+        String logOtherValue = "logOtherValue";
+        sharedExperiment.logOther(logOtherName, logOtherValue);
+
+        Thread.sleep(3000);
+
+        Optional<LogOtherResponse> response = sharedCometApi.getLogOther(sharedExperiment.getExperimentKey());
+
+        Assert.assertTrue(response.isPresent());
+        Assert.assertEquals(1, response.get().getLogOtherList().size());
+        Assert.assertEquals(logOtherName, response.get().getLogOtherList().get(0).getName());
+        Assert.assertEquals(logOtherValue, response.get().getLogOtherList().get(0).getValueCurrent());
+    }
+
+    @Test
+    public void testTags() throws InterruptedException {
+        String tag = "tagName";
+        sharedExperiment.addTag(tag);
+
+        Thread.sleep(1000);
+
+        Optional<TagsResponse> response = sharedCometApi.getTags(sharedExperiment.getExperimentKey());
+
+        Assert.assertTrue(response.isPresent());
+        Assert.assertEquals(1, response.get().getTags().size());
+        Assert.assertEquals(tag, response.get().getTags().get(0));
+    }
+
+    @Test
+    public void testUploadAssetAndImage() throws InterruptedException {
+        String fileName = "fileName.txt";
+        File file = new File(getClass().getClassLoader().getResource("Logo.psd").getFile());
+        sharedExperiment.uploadAsset(file,fileName, false);
+
+        String imageName = "imageName.psd";
+        sharedExperiment.uploadImage(file, imageName, false);
+
+        Thread.sleep(1000);
+
+        Optional<AssetListResponse> response = sharedCometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_ALL);
+        Assert.assertTrue(response.isPresent());
+        Assert.assertEquals(2, response.get().getAssets().size());
+
+        response = sharedCometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_IMAGE);
+        Assert.assertTrue(response.isPresent());
+        Assert.assertEquals(1, response.get().getAssets().size());
+        Assert.assertEquals(imageName, response.get().getAssets().get(0).getFileName());
+
+        response = sharedCometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_UNKNOWN);
+        Assert.assertTrue(response.isPresent());
+        Assert.assertEquals(1, response.get().getAssets().size());
+        Assert.assertEquals(fileName, response.get().getAssets().get(0).getFileName());
     }
 
     @Ignore
@@ -211,12 +277,6 @@ public class ContractTest {
     }
 
     @Test
-    public void testLogOther() {
-        Experiment experiment = createAndRegisterExperiment();
-        experiment.logOther("otherName", "otherValue");
-    }
-
-    @Test
     public void testLogStartTime() {
         Experiment experiment = createAndRegisterExperiment();
         experiment.logStartTime(System.currentTimeMillis());
@@ -226,22 +286,6 @@ public class ContractTest {
     public void testLogEndTime() {
         Experiment experiment = createAndRegisterExperiment();
         experiment.logEndTime(System.currentTimeMillis());
-    }
-
-    @Test
-    public void testUploadAsset() {
-        File file = new File(getClass().getClassLoader().getResource("Logo.psd").getFile());
-
-        Experiment experiment = createAndRegisterExperiment();
-        experiment.uploadAsset(file,"fileName", false);
-    }
-
-    @Test
-    public void testUploadImage()  {
-        File file = new File(getClass().getClassLoader().getResource("Logo.psd").getFile());
-
-        Experiment experiment = createAndRegisterExperiment();
-        experiment.uploadImage(file, "fileName", false);
     }
 
     private Experiment createAndRegisterExperiment() {

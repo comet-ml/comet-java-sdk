@@ -1,6 +1,7 @@
 package com.comet.experiment;
 
 import com.comet.response.*;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -9,10 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.comet.experiment.Constants.*;
 
@@ -107,6 +105,26 @@ public class CometApi {
         return getObjectForExperiment(experimentKey, GET_METRICS, MetricsResponse.class);
     }
 
+    public Optional<LogOtherResponse> getLogOther(String experimentKey) {
+        return getObjectForExperiment(experimentKey, GET_LOG_OTHER, LogOtherResponse.class);
+    }
+
+    public Optional<TagsResponse> getTags(String experimentKey) {
+        return getObjectForExperiment(experimentKey, GET_TAGS, TagsResponse.class);
+    }
+
+    public Optional<AssetListResponse> getAssetList(String experimentKey, String type) {
+        Optional<List<AssetInfo>> assets =
+                getObject(
+                        GET_ASSET_INFO,
+                        new HashMap<String, String>() {{
+                            put("experimentKey", experimentKey);
+                            put("type", type);
+                        }},
+                        new TypeReference<List<AssetInfo>>(){{}});
+        return assets.map(x -> new AssetListResponse(x));
+    }
+
     public <T> Optional<T> getObjectForExperiment(String experimentKey, String endpoint, Class<T> clazz) {
         return getObject(endpoint, Collections.singletonMap("experimentKey", experimentKey), clazz);
     }
@@ -126,6 +144,25 @@ public class CometApi {
 
         try {
             T decodedResponse = objectMapper.readValue(body.get(), clazz);
+            return Optional.ofNullable(decodedResponse);
+        } catch (IOException ex) {
+            System.out.println(ex);
+            logger.debug("failed to parse endpoint response", ex);
+            return Optional.empty();
+        }
+    }
+
+    public <T> Optional<T> getObject(String endpoint, Map<String, String> parameters, TypeReference<T> typeReference) {
+        Optional<String> body = connection.sendGet(endpoint, parameters);
+        if (!body.isPresent()) {
+            return Optional.empty();
+        }
+
+        System.out.println("body:");
+        System.out.println(body.get());
+
+        try {
+            T decodedResponse = objectMapper.readValue(body.get(), typeReference);
             return Optional.ofNullable(decodedResponse);
         } catch (IOException ex) {
             System.out.println(ex);

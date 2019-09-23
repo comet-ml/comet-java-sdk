@@ -4,7 +4,6 @@ import com.comet.response.GitMetadata;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 
 public interface Experiment {
@@ -121,6 +120,12 @@ public interface Experiment {
      * @param value The value for said key
      */
     void logOther(String key, Object value);
+
+    /**
+     * Adds a tag to this experiment.
+     * @param tag The tag to be added
+     */
+    void addTag(String tag);
 
     /**
      * Logs a graph to Comet
