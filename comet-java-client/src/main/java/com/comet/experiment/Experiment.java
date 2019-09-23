@@ -1,7 +1,10 @@
 package com.comet.experiment;
 
+import com.comet.response.GitMetadata;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 public interface Experiment {
@@ -107,6 +110,12 @@ public interface Experiment {
     void logHtml(String html, boolean override);
 
     /**
+     * Let's you report code for the experiment
+     * @param code Code to be sent to Comet
+     */
+    void logCode(String code);
+
+    /**
      * Logs a key value pair with Comet.  This can be used for any sort of generic per experiment data you wish to track
      * @param key The key for the data to be stored
      * @param value The value for said key
@@ -148,4 +157,10 @@ public interface Experiment {
      */
     void uploadImage(File image, String imageName, boolean overwrite);
     void uploadImage(File image, boolean overwrite);
+
+    /**
+     * Log Git Metadata for the experiment.
+     * @param gitMetadata The Git Metadata for the experiment
+     */
+    void logGitMetadata(GitMetadata gitMetadata);
 }

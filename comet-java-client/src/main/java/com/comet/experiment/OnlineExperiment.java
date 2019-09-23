@@ -1,5 +1,6 @@
 package com.comet.experiment;
 
+import com.comet.response.GitMetadata;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.json.JSONArray;
@@ -15,8 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import static com.comet.experiment.Contstants.EXPERIMENT_KEY;
-import static com.comet.experiment.Contstants.UPLOAD_IMAGE;
+import static com.comet.experiment.Constants.*;
 
 public class OnlineExperiment implements Experiment {
     public static final String OUTPUT = "/output";
@@ -69,7 +69,7 @@ public class OnlineExperiment implements Experiment {
 
     public OnlineExperiment() {
         this.config = ConfigFactory.parseFile(
-                new File(getClass().getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
+                new File(getClass().getClassLoader().getResource(Constants.DEFAULTS_CONF).getFile()));
 
         String apiKey = config.getString("comet.apiKey");
         String project = config.getString("comet.project");
@@ -82,7 +82,7 @@ public class OnlineExperiment implements Experiment {
 
     public static OnlineExperiment of(String apiKey, String projectName, String workspace) {
         Config config = ConfigFactory.parseFile(
-            new File(OnlineExperiment.class.getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
+            new File(OnlineExperiment.class.getClassLoader().getResource(Constants.DEFAULTS_CONF).getFile()));
         OnlineExperiment onlineExperiment = new OnlineExperiment(apiKey, projectName, workspace, Optional.empty(), Optional.empty(), Optional.empty(), config, true);
         return onlineExperiment;
     }
@@ -108,7 +108,7 @@ public class OnlineExperiment implements Experiment {
          */
         private OnlineExperimentBuilder(String apiKey, String projectName, String workspace) {
             this.config = ConfigFactory.parseFile(
-                    new File(getClass().getClassLoader().getResource(Contstants.DEFAULTS_CONF).getFile()));
+                    new File(getClass().getClassLoader().getResource(Constants.DEFAULTS_CONF).getFile()));
             this.projectName = projectName;
             this.workspace = workspace;
             this.apiKey = apiKey;
@@ -182,8 +182,9 @@ public class OnlineExperiment implements Experiment {
         }
         this.connection =
                 new Connection(
-                        this.config.getString(Contstants.COMET_URL),
-                        this.apiKey.get(),
+                        this.config.getString(Constants.COMET_URL),
+                        this.apiKey,
+                        Optional.empty(),
                         this.logger,
                         this.maxAuthRetries);
     }
@@ -208,13 +209,13 @@ public class OnlineExperiment implements Experiment {
         obj.put("project_name", projectName);
         obj.put("workspace", workspace);
         this.experimentName.ifPresent(
-                experiment -> obj.put(Contstants.EXPERIMENT_NAME, experiment));
-        Optional<String> responseOptional = connection.sendPost(obj.toString(), Contstants.NEW_EXPERIMENT);
+                experiment -> obj.put(Constants.EXPERIMENT_NAME, experiment));
+        Optional<String> responseOptional = connection.sendPost(obj.toString(), Constants.NEW_EXPERIMENT);
         responseOptional.ifPresent(response -> {
             JSONObject result = new JSONObject(response);
             if (result.has(EXPERIMENT_KEY)) {
                 this.experimentKey = Optional.ofNullable(result.getString(EXPERIMENT_KEY));
-                this.experimentLink = Optional.ofNullable(result.getString(Contstants.LINK));
+                this.experimentLink = Optional.ofNullable(result.getString(Constants.LINK));
                 logger.info("Experiment is live on comet.ml " + this.experimentLink.orElse(""));
                 pingStatusFuture = Optional.of(scheduledExecutorService.scheduleAtFixedRate(
                         new StatusPing(this), 1, 3, TimeUnit.SECONDS));
@@ -305,12 +306,14 @@ public class OnlineExperiment implements Experiment {
         this.setStep(step);
         logger.debug("logMetric {} {}", metricName, metricValue);
         this.experimentKey.ifPresent(key -> {
+            System.out.println("SENDING METRIC");
             JSONObject obj = new JSONObject();
             obj.put(EXPERIMENT_KEY, key);
             obj.put("metricName", metricName);
             obj.put("metricValue", getObjectValue(metricValue));
             obj.put("step", step);
-            connection.sendPostAsync(obj.toString(), Contstants.METRIC);
+            obj.put("timestamp", System.currentTimeMillis());
+            connection.sendPostAsync(obj.toString(), METRIC);
         });
     }
 
@@ -329,7 +332,7 @@ public class OnlineExperiment implements Experiment {
             obj.put("paramName", parameterName);
             obj.put("paramValue", getObjectValue(paramValue));
             obj.put("step", step);
-            connection.sendPostAsync(obj.toString(), Contstants.PARAMETER);
+            connection.sendPostAsync(obj.toString(), PARAMETER);
         });
     }
 
@@ -341,7 +344,18 @@ public class OnlineExperiment implements Experiment {
             obj.put(EXPERIMENT_KEY, key);
             obj.put("html", html);
             obj.put("override", override);
-            connection.sendPostAsync(obj.toString(), Contstants.HTML);
+            connection.sendPostAsync(obj.toString(), SET_HTML);
+        });
+    }
+
+    @Override
+    public void logCode(String code) {
+        logger.debug("logCode {}", code);
+        this.experimentKey.ifPresent(key -> {
+            JSONObject obj = new JSONObject();
+            obj.put(EXPERIMENT_KEY, key);
+            obj.put("code", code);
+            connection.sendPostAsync(obj.toString(), SET_CODE);
         });
     }
 
@@ -353,7 +367,7 @@ public class OnlineExperiment implements Experiment {
             obj.put(EXPERIMENT_KEY, expKey);
             obj.put("key", key);
             obj.put("val", getObjectValue(value));
-            connection.sendPostAsync(obj.toString(), Contstants.LOG_OTHER);
+            connection.sendPostAsync(obj.toString(), LOG_OTHER);
         });
     }
 
@@ -366,7 +380,7 @@ public class OnlineExperiment implements Experiment {
             obj.put(EXPERIMENT_KEY, expKey);
             obj.put("graph", graph);
             obj.put("offset", step);
-            connection.sendPostAsync(obj.toString(), Contstants.GRAPH);
+            connection.sendPostAsync(obj.toString(), GRAPH);
         });
     }
 
@@ -377,7 +391,7 @@ public class OnlineExperiment implements Experiment {
             JSONObject obj = new JSONObject();
             obj.put(EXPERIMENT_KEY, key);
             obj.put("start_time_millis", startTimeMillis);
-            connection.sendPostAsync(obj.toString(), Contstants.EXPERIMENT_START_END_TIME);
+            connection.sendPostAsync(obj.toString(), EXPERIMENT_START_END_TIME);
         });
     }
 
@@ -388,7 +402,7 @@ public class OnlineExperiment implements Experiment {
             JSONObject obj = new JSONObject();
             obj.put(EXPERIMENT_KEY, key);
             obj.put("end_time_millis", endTimeMillis);
-            connection.sendPostAsync(obj.toString(), Contstants.EXPERIMENT_START_END_TIME);
+            connection.sendPostAsync(obj.toString(), EXPERIMENT_START_END_TIME);
         });
     }
 
@@ -396,7 +410,7 @@ public class OnlineExperiment implements Experiment {
     public void uploadAsset(File asset, String fileName, boolean overwrite) {
         logger.debug(String.format("uploadAsset {} {} {}", asset.getName(), fileName, overwrite));
         this.experimentKey.ifPresent(key ->
-                connection.sendPost(asset, Contstants.UPLOAD_ASSET, new HashMap<String, String>() {{
+                connection.sendPost(asset, UPLOAD_ASSET, new HashMap<String, String>() {{
                     put(EXPERIMENT_KEY, key);
                     put("fileName", fileName);
                     put("step", Long.toString(step));
@@ -421,6 +435,26 @@ public class OnlineExperiment implements Experiment {
                 put("context", context);
                 put("overwrite", Boolean.toString(overwrite));
             }});
+        });
+    }
+
+    @Override
+    public void logGitMetadata(GitMetadata gitMetadata) {
+        logger.debug(String.format("gitMetadata {}", gitMetadata));
+        this.experimentKey.ifPresent(key -> {
+            JSONObject outer = new JSONObject();
+            outer.put(EXPERIMENT_KEY, key);
+            JSONObject inner = new JSONObject();
+            inner.put("runContext", context);
+            JSONObject metadata = new JSONObject();
+            metadata.put("user", gitMetadata.getUser());
+            metadata.put("origin", gitMetadata.getOrigin());
+            metadata.put("branch", gitMetadata.getBranch());
+            metadata.put("root", gitMetadata.getRoot());
+            metadata.put("parent", gitMetadata.getParent());
+            inner.put("sdkGitMetadata", metadata);
+            outer.put("sdkGitMetadataWithContext", inner);
+            connection.sendPostAsync(outer.toString(), SET_GIT_METADATA);
         });
     }
 
@@ -463,7 +497,7 @@ public class OnlineExperiment implements Experiment {
             logger.debug("pingStatus");
             JSONObject obj = new JSONObject();
             obj.put(EXPERIMENT_KEY, key);
-            connection.sendPostAsync(obj.toString(), Contstants.EXPERIMENT_STATUS);
+            connection.sendPostAsync(obj.toString(), Constants.EXPERIMENT_STATUS);
         });
     }
 
