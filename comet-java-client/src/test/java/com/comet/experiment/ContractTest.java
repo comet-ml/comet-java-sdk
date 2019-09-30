@@ -6,7 +6,6 @@ import org.awaitility.Awaitility;
 import org.junit.*;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
@@ -137,7 +136,7 @@ public class ContractTest {
     }
 
     @Test
-    public void testCopyStdout() throws InterruptedException {
+    public void testCopyStdout() {
         OnlineExperiment experiment =
                 OnlineExperiment.builder(apiKey, projectName, workspace)
                         .interceptStdout()
