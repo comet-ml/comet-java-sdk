@@ -18,15 +18,13 @@ public class CometApi {
     public final static ObjectMapper objectMapper = new ObjectMapper();
     private final Connection connection;
     private Logger logger = LoggerFactory.getLogger(OnlineExperiment.class);
-    private final int maxAuthRetries = 4;
 
     public CometApi(Config config, String restApiKey) {
         this.connection = new Connection(
                 config.getString(Constants.COMET_URL),
                 Optional.empty(),
                 Optional.of(restApiKey),
-                this.logger,
-                this.maxAuthRetries);
+                this.logger);
     }
 
     public List<String> getAllWorkspaces() {
@@ -35,14 +33,12 @@ public class CometApi {
             return Collections.emptyList();
         }
 
-        System.out.println(body.get());
-
         try {
             WorkspaceResponse workspaceResponse = objectMapper.readValue(body.get(), WorkspaceResponse.class);
             return workspaceResponse.getWorkspaces();
         } catch (IOException ex) {
-            logger.debug("failed to parse workspace endpoint response", ex);
-            return Collections.emptyList();
+            logger.error("failed to parse workspace endpoint response", ex);
+            throw new RuntimeException("failed to parse workspace endpoint response", ex);
         }
     }
 
@@ -52,15 +48,12 @@ public class CometApi {
             return Collections.emptyList();
         }
 
-        System.out.println(body.get());
-
         try {
             ProjectResponse projectResponse = objectMapper.readValue(body.get(), ProjectResponse.class);
             return projectResponse.getProjects();
         } catch (IOException ex) {
-            System.out.println(ex);
-            logger.debug("failed to parse project endpoint response", ex);
-            return Collections.emptyList();
+            logger.error("failed to parse project endpoint response", ex);
+            throw new RuntimeException("failed to parse project endpoint response", ex);
         }
     }
 
@@ -139,16 +132,12 @@ public class CometApi {
             return Optional.empty();
         }
 
-        System.out.println("body:");
-        System.out.println(body.get());
-
         try {
             T decodedResponse = objectMapper.readValue(body.get(), clazz);
             return Optional.ofNullable(decodedResponse);
         } catch (IOException ex) {
-            System.out.println(ex);
-            logger.debug("failed to parse endpoint response", ex);
-            return Optional.empty();
+            logger.error("failed to parse endpoint response", ex);
+            throw new RuntimeException("failed to parse endpoint response", ex);
         }
     }
 
@@ -158,16 +147,12 @@ public class CometApi {
             return Optional.empty();
         }
 
-        System.out.println("body:");
-        System.out.println(body.get());
-
         try {
             T decodedResponse = objectMapper.readValue(body.get(), typeReference);
             return Optional.ofNullable(decodedResponse);
         } catch (IOException ex) {
-            System.out.println(ex);
-            logger.debug("failed to parse endpoint response", ex);
-            return Optional.empty();
+            logger.error("failed to parse endpoint response", ex);
+            throw new RuntimeException("failed to parse endpoint response", ex);
         }
     }
 

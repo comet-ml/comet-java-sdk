@@ -33,6 +33,14 @@ public class Connection {
         this.maxAuthRetries = maxAuthRetries;
     }
 
+    protected Connection(String cometBaseUrl, Optional<String> apiKey, Optional<String> restApiKey, Logger logger) {
+        this.cometBaseUrl = cometBaseUrl;
+        this.apiKey = apiKey;
+        this.restApiKey = restApiKey;
+        this.logger = logger;
+        this.maxAuthRetries = 1;
+    }
+
     public Optional<String> sendPost(String body, String endpoint) {
         try {
             String url = cometBaseUrl + WRITE + endpoint;
@@ -71,8 +79,6 @@ public class Connection {
     }
 
     public void sendPostAsync(String body, String endpoint) {
-        System.out.println("asyncBody:");
-        System.out.println(body);
         try {
             String url = cometBaseUrl + WRITE + endpoint;
             ListenableFuture<Response> future = asyncHttpClient
@@ -163,7 +169,6 @@ public class Connection {
         @Override
         public void run() {
             try {
-                System.out.println("MADE IT TO ASYNC LISTENER");
                 Response response = future.get();
                 if (response.getStatusCode() != 200){
                     logger.error(String.format("for body %s and endpoint %s response %s\n", body, endpoint, response.getResponseBody()));

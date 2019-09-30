@@ -307,7 +307,6 @@ public class OnlineExperiment implements Experiment {
         this.setStep(step);
         logger.debug("logMetric {} {}", metricName, metricValue);
         this.experimentKey.ifPresent(key -> {
-            System.out.println("SENDING METRIC");
             JSONObject obj = new JSONObject();
             obj.put(EXPERIMENT_KEY, key);
             obj.put("metricName", metricName);

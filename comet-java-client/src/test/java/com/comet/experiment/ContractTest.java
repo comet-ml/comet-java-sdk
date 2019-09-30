@@ -1,34 +1,42 @@
 package com.comet.experiment;
 
 import com.comet.response.*;
+import org.apache.commons.lang3.StringUtils;
+import org.awaitility.Awaitility;
 import org.junit.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import static com.comet.experiment.Constants.*;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ContractTest {
-    private static final String apiKey = "PUT YOUR API KEY HERE";
-    private static final String restApiKey = "PUT YOUR REST API KEY HERE";
+    private static String apiKey = null;
+    private static String restApiKey = null;
     private static final String projectName = "testing-java-comet-library";
-    private static final String workspace = "PUT YOUR WORKSPACE/USER NAME HERE";
-    private static final String existingExperimentKey = "PUT THE KEY OF AN EXISTING EXPERIMENT HERE";
+    private static final String workspace = "corneliusphi";
+    private static String existingExperimentKey = null;
 
     private static Experiment sharedExperiment = null;
-    private static CometApi sharedCometApi = null;
+    private static CometApi cometApi = null;
 
     @BeforeClass
     public static void setupSharedExperiment() {
+        apiKey = System.getenv("COMET_API_KEY");
+        restApiKey = System.getenv("COMET_REST_API_KEY");
+        existingExperimentKey = System.getenv("COMET_EXISTING_EXPERIMENT_KEY");
         sharedExperiment =
                 OnlineExperiment.builder(apiKey, projectName, workspace)
                         .withConfig(getOverrideConfig())
                         .build();
         sharedExperiment.setStep(1);
 
-        sharedCometApi = CometApi.builder(restApiKey)
+        cometApi = CometApi.builder(restApiKey)
                 .withConfig(getOverrideConfig()).build();
     }
 
@@ -51,15 +59,13 @@ public class ContractTest {
         CometApi cometApi = CometApi.builder(restApiKey)
                 .withConfig(getOverrideConfig()).build();
         List<String> workspaces = cometApi.getAllWorkspaces();
-        System.out.println(workspaces);
         Assert.assertFalse(workspaces.isEmpty());
     }
 
     @Test
     public void testGetProjectsAndExperiments() {
-        List<ProjectRest> projects = sharedCometApi.getAllProjects(workspace);
+        List<ProjectRest> projects = cometApi.getAllProjects(workspace);
 
-        System.out.println(projects);
         Assert.assertFalse(projects.isEmpty());
         List<String> projectNames = projects.stream()
                 .map(x -> x.getProject_name()).collect(Collectors.toList());
@@ -68,20 +74,25 @@ public class ContractTest {
                 .filter(x -> x.getProject_name().equals(projectName)).findFirst();
         Assert.assertTrue(project.isPresent());
 
-        List<ExperimentRest> experiments = sharedCometApi.getAllExperiments(project.get().getProject_id());
+        List<ExperimentRest> experiments = cometApi.getAllExperiments(project.get().getProject_id());
 
         Assert.assertFalse(experiments.isEmpty());
     }
 
     @Test
-    public void testGitMetadata() throws InterruptedException {
+    public void testGitMetadata() {
         sharedExperiment = createAndRegisterExperiment();
         GitMetadata gitMetadata = new GitMetadata("user", "root", "branch", "parent", "origin");
         sharedExperiment.logGitMetadata(gitMetadata);
 
-        Thread.sleep(1000);
+        awaitData(() -> {
+            Optional<GitMetadata> response = cometApi.getGitMetadata(sharedExperiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return StringUtils.isNotEmpty(response.get().getBranch());
+        });
+        awaitData(() -> cometApi.getGitMetadata(sharedExperiment.getExperimentKey()).isPresent());
 
-        Optional<GitMetadata> gitMetadataFetch = sharedCometApi.getGitMetadata(sharedExperiment.getExperimentKey());
+        Optional<GitMetadata> gitMetadataFetch = cometApi.getGitMetadata(sharedExperiment.getExperimentKey());
 
         Assert.assertTrue(gitMetadataFetch.isPresent());
         Assert.assertEquals(gitMetadata.getBranch(), gitMetadataFetch.get().getBranch());
@@ -92,26 +103,34 @@ public class ContractTest {
     }
 
     @Test
-    public void testLogHtml() throws InterruptedException {
+    public void testLogHtml() {
         String html = "html";
         sharedExperiment.logHtml(html, false);
 
-        Thread.sleep(1000);
+        awaitData(() -> {
+            Optional<String> response = cometApi.getHtml(sharedExperiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return StringUtils.isNotEmpty(response.get());
+        });
 
-        Optional<String> htmlFetch = sharedCometApi.getHtml(sharedExperiment.getExperimentKey());
+        Optional<String> htmlFetch = cometApi.getHtml(sharedExperiment.getExperimentKey());
 
         Assert.assertTrue(htmlFetch.isPresent());
         Assert.assertEquals(html, htmlFetch.get());
     }
 
     @Test
-    public void testLogCode() throws InterruptedException {
+    public void testLogCode() {
         String code = "code";
         sharedExperiment.logCode(code);
 
-        Thread.sleep(1000);
+        awaitData(() -> {
+            Optional<String> response = cometApi.getCode(sharedExperiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return StringUtils.isNotEmpty(response.get());
+        });
 
-        Optional<String> codeFetch = sharedCometApi.getCode(sharedExperiment.getExperimentKey());
+        Optional<String> codeFetch = cometApi.getCode(sharedExperiment.getExperimentKey());
 
         Assert.assertTrue(codeFetch.isPresent());
         Assert.assertEquals(code, codeFetch.get());
@@ -135,13 +154,18 @@ public class ContractTest {
         System.out.flush();
         System.err.flush();
 
-        Thread.sleep(1000);
         experiment.stopInterceptStdout();
-        Thread.sleep(1000);
 
         System.out.println(nonLoggedLine);
+        System.out.flush();
 
-        Optional<String> output = sharedCometApi.getOutput(experiment.getExperimentKey());
+        awaitData(() -> {
+            Optional<String> response = cometApi.getOutput(experiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return StringUtils.isNotEmpty(response.get());
+        });
+
+        Optional<String> output = cometApi.getOutput(experiment.getExperimentKey());
 
         Assert.assertTrue(output.isPresent());
 
@@ -152,27 +176,35 @@ public class ContractTest {
     }
 
     @Test
-    public void testLogGraph() throws InterruptedException {
+    public void testLogGraph() {
         String graph = "graph";
         sharedExperiment.logGraph("graph");
 
-        Thread.sleep(1000);
+        awaitData(() -> {
+            Optional<String> response = cometApi.getGraph(sharedExperiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return StringUtils.isNotEmpty(response.get());
+        });
 
-        Optional<String> graphFetch = sharedCometApi.getGraph(sharedExperiment.getExperimentKey());
+        Optional<String> graphFetch = cometApi.getGraph(sharedExperiment.getExperimentKey());
 
         Assert.assertTrue(graphFetch.isPresent());
         Assert.assertEquals(graph, graphFetch.get());
     }
 
     @Test
-    public void testLogParam() throws InterruptedException {
+    public void testLogParam() {
         String paramName = "paramName";
         String paramValue = "paramValue";
         sharedExperiment.logParameter(paramName, paramValue);
 
-        Thread.sleep(3000);
+        awaitData(() -> {
+            Optional<ParametersResponse> response = cometApi.getParameters(sharedExperiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return !response.get().getResults().isEmpty();
+        });
 
-        Optional<ParametersResponse> response = sharedCometApi.getParameters(sharedExperiment.getExperimentKey());
+        Optional<ParametersResponse> response = cometApi.getParameters(sharedExperiment.getExperimentKey());
 
         Assert.assertTrue(response.isPresent());
         Assert.assertEquals(1, response.get().getResults().size());
@@ -181,14 +213,18 @@ public class ContractTest {
     }
 
     @Test
-    public void testLogMetric() throws InterruptedException {
+    public void testLogMetric() {
         String metricName = "metricName";
         String metricValue = "1.0";
         sharedExperiment.logMetric(metricName, metricValue);
 
-        Thread.sleep(3000);
+        awaitData(() -> {
+            Optional<MetricsResponse> response = cometApi.getMetrics(sharedExperiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return !response.get().getResults().isEmpty();
+        });
 
-        Optional<MetricsResponse> response = sharedCometApi.getMetrics(sharedExperiment.getExperimentKey());
+        Optional<MetricsResponse> response = cometApi.getMetrics(sharedExperiment.getExperimentKey());
 
         Assert.assertTrue(response.isPresent());
         Assert.assertEquals(1, response.get().getResults().size());
@@ -197,14 +233,18 @@ public class ContractTest {
     }
 
     @Test
-    public void testLogOther() throws InterruptedException {
+    public void testLogOther() {
         String logOtherName = "logOtherName";
         String logOtherValue = "logOtherValue";
         sharedExperiment.logOther(logOtherName, logOtherValue);
 
-        Thread.sleep(3000);
+        awaitData(() -> {
+            Optional<LogOtherResponse> response = cometApi.getLogOther(sharedExperiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return !response.get().getLogOtherList().isEmpty();
+        });
 
-        Optional<LogOtherResponse> response = sharedCometApi.getLogOther(sharedExperiment.getExperimentKey());
+        Optional<LogOtherResponse> response = cometApi.getLogOther(sharedExperiment.getExperimentKey());
 
         Assert.assertTrue(response.isPresent());
         Assert.assertEquals(1, response.get().getLogOtherList().size());
@@ -213,13 +253,17 @@ public class ContractTest {
     }
 
     @Test
-    public void testTags() throws InterruptedException {
+    public void testTags() {
         String tag = "tagName";
         sharedExperiment.addTag(tag);
 
-        Thread.sleep(1000);
+        awaitData(() -> {
+            Optional<TagsResponse> response = cometApi.getTags(sharedExperiment.getExperimentKey());
+            if (!response.isPresent()) return false;
+            return !response.get().getTags().isEmpty();
+        });
 
-        Optional<TagsResponse> response = sharedCometApi.getTags(sharedExperiment.getExperimentKey());
+        Optional<TagsResponse> response = cometApi.getTags(sharedExperiment.getExperimentKey());
 
         Assert.assertTrue(response.isPresent());
         Assert.assertEquals(1, response.get().getTags().size());
@@ -227,7 +271,7 @@ public class ContractTest {
     }
 
     @Test
-    public void testUploadAssetAndImage() throws InterruptedException {
+    public void testUploadAssetAndImage() {
         String fileName = "fileName.txt";
         File file = new File(getClass().getClassLoader().getResource("Logo.psd").getFile());
         sharedExperiment.uploadAsset(file,fileName, false);
@@ -235,18 +279,22 @@ public class ContractTest {
         String imageName = "imageName.psd";
         sharedExperiment.uploadImage(file, imageName, false);
 
-        Thread.sleep(1000);
+        awaitData(() -> {
+            Optional<AssetListResponse> response = cometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_ALL);
+            if (!response.isPresent()) return false;
+            return !response.get().getAssets().isEmpty();
+        });
 
-        Optional<AssetListResponse> response = sharedCometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_ALL);
+        Optional<AssetListResponse> response = cometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_ALL);
         Assert.assertTrue(response.isPresent());
         Assert.assertEquals(2, response.get().getAssets().size());
 
-        response = sharedCometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_IMAGE);
+        response = cometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_IMAGE);
         Assert.assertTrue(response.isPresent());
         Assert.assertEquals(1, response.get().getAssets().size());
         Assert.assertEquals(imageName, response.get().getAssets().get(0).getFileName());
 
-        response = sharedCometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_UNKNOWN);
+        response = cometApi.getAssetList(sharedExperiment.getExperimentKey(), ASSET_TYPE_UNKNOWN);
         Assert.assertTrue(response.isPresent());
         Assert.assertEquals(1, response.get().getAssets().size());
         Assert.assertEquals(fileName, response.get().getAssets().get(0).getFileName());
@@ -295,6 +343,10 @@ public class ContractTest {
                         .build();
         onlineExperiment.setContext("context");
         return onlineExperiment;
+    }
+
+    private void awaitData(BooleanSupplier booleanSupplier) {
+        Awaitility.await().atMost(5, SECONDS).until(() -> booleanSupplier.getAsBoolean());
     }
 
     private static File getOverrideConfig() {
