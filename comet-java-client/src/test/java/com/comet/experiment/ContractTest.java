@@ -17,8 +17,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 public class ContractTest {
     private static String apiKey = null;
     private static String restApiKey = null;
-    private static final String projectName = "testing-java-comet-library";
-    private static final String workspace = "corneliusphi";
+    private static String projectName = null;
+    private static String workspace = null;
     private static String existingExperimentKey = null;
 
     private static Experiment sharedExperiment = null;
@@ -29,6 +29,8 @@ public class ContractTest {
         apiKey = System.getenv("COMET_API_KEY");
         restApiKey = System.getenv("COMET_REST_API_KEY");
         existingExperimentKey = System.getenv("COMET_EXISTING_EXPERIMENT_KEY");
+        projectName = System.getenv("COMET_PROJECT_NAME");
+        workspace = System.getenv("COMET_WORKSPACE_NAME");
         sharedExperiment =
                 OnlineExperiment.builder(apiKey, projectName, workspace)
                         .withConfig(getOverrideConfig())
