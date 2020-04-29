@@ -32,10 +32,10 @@
 	</modules>
 
 	<scm>
-		<connection>scm:git:git@github.com:comet-ml/comet-java-sdk.git</connection>
-		<url>scm:git:git@github.com:comet-ml/comet-java-sdk.git</url>
-		<developerConnection>scm:git:git@github.com:comet-ml/comet-java-sdk.git</developerConnection>
-		<tag>comet-java-sdk-1.0.4</tag>
+		<connection>scm:git:git@github.com:comet-ml/comet-maven-release-test.git</connection>
+		<url>scm:git:git@github.com:comet-ml/comet-maven-release-test.git</url>
+		<developerConnection>scm:git:git@github.com:comet-ml/comet-maven-release-test.git</developerConnection>
+		<tag>HEAD</tag>
 	</scm>
 
 	<distributionManagement>
