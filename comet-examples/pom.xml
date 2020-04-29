@@ -7,14 +7,14 @@
     <parent>
         <artifactId>comet-java-sdk</artifactId>
         <groupId>ml.comet</groupId>
-        <version>1.0.5</version>
+        <version>1.0.6-SNAPSHOT</version>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>ml.comet</groupId>
             <artifactId>comet-java-client</artifactId>
-            <version>1.0.5</version>
+            <version>1.0.6-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
