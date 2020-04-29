@@ -5,7 +5,7 @@
 	<groupId>ml.comet</groupId>
 	<artifactId>comet-java-sdk</artifactId>
 	<packaging>pom</packaging>
-	<version>1.0.4-SNAPSHOT</version>
+	<version>1.0.4</version>
 
 	<name>${project.groupId}:${project.artifactId}</name>
 	<description>https://www.comet.ml Java client lib</description>
@@ -35,7 +35,7 @@
 		<connection>scm:git:git@github.com:comet-ml/comet-maven-release-test.git</connection>
 		<url>scm:git:git@github.com:comet-ml/comet-maven-release-test.git</url>
 		<developerConnection>scm:git:git@github.com:comet-ml/comet-maven-release-test.git</developerConnection>
-		<tag>HEAD</tag>
+		<tag>comet-java-sdk-1.0.4</tag>
 	</scm>
 
 	<distributionManagement>
