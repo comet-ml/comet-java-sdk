@@ -8,9 +8,9 @@
 ```
     <dependencies>
         <dependency>
-            <groupId>com.comet</groupId>
+            <groupId>ml.comet</groupId>
             <artifactId>comet-java-sdk</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0.5</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/comet-java-client-beta.jar</systemPath>
         </dependency>
