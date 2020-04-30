@@ -16,4 +16,4 @@
         </dependency>
     </dependencies>
 ```
-* create experiment - [example](/comet-examples/src/main/java/com/comet/examples)
+* create experiment - [example](/comet-examples/src/main/java/ml/comet/examples)
