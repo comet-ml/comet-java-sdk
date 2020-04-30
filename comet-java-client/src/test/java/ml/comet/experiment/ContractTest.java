@@ -47,7 +47,8 @@ public class ContractTest {
 
     @AfterClass
     public static void shutdownSharedExperiment() {
-        sharedExperiment.exit();
+    	
+    	if (sharedExperiment != null) sharedExperiment.exit();
     }
 
     @Test
