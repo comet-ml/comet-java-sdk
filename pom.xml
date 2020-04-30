@@ -1,139 +1,206 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-	<groupId>ml.comet</groupId>
-	<artifactId>comet-java-sdk</artifactId>
-	<packaging>pom</packaging>
-	<version>1.0.6-SNAPSHOT</version>
+  <groupId>ml.comet</groupId>
+  <artifactId>comet-java-sdk</artifactId>
+  <packaging>pom</packaging>
+  <version>1.0.6-SNAPSHOT</version>
 
-	<name>${project.groupId}:${project.artifactId}</name>
-	<description>https://www.comet.ml Java client lib</description>
-	<url>https://github.com/comet-ml/comet-java-sdk</url>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <description>https://www.comet.ml Java client lib</description>
+  <url>https://github.com/comet-ml/comet-java-sdk</url>
 
-	<licenses>
-		<license>
-			<name>MIT License</name>
-			<url>https://github.com/comet-ml/comet-java-sdk/blob/master/LICENSE</url>
-		</license>
-	</licenses>
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://github.com/comet-ml/comet-java-sdk/blob/master/LICENSE</url>
+    </license>
+  </licenses>
 
-	<developers>
-		<developer>
-			<email>support@comet.ml</email>
-			<organization>Comet</organization>
-			<organizationUrl>http://www.comet.ml</organizationUrl>
-		</developer>
-	</developers>
+  <developers>
+    <developer>
+      <email>support@comet.ml</email>
+      <organization>Comet</organization>
+      <organizationUrl>http://www.comet.ml</organizationUrl>
+    </developer>
+  </developers>
 
-	<modules>
-		<module>comet-java-client</module>
-		<module>comet-examples</module>
-	</modules>
+  <modules>
+    <module>comet-java-client</module>
+    <module>comet-examples</module>
+  </modules>
 
-	<scm>
-		<connection>scm:git:git@github.com:comet-ml/comet-java-sdk.git</connection>
-		<url>scm:git:git@github.com:comet-ml/comet-java-sdk.git</url>
-		<developerConnection>scm:git:git@github.com:comet-ml/comet-java-sdk.git</developerConnection>
-		<tag>HEAD</tag>
-	</scm>
+  <scm>
+    <connection>scm:git:git@github.com:comet-ml/comet-java-sdk.git</connection>
+    <url>scm:git:git@github.com:comet-ml/comet-java-sdk.git</url>
+    <developerConnection>scm:git:git@github.com:comet-ml/comet-java-sdk.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
 
-	<distributionManagement>
-		<repository>
-			<id>releases</id>
-			<url>http://localhost:8081/repository/maven-releases/</url>
-		</repository>
-		<snapshotRepository>
-			<id>snapshots</id>
-			<url>http://localhost:8081/repository/maven-snapshots/</url>
-		</snapshotRepository>
-	</distributionManagement>
+  <!-- Internal Repo -->
+  <!-- <distributionManagement> <repository> <id>local</id> <url>http://localhost:8081/repository/maven-releases/</url> 
+    </repository> <snapshotRepository> <id>local</id> <url>http://localhost:8081/repository/maven-snapshots/</url> 
+    </snapshotRepository> </distributionManagement> -->
 
-	<profiles>
-		<profile>
-			<id>releases</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.sonatype.plugins</groupId>
-						<artifactId>nexus-staging-maven-plugin</artifactId>
-						<version>1.5.1</version>
-						<executions>
-							<execution>
-								<id>default-deploy</id>
-								<phase>deploy</phase>
-								<goals>
-									<goal>deploy</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<serverId>maven-releases</serverId>
-							<nexusUrl>http://localhost:8081/repository/maven-releases/</nexusUrl>
-							<skipStaging>true</skipStaging>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
+  <!-- Sonatype repo -->
+  <distributionManagement>
+    <repository>
+      <id>sonatype</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+    <snapshotRepository>
+      <id>sonatype</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
 
-	<build>
-		<plugins>
+  <profiles>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.2.0</version>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+    <!-- GPG Signature on release -->
+    <profile>
+      <id>release-sign-artifacts</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.6</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-deploy-plugin</artifactId>
-				<version>2.8.2</version>
-				<configuration>
-					<skip>true</skip>
-				</configuration>
-			</plugin>
+<!-- 
+    <profile>
+      <id>releases</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>1.5.1</version>
+            <executions>
+              <execution>
+                <id>default-deploy</id>
+                <phase>deploy</phase>
+                <goals>
+                  <goal>deploy</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <serverId>maven-releases</serverId>
+              <nexusUrl>http://localhost:8081/repository/maven-releases/</nexusUrl>
+              <skipStaging>true</skipStaging>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+ -->
 
-			<plugin>
-				<groupId>org.sonatype.plugins</groupId>
-				<artifactId>nexus-staging-maven-plugin</artifactId>
-				<version>1.5.1</version>
-				<executions>
-					<execution>
-						<id>default-deploy</id>
-						<phase>deploy</phase>
-						<goals>
-							<goal>deploy</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<serverId>maven-releases</serverId>
-					<nexusUrl>http://localhost:8081/repository/maven-releases/</nexusUrl>
-					<skipStaging>true</skipStaging>
-				</configuration>
-			</plugin>
+  </profiles>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-release-plugin</artifactId>
-				<version>2.5.3</version>
-				<configuration>
-					<autoVersionSubmodules>true</autoVersionSubmodules>
-				</configuration>
-			</plugin>
+  <build>
+    <plugins>
 
-		</plugins>
-	</build>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>2.8.2</version>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.7</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <id>default-deploy</id>
+            <phase>deploy</phase>
+            <goals>
+              <goal>deploy</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <serverId>sonatype</serverId>
+          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>true</autoReleaseAfterClose>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5.3</version>
+        <configuration>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
+          <localCheckout>true</localCheckout>
+          <pushChanges>false</pushChanges>
+          <mavenExecutorId>forked-path</mavenExecutorId>
+          <arguments>-Dgpg.passphrase=${gpg.passphrase}</arguments>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-provider-gitexe</artifactId>
+            <version>1.9.5</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+    </plugins>
+  </build>
 
 </project>
