@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static ml.comet.experiment.Constants.*;
 
+@Ignore
 public class ContractTest {
     private static String apiKey = null;
     private static String restApiKey = null;
