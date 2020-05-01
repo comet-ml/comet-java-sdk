@@ -3,14 +3,14 @@
 ### This project is still under development.
 
 #### Using Comet Java SDK:
-* download latest jar file from [releases page](https://github.com/comet-ml/comet-java-client/releases)
-* to maven pom.xml add:
+* The latest released version is available in Maven Central: https://search.maven.org/search?q=ml.comet
+* Add the corresponding dependency to pom.xml.  For example:
 ```
     <dependencies>
         <dependency>
             <groupId>ml.comet</groupId>
             <artifactId>comet-java-sdk</artifactId>
-            <version>1.0.5</version>
+            <version>1.0.7</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/comet-java-client-beta.jar</systemPath>
         </dependency>
