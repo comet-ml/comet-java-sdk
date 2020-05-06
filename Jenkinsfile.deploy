@@ -1,0 +1,37 @@
+def commitHasVersionTag() {
+	def isVersion = (env.CURRENT_TAG =~ /^(\d+\.)?(\d+\.)?(\*|\d+)$/)
+	return isVersion
+}
+
+
+def stage_runBuild() {
+
+  stage("Run FPM build script") {
+		build_command = "scripts/build-package.sh ${env.CURRENT_TAG}"
+		try {
+			sh build_command
+		} finally {
+			echo "finally"
+		}
+	}
+}
+
+
+node {
+
+    stage("Checkout") {
+        checkout scm
+				env.CURRENT_TAG = sh(returnStdout: true, script: "git tag -l --points-at HEAD |tail -1").trim()
+				BRANCH_NAME = env.BRANCH_NAME.replaceAll('[^A-Za-z0-9]','_');
+    }
+
+		stage("Download model from comet.ml") {
+      sh "curl -L -o lc-predictor_2.0.2.zip -H 'Authorization: BG6QHrD4qGaCG8Tl5jZ1f0sik' 'https://www.comet.ml/api/rest/v2/registry-model/item/download?workspaceName=team-comet-ml&modelName=lc-predictor&version=2.0.2'"
+      sh "unzip lc-predictor_2.0.2.zip"
+		}
+
+
+      stage_runBuild()
+      stage_uploadPackages()
+    }
+}
