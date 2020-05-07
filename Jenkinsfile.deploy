@@ -4,19 +4,6 @@ def commitHasVersionTag() {
 }
 
 
-def stage_runBuild() {
-
-  stage("Run FPM build script") {
-		build_command = "scripts/build-package.sh ${env.CURRENT_TAG}"
-		try {
-			sh build_command
-		} finally {
-			echo "finally"
-		}
-	}
-}
-
-
 node {
 
     stage("Checkout") {
@@ -25,13 +12,8 @@ node {
 				BRANCH_NAME = env.BRANCH_NAME.replaceAll('[^A-Za-z0-9]','_');
     }
 
-		stage("Download model from comet.ml") {
-      sh "curl -L -o lc-predictor_2.0.2.zip -H 'Authorization: BG6QHrD4qGaCG8Tl5jZ1f0sik' 'https://www.comet.ml/api/rest/v2/registry-model/item/download?workspaceName=team-comet-ml&modelName=lc-predictor&version=2.0.2'"
-      sh "unzip lc-predictor_2.0.2.zip"
+		stage("Run") {
+      sh "mvn clean install deploy"
 		}
-
-
-      stage_runBuild()
-      stage_uploadPackages()
-    }
+    
 }
