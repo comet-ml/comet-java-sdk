@@ -13,8 +13,7 @@ node {
     }
 
 		stage("Run") {
-      sh "mvn --batch-mode release:prepare"
-      sh "mvn --batch-mode release:perform"
+      sh "mvn --batch-mode release:prepare release:perform"
 		}
 
 }
