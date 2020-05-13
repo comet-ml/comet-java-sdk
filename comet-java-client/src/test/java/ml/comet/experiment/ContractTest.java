@@ -1,13 +1,9 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.CometApi;
-import ml.comet.experiment.Experiment;
-import ml.comet.experiment.OnlineExperiment;
-import ml.comet.response.*;
-
-import org.apache.commons.lang3.StringUtils;
-import org.awaitility.Awaitility;
-import org.junit.*;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static ml.comet.experiment.Constants.ASSET_TYPE_ALL;
+import static ml.comet.experiment.Constants.ASSET_TYPE_IMAGE;
+import static ml.comet.experiment.Constants.ASSET_TYPE_UNKNOWN;
 
 import java.io.File;
 import java.util.List;
@@ -15,8 +11,22 @@ import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static ml.comet.experiment.Constants.*;
+import org.apache.commons.lang3.StringUtils;
+import org.awaitility.Awaitility;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import ml.comet.response.AssetListResponse;
+import ml.comet.response.ExperimentRest;
+import ml.comet.response.GitMetadata;
+import ml.comet.response.LogOtherResponse;
+import ml.comet.response.MetricsResponse;
+import ml.comet.response.ParametersResponse;
+import ml.comet.response.ProjectRest;
+import ml.comet.response.TagsResponse;
 
 @Ignore
 public class ContractTest {
