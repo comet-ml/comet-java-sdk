@@ -13,6 +13,7 @@ node {
     }
 
 		stage("Run") {
+      sh "export GPG_TTY=$(tty)"
       sh "mvn --batch-mode release:prepare release:perform"
 		}
 
