@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,7 @@ import static ml.comet.experiment.constants.Constants.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.constants.Constants.ASSET_TYPE_UNKNOWN;
 
 @Ignore
-public class OnlineExperimentTest {
+public class OnlineExperimentTest extends BaseApiTest {
     private static final String SOME_NAME = "someName";
     private static final String SOME_PARAMETER = "someParameter";
     private static final String SOME_PARAMETER_VALUE = "122.0";
@@ -69,7 +70,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testExperimentCreatedAndShutDown() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
         String experimentKey = experiment.getExperimentKey();
         Optional<String> experimentLink = experiment.getExperimentLink();
 
@@ -91,7 +92,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testInitAndUpdateExistingExperiment() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
         experiment.end();
         Assert.assertNull(experiment.getExperimentName());
 
@@ -105,7 +106,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testSetAndGetExperimentName() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         ExperimentMetadataRest metadata = experiment.getMetadata();
         Assert.assertNull(metadata.getExperimentName());
@@ -123,7 +124,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testLogAndGetMetric() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         testLogParameters(experiment, Experiment::getMetrics, experiment::logMetric);
 
@@ -132,7 +133,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testLogAndGetParameter() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         testLogParameters(experiment, Experiment::getParameters, experiment::logParameter);
 
@@ -141,7 +142,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testLogAndGetOther() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         testLogParameters(experiment, Experiment::getLogOther, experiment::logOther);
 
@@ -150,7 +151,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testLogAndGetHtml() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         Assert.assertFalse(experiment.getHtml().isPresent());
 
@@ -181,7 +182,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testAddAndGetTag() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         Assert.assertTrue(experiment.getTags().isEmpty());
 
@@ -199,7 +200,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testLogAndGetGraph() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         Optional<String> graph = experiment.getGraph();
         Assert.assertTrue(!graph.isPresent() || graph.get().isEmpty());
@@ -215,7 +216,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testLogAndGetExperimentTime() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         ExperimentMetadataRest metadata = experiment.getMetadata();
         Long startTimeMillis = metadata.getStartTimeMillis();
@@ -244,7 +245,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testUploadAndGetAssets() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
 
@@ -270,7 +271,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testSetsContext() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
 
@@ -289,7 +290,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testLogAndGetGitMetadata() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
 
         GitMetadataRest gitMetadata = experiment.getGitMetadata();
         Assert.assertNull(gitMetadata.getUser());
@@ -314,7 +315,7 @@ public class OnlineExperimentTest {
 
     @Test
     public void testCopyStdout() throws IOException {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
         experiment.setInterceptStdout();
 
         System.out.println(experiment.getExperimentKey());
@@ -329,26 +330,19 @@ public class OnlineExperimentTest {
         System.out.println(NON_LOGGED_LINE);
         System.out.flush();
 
-        awaitForCondition(() -> {
-            Optional<String> response = experiment.getOutput();
-            return response
-                    .filter(log -> log.contains(LOGGED_ERROR_LINE))
-                    .isPresent();
-        });
+        awaitForCondition(() -> experiment.getOutput()
+                .filter(log -> log.contains(experiment.getExperimentKey()))
+                .filter(log -> log.contains(experiment.getProjectName()))
+                .filter(log -> log.contains(LOGGED_LINE))
+                .filter(log -> log.contains(LOGGED_ERROR_LINE))
+                .filter(log -> !log.contains(NON_LOGGED_LINE))
+                .isPresent());
 
-        Optional<String> output = experiment.getOutput();
-
-        Assert.assertTrue(output.isPresent());
-
-        Assert.assertTrue(output.get().contains(experiment.getExperimentKey()));
-        Assert.assertTrue(output.get().contains(LOGGED_LINE));
-        Assert.assertTrue(output.get().contains(LOGGED_ERROR_LINE));
-        Assert.assertFalse(output.get().contains(NON_LOGGED_LINE));
     }
 
     @Test
     public void testLogAndGetFileCode() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
         experiment.logCode(getFile(CODE_FILE_NAME));
         awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty());
@@ -359,21 +353,13 @@ public class OnlineExperimentTest {
 
     @Test
     public void testLogAndGetRawCode() {
-        OnlineExperiment experiment = createExperiment();
+        OnlineExperiment experiment = createOnlineExperiment();
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
         experiment.logCode(SOME_TEXT, CODE_FILE_NAME);
         awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty());
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
         validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE);
         experiment.end();
-    }
-
-    private OnlineExperiment createExperiment() {
-        return OnlineExperimentImpl.builder()
-                .withApiKey(API_KEY)
-                .withWorkspace(WORKSPACE_NAME)
-                .withProjectName(PROJECT_NAME)
-                .build();
     }
 
     private OnlineExperiment fetchExperiment(String experimentKey) {
@@ -432,7 +418,11 @@ public class OnlineExperimentTest {
     }
 
     private static File getFile(String name) {
-        return new File(OnlineExperimentTest.class.getClassLoader().getResource(name).getFile());
+        URL resource = OnlineExperimentTest.class.getClassLoader().getResource(name);
+        if (resource == null) {
+            return null;
+        }
+        return new File(resource.getFile());
     }
 
 }

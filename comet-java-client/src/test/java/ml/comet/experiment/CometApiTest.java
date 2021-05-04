@@ -1,6 +1,5 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.env.EnvironmentVariableExtractor;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.RestProject;
 import org.junit.AfterClass;
@@ -13,20 +12,14 @@ import java.util.List;
 import java.util.Optional;
 
 @Ignore
-public class CometApiTest {
-    private static String API_KEY;
-    private static String PROJECT_NAME;
-    private static String WORKSPACE_NAME;
+public class CometApiTest extends BaseApiTest {
     private static CometApi COMET_API;
     private static OnlineExperiment SHARED_EXPERIMENT;
 
     @BeforeClass
     public static void initEnvVariables() {
-        API_KEY = EnvironmentVariableExtractor.getApiKeyOrThrow();
-        PROJECT_NAME = EnvironmentVariableExtractor.getProjectNameOrThrow();
-        WORKSPACE_NAME = EnvironmentVariableExtractor.getWorkspaceNameOrThrow();
         COMET_API = createCometApi();
-        SHARED_EXPERIMENT = createExperiment();
+        SHARED_EXPERIMENT = createOnlineExperiment();
     }
 
     @AfterClass
@@ -71,14 +64,6 @@ public class CometApiTest {
     private static CometApiImpl createCometApi() {
         return CometApiImpl.builder()
                 .withApiKey(API_KEY)
-                .build();
-    }
-
-    private static OnlineExperiment createExperiment() {
-        return OnlineExperimentImpl.builder()
-                .withApiKey(API_KEY)
-                .withWorkspace(WORKSPACE_NAME)
-                .withProjectName(PROJECT_NAME)
                 .build();
     }
 
