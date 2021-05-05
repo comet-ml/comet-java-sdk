@@ -11,11 +11,10 @@
     </parent>
 
     <dependencies>
-        <!--            todo update version after client published to maven-->
         <dependency>
             <groupId>ml.comet</groupId>
             <artifactId>comet-java-client</artifactId>
-            <version>1.0.11-SNAPSHOT</version>
+            <version>1.0.12-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
