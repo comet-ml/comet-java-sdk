@@ -1,7 +1,6 @@
 package ml.comet.experiment;
 
 import ml.comet.experiment.env.EnvironmentVariableExtractor;
-import org.junit.BeforeClass;
 
 public class BaseApiTest {
     protected static String API_KEY;
