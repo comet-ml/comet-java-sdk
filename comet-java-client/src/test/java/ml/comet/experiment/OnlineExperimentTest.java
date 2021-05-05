@@ -1,6 +1,5 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.env.EnvironmentVariableExtractor;
 import ml.comet.experiment.model.CreateGitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -9,7 +8,6 @@ import ml.comet.experiment.model.ValueMinMaxDto;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -54,17 +52,8 @@ public class OnlineExperimentTest extends BaseApiTest {
     private static final String LOGGED_LINE = "This should end up in Comet ML.";
     private static final String LOGGED_ERROR_LINE = "This error should also get to Comet ML.";
     private static final String NON_LOGGED_LINE = "This should not end up in Comet ML.";
-    private static String API_KEY;
-    private static String PROJECT_NAME;
-    private static String WORKSPACE_NAME;
-
-
-    @BeforeClass
-    public static void initEnvVariables() {
-        API_KEY = EnvironmentVariableExtractor.getApiKeyOrThrow();
-        PROJECT_NAME = EnvironmentVariableExtractor.getProjectNameOrThrow();
-        WORKSPACE_NAME = EnvironmentVariableExtractor.getWorkspaceNameOrThrow();
-    }
+    public static final String MESSAGE_NAME_UPDATED = "Experiment name updated";
+    public static final String MESSAGE_HTML_UPDATED = "Experiment html updated";
 
     @Test
     public void testExperimentCreatedAndShutDown() {
@@ -76,7 +65,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         Assert.assertTrue(experimentLink.isPresent());
         Assert.assertTrue(StringUtils.isNotBlank(experimentLink.get()));
 
-        awaitForCondition(() -> experiment.getMetadata().isRunning());
+        awaitForCondition(() -> experiment.getMetadata().isRunning(), "Experiment must become running");
 
         ExperimentMetadataRest metadata = experiment.getMetadata();
         Assert.assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
@@ -99,7 +88,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         OnlineExperiment updatedExperiment = fetchExperiment(experimentKey);
         updatedExperiment.setExperimentName(SOME_NAME);
 
-        awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()));
+        awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()), MESSAGE_NAME_UPDATED);
     }
 
     @Test
@@ -111,7 +100,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         experiment.setExperimentName(SOME_NAME);
 
-        awaitForCondition(() -> experiment.getMetadata().getExperimentName() != null);
+        awaitForCondition(() -> experiment.getMetadata().getExperimentName() != null, MESSAGE_NAME_UPDATED);
 
         ExperimentMetadataRest updatedMetadata = experiment.getMetadata();
         Assert.assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
@@ -158,14 +147,14 @@ public class OnlineExperimentTest extends BaseApiTest {
         awaitForCondition(() -> {
             Optional<String> html = experiment.getHtml();
             return html.isPresent() && SOME_HTML.equals(html.get());
-        });
+        }, MESSAGE_HTML_UPDATED);
 
         experiment.logHtml(ANOTHER_HTML, true);
 
         awaitForCondition(() -> {
             Optional<String> html = experiment.getHtml();
             return html.isPresent() && ANOTHER_HTML.equals(html.get());
-        });
+        }, MESSAGE_HTML_UPDATED);
 
         experiment.logHtml(SOME_HTML, false);
 
@@ -173,7 +162,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         awaitForCondition(() -> {
             Optional<String> html = experiment.getHtml();
             return html.isPresent() && JOINED_HTML.equals(html.get());
-        });
+        }, MESSAGE_HTML_UPDATED);
 
         experiment.end();
     }
@@ -187,7 +176,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         experiment.addTag(SOME_TEXT);
         experiment.addTag(ANOTHER_TAG);
 
-        awaitForCondition(() -> experiment.getTags().size() == 2);
+        awaitForCondition(() -> experiment.getTags().size() == 2, "Experiment tags updated");
 
         List<String> tags = experiment.getTags();
         Assert.assertTrue(tags.contains(SOME_TEXT));
@@ -205,7 +194,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         experiment.logGraph(SOME_GRAPH);
 
-        awaitForCondition(() -> experiment.getGraph().isPresent());
+        awaitForCondition(() -> experiment.getGraph().isPresent(), "Experiment graph updated");
 
         Assert.assertEquals(SOME_GRAPH, experiment.getGraph().get());
 
@@ -250,7 +239,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         experiment.uploadAsset(getFile(IMAGE_FILE_NAME), false);
         experiment.uploadAsset(getFile(SOME_TEXT_FILE_NAME), false);
 
-        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2);
+        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets uploaded");
 
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
         validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE);
@@ -262,7 +251,7 @@ public class OnlineExperimentTest extends BaseApiTest {
             List<ExperimentAssetLink> textFiles = experiment.getAssetList(ASSET_TYPE_UNKNOWN);
             ExperimentAssetLink file = textFiles.get(0);
             return ANOTHER_TEXT_FILE_SIZE == file.getFileSize();
-        });
+        }, "Asset was updated");
 
         experiment.end();
     }
@@ -276,7 +265,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         experiment.setContext(SOME_TEXT);
         experiment.uploadAsset(getFile(SOME_TEXT_FILE_NAME), false);
 
-        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 1);
+        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 1, "Asset uploaded");
 
         Optional<ExperimentAssetLink> assetOpt = experiment.getAssetList(ASSET_TYPE_ALL)
                 .stream()
@@ -299,7 +288,7 @@ public class OnlineExperimentTest extends BaseApiTest {
                 "user", "root", "branch", "parent", "origin");
         experiment.logGitMetadata(request);
 
-        awaitForCondition(() -> request.getUser().equals(experiment.getGitMetadata().getUser()));
+        awaitForCondition(() -> request.getUser().equals(experiment.getGitMetadata().getUser()), "Git metadata user updated");
 
         GitMetadataRest updatedMetadata = experiment.getGitMetadata();
         Assert.assertEquals(updatedMetadata.getOrigin(), request.getOrigin());
@@ -334,7 +323,7 @@ public class OnlineExperimentTest extends BaseApiTest {
                 .filter(log -> log.contains(LOGGED_LINE))
                 .filter(log -> log.contains(LOGGED_ERROR_LINE))
                 .filter(log -> !log.contains(NON_LOGGED_LINE))
-                .isPresent());
+                .isPresent(), "Experiment logs added");
 
     }
 
@@ -343,7 +332,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         OnlineExperiment experiment = createOnlineExperiment();
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
         experiment.logCode(getFile(CODE_FILE_NAME));
-        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty());
+        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(), "Experiment code from file added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
         validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE);
         experiment.end();
@@ -354,7 +343,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         OnlineExperiment experiment = createOnlineExperiment();
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
         experiment.logCode(SOME_TEXT, CODE_FILE_NAME);
-        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty());
+        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(), "Experiment raw code added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
         validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE);
         experiment.end();
@@ -386,7 +375,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         params.forEach(updateFunction);
 
-        awaitForCondition(() -> supplierFunction.apply(experiment).size() == 2);
+        awaitForCondition(() -> supplierFunction.apply(experiment).size() == 2, "Experiment parameters added");
 
         List<ValueMinMaxDto> updatedParameters = supplierFunction.apply(experiment);
         params.forEach((k, v) -> validateMetrics(updatedParameters, k, v));
@@ -403,14 +392,14 @@ public class OnlineExperimentTest extends BaseApiTest {
     }
 
 
-    private void awaitForCondition(BooleanSupplier booleanSupplier) {
-        Awaitility.await().atMost(5, SECONDS)
+    private void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias) {
+        Awaitility.await(conditionAlias).atMost(5, SECONDS)
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
     }
 
     private void awaitExperimentShutDown(OnlineExperiment experiment) {
-        Awaitility.await()
+        Awaitility.await("Experiment is shut down")
                 .atMost(1, MINUTES)
                 .until(() -> !experiment.getMetadata().isRunning());
     }
