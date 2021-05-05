@@ -5,13 +5,11 @@ import ml.comet.experiment.model.RestProject;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Optional;
 
-@Ignore
 public class CometApiTest extends BaseApiTest {
     private static CometApi COMET_API;
     private static OnlineExperiment SHARED_EXPERIMENT;

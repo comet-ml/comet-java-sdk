@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -31,7 +30,6 @@ import static ml.comet.experiment.constants.Constants.ASSET_TYPE_ALL;
 import static ml.comet.experiment.constants.Constants.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.constants.Constants.ASSET_TYPE_UNKNOWN;
 
-@Ignore
 public class OnlineExperimentTest extends BaseApiTest {
     private static final String SOME_NAME = "someName";
     private static final String SOME_PARAMETER = "someParameter";
