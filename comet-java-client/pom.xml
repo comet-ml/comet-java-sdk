@@ -7,19 +7,14 @@
 	<parent>
 		<groupId>ml.comet</groupId>
 		<artifactId>comet-java-sdk</artifactId>
-		<version>1.0.11-SNAPSHOT</version>
+		<version>1.0.12-SNAPSHOT</version>
 	</parent>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.16.16</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>19.0</version>
+			<version>1.18.20</version>
 		</dependency>
 		<dependency>
 			<groupId>com.ning</groupId>
@@ -29,17 +24,12 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.7</version>
+			<version>3.12.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.5.2</version>
-		</dependency>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20180813</version>
+			<version>4.5.13</version>
 		</dependency>
 		<dependency>
 			<groupId>com.typesafe</groupId>
@@ -49,20 +39,20 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.9.1</version>
+			<version>2.12.3</version>
 		</dependency>
 
 		<!-- tests -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.12</version>
+			<version>4.13.2</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.awaitility</groupId>
 			<artifactId>awaitility</artifactId>
-			<version>3.0.0</version>
+			<version>4.0.3</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
