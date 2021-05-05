@@ -13,10 +13,20 @@
             <groupId>ml.comet</groupId>
             <artifactId>comet-java-sdk</artifactId>
             <version>1.0.12</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/comet-java-client-beta.jar</systemPath>
         </dependency>
     </dependencies>
 ```
-* create experiment [example](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
-* for more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)
+* create experiment and log stuff:
+```java
+OnlineExperiment experiment = OnlineExperimentImpl.builder()
+                .withApiKey("someApiKey")
+                .withProjectName("someProject")
+                .withWorkspace("someWorkspace")
+                .build();
+        experiment.setExperimentName("My experiment");
+        experiment.logParameter("batch_size", "500");
+        experiment.logMetric("strMetric", 123);
+        experiment.end();
+```
+####You also can check [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
+For more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)
