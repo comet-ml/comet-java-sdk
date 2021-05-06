@@ -194,9 +194,10 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         experiment.logGraph(SOME_GRAPH);
 
-        awaitForCondition(() -> experiment.getGraph().isPresent(), "Experiment graph updated");
-
-        Assert.assertEquals(SOME_GRAPH, experiment.getGraph().get());
+        awaitForCondition(() -> {
+            Optional<String> graphOpt = experiment.getGraph();
+            return graphOpt.isPresent() && SOME_GRAPH.equals(graphOpt.get());
+        }, "Experiment graph updated");
 
         experiment.end();
     }
