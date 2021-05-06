@@ -1,11 +1,12 @@
 package ml.comet.experiment;
 
 import com.typesafe.config.Config;
-import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
 import ml.comet.experiment.constants.Constants;
+import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
 import ml.comet.experiment.utils.ConfigUtils;
+import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +20,8 @@ public class ApiExperiment extends BaseExperiment {
     private final Config config;
     private final String apiKey;
     private final String experimentKey;
+    private final Connection connection;
     private Logger logger = LoggerFactory.getLogger(ApiExperiment.class);
-    private Connection connection;
 
     private ApiExperiment(
             String apiKey,
@@ -125,13 +126,13 @@ public class ApiExperiment extends BaseExperiment {
         if (StringUtils.isEmpty(experimentKey)) {
             return Optional.empty();
         }
-        String link = config.getString(Constants.BASE_URL_PLACEHOLDER)
-                + "/" + getWorkspaceName() + "/" + getProjectName() + "/" + experimentKey;
+        String baseUrl = config.getString(Constants.BASE_URL_PLACEHOLDER);
+        HttpUrl.Builder builder = HttpUrl.get(baseUrl).newBuilder();
+        builder.addPathSegment(getWorkspaceName());
+        builder.addPathSegment(getProjectName());
+        builder.addPathSegment(experimentKey);
+        String link = builder.build().toString();
         return Optional.of(link);
-    }
-
-    private void setupConnection() {
-        this.connection = ConnectionInitializer.initConnection(this.config, this.apiKey, this.logger);
     }
 
 }

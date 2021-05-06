@@ -1,12 +1,5 @@
 package ml.comet.experiment.http;
 
-//import com.ning.http.client.AsyncHttpClient;
-//import com.ning.http.client.ListenableFuture;
-//import com.ning.http.client.Response;
-//import com.ning.http.client.multipart.ByteArrayPart;
-//import com.ning.http.client.multipart.FilePart;
-//import com.ning.http.client.providers.netty.util.HttpUtils;
-
 import lombok.Value;
 import ml.comet.experiment.utils.JsonUtils;
 import okhttp3.Call;
