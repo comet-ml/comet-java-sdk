@@ -5,7 +5,7 @@
   <groupId>ml.comet</groupId>
   <artifactId>comet-java-sdk</artifactId>
   <packaging>pom</packaging>
-  <version>1.0.11-SNAPSHOT</version>
+  <version>${comet.ml.sdk.version}-SNAPSHOT</version>
 
   <name>${project.groupId}:${project.artifactId}</name>
   <description>https://www.comet.ml Java client lib</description>
@@ -204,5 +204,9 @@
 
     </plugins>
   </build>
+
+  <properties>
+    <comet.ml.sdk.version>1.1.0</comet.ml.sdk.version>
+  </properties>
 
 </project>

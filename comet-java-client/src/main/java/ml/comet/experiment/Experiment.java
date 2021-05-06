@@ -1,56 +1,16 @@
 package ml.comet.experiment;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
-import ml.comet.response.GitMetadata;
+import ml.comet.experiment.model.CreateGitMetadata;
+import ml.comet.experiment.model.ExperimentAssetLink;
+import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.GitMetadataRest;
+import ml.comet.experiment.model.ValueMinMaxDto;
 
 public interface Experiment {
-    /**
-     * Tells Comet that the Experiment is complete.
-     */
-    void exit();
-
-    /**
-     * Turn on intercept of stdout and stderr and the logging of both in Comet
-     * @throws IOException
-     */
-    void setInterceptStdout() throws IOException;
-
-    /**
-     * Turn off intercept of stdout and stderr and turns off their logging in Comet
-     */
-    void stopInterceptStdout();
-
-    /**
-     * Sets the current step for the experiment.  This is used when logging metrics and params
-     * @param step
-     */
-    void setStep(long step);
-
-    /**
-     * Increments the step that the experiment is on
-     */
-    void nextStep();
-
-    /**
-     * Gets the current step as recorded by the Experiment object locally
-     * @return
-     */
-    long getStep();
-
-    /**
-     * Sets the context for any logs and uploaded files
-     * @param context
-     */
-    void setContext(String context);
-
-    /**
-     * Gets the current context as recorded in the Experiment object locally
-     * @return
-     */
-    String getContext();
 
     /**
      * Get the experiment key returned by Comet
@@ -59,10 +19,89 @@ public interface Experiment {
     String getExperimentKey();
 
     /**
-     * Get the experiment link returned by Comet.  Empty in the case of continuing an existing experiment
+     * Get the experiment link returned by Comet.
      * @return
      */
     Optional<String> getExperimentLink();
+
+    /**
+     * Get project name of the experiment.
+     * @return
+     */
+    String getProjectName();
+
+    /**
+     * Get workspace name of the experiment.
+     * @return
+     */
+    String getWorkspaceName();
+
+    /**
+     * Get experiment name.
+     * @return
+     */
+    String getExperimentName();
+
+
+    /**
+     * Get experiment metadata.
+     * @return
+     */
+    ExperimentMetadataRest getMetadata();
+
+    /**
+     * Get experiment git metadata.
+     * @return
+     */
+    GitMetadataRest getGitMetadata();
+
+    /**
+     * Get experiment html.
+     * @return
+     */
+    Optional<String> getHtml();
+
+    /**
+     * Get experiment output data.
+     * @return
+     */
+    Optional<String> getOutput();
+
+    /**
+     * Get experiment graph data.
+     * @return
+     */
+    Optional<String> getGraph();
+
+    /**
+     * Get experiment parameters.
+     * @return
+     */
+    List<ValueMinMaxDto> getParameters();
+
+    /**
+     * Get experiment metrics.
+     * @return
+     */
+    List<ValueMinMaxDto> getMetrics();
+
+    /**
+     * Get experiment log other data.
+     * @return
+     */
+    List<ValueMinMaxDto> getLogOther();
+
+    /**
+     * Get experiment tags.
+     * @return
+     */
+    List<String> getTags();
+
+    /**
+     * Get experiment asset list.
+     * @return
+     */
+    List<ExperimentAssetLink> getAssetList(String type);
 
     /**
      * Sets the experiment name
@@ -71,14 +110,7 @@ public interface Experiment {
     void setExperimentName(String experimentName);
 
     /**
-     * Logs a metric with Comet.  Metrics are generally values that change from step to step
-     * @param metricName The name for the metric to be logged
-     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
-     */
-    void logMetric(String metricName, Object metricValue);
-
-    /**
-     * Logs a metric with Comet.  Metrics are generally values that change from step to step
+     * Logs a metric with Comet. For running experiment updates current step to one from param!  Metrics are generally values that change from step to step
      * @param metricName The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      * @param step The current step for this metric, this will set the given step for this experiment
@@ -87,14 +119,7 @@ public interface Experiment {
 
 
     /**
-     * Logs a param with Comet.  Params should be set at the start of the experiment
-     * @param parameterName The name of the param being logged
-     * @param paramValue The value for the param being logged
-     */
-    void logParameter(String parameterName, Object paramValue);
-
-    /**
-     * Logs a param with Comet.  Params should be set at the start of the experiment
+     * Logs a param with Comet. For running experiment updates current step to one from param! Params should be set at the start of the experiment
      * @param parameterName The name of the param being logged
      * @param paramValue The value for the param being logged
      * @param step The current step for this metric, this will set the given step for this experiment
@@ -107,12 +132,6 @@ public interface Experiment {
      * @param override Whether previous html sent should be deleted.  If true the old html will be deleted.  If false, it will have the new html appended onto the end.
      */
     void logHtml(String html, boolean override);
-
-    /**
-     * Let's you report code for the experiment
-     * @param code Code to be sent to Comet
-     */
-    void logCode(String code);
 
     /**
      * Logs a key value pair with Comet.  This can be used for any sort of generic per experiment data you wish to track
@@ -146,26 +165,33 @@ public interface Experiment {
     void logEndTime(long endTimeMillis);
 
     /**
-     * Upload an asset to be associated with the experiment, for example the trained weights of a neural net
-     * @param asset The asset to be stored
-     * @param fileName The file name under which the asset should be stored in Comet
-     * @param overwrite Whether to overwrite files of the same name in Comet
+     * Let's you report code for the experiment.
+     * @param code Code to be sent to Comet
+     * @param fileName Name of source file to be displayed on UI 'code' tab
      */
-    void uploadAsset(File asset, String fileName, boolean overwrite);
-    void uploadAsset(File asset, boolean overwrite);
+    void logCode(String code, String fileName);
 
     /**
-     * Upload an image to be associated with the experiment
-     * @param image The image to be stored
-     * @param imageName The file name under which the image should be stored in Comet
-     * @param overwrite Whether to overwrite files of the same name in Comet
+     * Let's you report code for the experiment.
+     * @param file Asset with source code to be sent
      */
-    void uploadImage(File image, String imageName, boolean overwrite);
-    void uploadImage(File image, boolean overwrite);
+    void logCode(File file);
+
+    /**
+     * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.
+     * For running experiment updates current step to one from param!
+     * @param asset The asset to be stored
+     * @param fileName The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
+     * @param overwrite Whether to overwrite files of the same name in Comet
+     * @param step the step to be associated with asset
+     */
+    void uploadAsset(File asset, String fileName, boolean overwrite, long step);
+    void uploadAsset(File asset, boolean overwrite, long step);
 
     /**
      * Log Git Metadata for the experiment.
      * @param gitMetadata The Git Metadata for the experiment
      */
-    void logGitMetadata(GitMetadata gitMetadata);
+    void logGitMetadata(CreateGitMetadata gitMetadata);
+
 }

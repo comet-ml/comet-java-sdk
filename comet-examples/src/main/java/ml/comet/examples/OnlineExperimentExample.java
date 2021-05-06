@@ -1,9 +1,8 @@
 package ml.comet.examples;
 
-import org.apache.commons.io.FileUtils;
-
-import ml.comet.experiment.Experiment;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.OnlineExperimentImpl;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,13 +13,15 @@ public class OnlineExperimentExample {
 
     public static void main(String[] args) throws IOException {
         //this will take configs from /comet-java-sdk/comet-examples/src/main/resources/defaults.conf
-        Experiment experiment = new OnlineExperiment();
+        //be sure you have set up apiKey, project, workspace in defaults.conf before you start!
+
+        OnlineExperiment experiment = new OnlineExperimentImpl();
         experiment.setInterceptStdout();
 
         //you can use a builder or just inject params
-        //OnlineExperiment.builder();
+        //OnlineExperimentImpl.builder();
 
-        experiment.setExperimentName("Java-SDK");
+        experiment.setExperimentName("Java-SDK15");
         experiment.nextStep();
 
         //metric can be a number, string , or double
@@ -37,10 +38,10 @@ public class OnlineExperimentExample {
         experiment.logParameter("batch_size", "500");
         experiment.logParameter("learning_rate", 12);
 
-        experiment.uploadImage(getFile("chart.png"), "amazing chart", false);
+        experiment.uploadAsset(getFile("chart.png"), "amazing chart.png", false);
         experiment.uploadAsset(getFile("model.hd5"), false);
 
-        experiment.logOther("dataset-link", "/tmp/1.csv");
+        experiment.logOther("Parameter", 4);
 
         System.out.println("Epoch 1/20");
         System.out.println("- loss: 0.7858 - acc: 0.7759 - val_loss: 0.3416 - val_acc: 0.9026");
@@ -48,7 +49,7 @@ public class OnlineExperimentExample {
         experiment.logGraph(loadGraph("graph.json"));
 
         //will close connection, if not called connection will close on jvm exit
-        //experiment.exit();
+        experiment.end();
     }
 
     public static String askUserForInputOn(String message) {
@@ -64,18 +65,18 @@ public class OnlineExperimentExample {
         return file;
     }
 
-    private static void generateCharts(Experiment experiment){
+    private static void generateCharts(OnlineExperiment experiment){
         long currentStep = experiment.getStep();
 
-        for (int i = 1; i < 150; i++) {
+        for (int i = 1; i < 15; i++) {
             experiment.logMetric("numMetric", 123 + i, currentStep + i);
         }
 
-        for (int i = 1; i < 150; i++) {
+        for (int i = 1; i < 15; i++) {
             experiment.logMetric("strMetric", "123" + i, currentStep + i);
         }
 
-        for (int i = 1; i < 150; i++) {
+        for (int i = 1; i < 15; i++) {
             experiment.logMetric("doubleMetric", 123.12d + i, currentStep + i);
         }
     }
