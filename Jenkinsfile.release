@@ -14,6 +14,9 @@ node {
 
 		stage("Run") {
       sh "export GPG_TTY=\$(tty)"
+      sh "export COMET_API_KEY=kGVsBzzr6JPnz3xQKBlFpag1y"
+      sh "export COMET_PROJECT_NAME=java-sdk"
+      sh "export COMET_WORKSPACE_NAME=test-javasdk"
       sh "mvn --batch-mode release:prepare release:perform"
 		}
 
