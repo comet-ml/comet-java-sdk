@@ -14,7 +14,7 @@ node {
 
 		stage("Run") {
       sh "export GPG_TTY=\$(tty)"
-      sh "COMET_API_KEY=kGVsBzzr6JPnz3xQKBlFpag1y COMET_PROJECT_NAME=java-sdk COMET_WORKSPACE_NAME=test-javasdk mvn --batch-mode release:prepare release:perform"
+      sh "COMET_API_KEY=kGVsBzzr6JPnz3xQKBlFpag1y COMET_PROJECT_NAME=java-sdk COMET_WORKSPACE_NAME=test-javasdk mvn --batch-mode release:clean release:prepare release:perform"
 		}
 
 }
