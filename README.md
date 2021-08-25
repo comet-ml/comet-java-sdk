@@ -4,14 +4,14 @@
 
 #### Using Comet Java SDK:
 * The latest released version available in Maven Central:
-  [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-sdk/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-sdk) 
+  [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-client) 
    [![Build Status](https://travis-ci.com/comet-ml/comet-java-sdk.svg?branch=master)](https://travis-ci.com/github/comet-ml/comet-java-sdk)
 * Add dependency to pom.xml:
 ```
     <dependencies>
         <dependency>
             <groupId>ml.comet</groupId>
-            <artifactId>comet-java-sdk</artifactId>
+            <artifactId>comet-java-client</artifactId>
             <version>1.1.0</version>
         </dependency>
     </dependencies>
