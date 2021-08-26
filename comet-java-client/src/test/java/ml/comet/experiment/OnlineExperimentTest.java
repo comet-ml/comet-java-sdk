@@ -71,7 +71,6 @@ public class OnlineExperimentTest extends BaseApiTest {
         Assert.assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
         Assert.assertEquals(experiment.getWorkspaceName(), metadata.getWorkspaceName());
         Assert.assertEquals(experiment.getProjectName(), metadata.getProjectName());
-        Assert.assertEquals(experiment.getExperimentName(), metadata.getExperimentName());
 
         experiment.end();
         awaitExperimentShutDown(experiment);
@@ -96,11 +95,12 @@ public class OnlineExperimentTest extends BaseApiTest {
         OnlineExperiment experiment = createOnlineExperiment();
 
         ExperimentMetadataRest metadata = experiment.getMetadata();
-        Assert.assertNull(metadata.getExperimentName());
+        String generatedExperimentName = metadata.getExperimentName();
+        Assert.assertTrue(StringUtils.isNoneEmpty(generatedExperimentName));
 
         experiment.setExperimentName(SOME_NAME);
 
-        awaitForCondition(() -> experiment.getMetadata().getExperimentName() != null, MESSAGE_NAME_UPDATED);
+        awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()), MESSAGE_NAME_UPDATED);
 
         ExperimentMetadataRest updatedMetadata = experiment.getMetadata();
         Assert.assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
@@ -131,7 +131,20 @@ public class OnlineExperimentTest extends BaseApiTest {
     public void testLogAndGetOther() {
         OnlineExperiment experiment = createOnlineExperiment();
 
-        testLogParameters(experiment, Experiment::getLogOther, experiment::logOther);
+        List<ValueMinMaxDto> parameters = experiment.getLogOther();
+        Assert.assertEquals(1, parameters.size());
+        Assert.assertTrue(parameters.stream().anyMatch(p -> "Name".equals(p.getName())));
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(SOME_PARAMETER, SOME_PARAMETER_VALUE);
+        params.put(ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
+
+        params.forEach(experiment::logOther);
+
+        awaitForCondition(() -> experiment.getLogOther().size() == 3, "Experiment parameters added");
+
+        List<ValueMinMaxDto> updatedParameters = experiment.getLogOther();
+        params.forEach((k, v) -> validateMetrics(updatedParameters, k, v));
 
         experiment.end();
     }
