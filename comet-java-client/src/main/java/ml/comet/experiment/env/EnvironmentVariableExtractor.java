@@ -14,23 +14,6 @@ public class EnvironmentVariableExtractor {
     public static final String BASE_URL = "COMET_BASE_URL";
     public static final String MAX_AUTH_RETRIES = "COMET_MAX_AUTH_RETRIES";
 
-    public String getApiKeyOrThrow() {
-        return getEnvVariableOrThrow(API_KEY);
-    }
-
-    public String getProjectNameOrThrow() {
-        return getEnvVariableOrThrow(PROJECT_NAME);
-    }
-
-    public String getWorkspaceNameOrThrow() {
-        return getEnvVariableOrThrow(WORKSPACE_NAME);
-    }
-
-    private String getEnvVariableOrThrow(String variableName) {
-        return getEnvVariable(variableName)
-                .orElseThrow(() -> new IllegalStateException("No environment variable with name " + variableName));
-    }
-
     public Optional<String> getEnvVariable(String variableName) {
         String res = System.getenv(variableName);
         if (StringUtils.isEmpty(res)) {

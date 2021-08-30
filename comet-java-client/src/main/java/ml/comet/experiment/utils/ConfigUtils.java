@@ -11,7 +11,6 @@ import java.io.File;
 import java.net.URL;
 import java.util.Optional;
 
-import static com.sun.corba.se.impl.util.Version.PROJECT_NAME;
 import static ml.comet.experiment.constants.Constants.BASE_URL_DEFAULT;
 import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
 import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
@@ -22,6 +21,7 @@ import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLD
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.API_KEY;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.BASE_URL;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.MAX_AUTH_RETRIES;
+import static ml.comet.experiment.env.EnvironmentVariableExtractor.PROJECT_NAME;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAME;
 
 @UtilityClass
@@ -58,23 +58,27 @@ public class ConfigUtils {
 
     public int getMaxAuthRetriesOrDefault() {
         return getValueFromSystem(MAX_AUTH_RETRIES, MAX_AUTH_RETRIES_PLACEHOLDER)
-                .map(Integer::valueOf)
+                .map(Integer::parseInt)
                 .orElse(MAX_AUTH_RETRIES_DEFAULT);
     }
 
+
+    public Config getConfigFromFile(File configFile) {
+        return ConfigFactory.parseFile(configFile);
+    }
+
+    private Config getDefaultConfigFromClassPath() {
+        URL resource = getContextClassLoader().getResource(Constants.DEFAULTS_CONF);
+        if (resource == null) {
+            return null;
+        }
+        return ConfigFactory.parseFile(
+                new File(resource.getFile()));
+    }
+
     private String getValueFromSystemOrThrow(String envVarName, String configValueName) {
-        return EnvironmentVariableExtractor.getEnvVariable(envVarName).orElseGet(() -> {
-                    Config defaultConfig = getDefaultConfigFromClassPath();
-                    if (defaultConfig == null) {
-                        throw new IllegalStateException("No parameter with name " + configValueName + "found! Please specify it in env vars or config");
-                    }
-                    String configValue = defaultConfig.getString(configValueName);
-                    if (StringUtils.isEmpty(configValue)) {
-                        throw new IllegalStateException("No parameter with name " + configValueName + "found! Please specify it in env vars or config");
-                    }
-                    return configValue;
-                }
-        );
+        return getValueFromSystem(envVarName, configValueName)
+                .orElseThrow(() -> new IllegalStateException("No parameter with name " + configValueName + "found! Please specify it in env vars or config"));
     }
 
     private Optional<String> getValueFromSystem(String envVarName, String configValueName) {
@@ -91,20 +95,6 @@ public class ConfigUtils {
             return Optional.empty();
         }
         return Optional.of(configValue);
-    }
-
-
-    public Config getDefaultConfigFromClassPath() {
-        URL resource = getContextClassLoader().getResource(Constants.DEFAULTS_CONF);
-        if (resource == null) {
-            return null;
-        }
-        return ConfigFactory.parseFile(
-                new File(resource.getFile()));
-    }
-
-    public Config getConfigFromFile(File configFile) {
-        return ConfigFactory.parseFile(configFile);
     }
 
     private ClassLoader getContextClassLoader() {
