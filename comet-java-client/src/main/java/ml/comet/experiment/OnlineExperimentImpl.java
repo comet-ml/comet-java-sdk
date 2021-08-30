@@ -301,16 +301,16 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     private void validateInitialParams() {
-        if (apiKey == null) {
+        if (StringUtils.isEmpty(apiKey)) {
             throw new IllegalArgumentException("Apikey is not specified!");
         }
-        if (experimentKey != null) {
+        if (StringUtils.isNotEmpty(experimentKey)) {
             return;
         }
-        if (projectName == null) {
+        if (StringUtils.isEmpty(projectName)) {
             throw new IllegalArgumentException("ProjectName is not specified!");
         }
-        if (workspaceName == null) {
+        if (StringUtils.isEmpty(workspaceName)) {
             throw new IllegalArgumentException("Workspace name is not specified!");
         }
     }
