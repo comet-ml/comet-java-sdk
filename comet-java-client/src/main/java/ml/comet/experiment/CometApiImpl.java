@@ -2,7 +2,6 @@ package ml.comet.experiment;
 
 import com.typesafe.config.Config;
 import ml.comet.experiment.http.Connection;
-import ml.comet.experiment.constants.Constants;
 import ml.comet.experiment.http.ConnectionInitializer;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.GetExperimentsResponse;
@@ -19,17 +18,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
 import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
 import static ml.comet.experiment.constants.Constants.EXPERIMENTS;
+import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
 import static ml.comet.experiment.constants.Constants.PROJECTS;
 import static ml.comet.experiment.constants.Constants.WORKSPACES;
 
 public class CometApiImpl implements CometApi {
     private final Connection connection;
 
-    public CometApiImpl(Config config, String apiKey) {
+    public CometApiImpl(String apiKey, String baseUrl, int maxAuthRetries) {
         Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
-        this.connection = ConnectionInitializer.initConnection(config, apiKey, logger);
+        this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, logger);
     }
 
     public List<String> getAllWorkspaces() {
@@ -61,17 +62,20 @@ public class CometApiImpl implements CometApi {
 
     public static class CometApiBuilder {
         private String apiKey;
-        private Config config;
+        private String baseUrl;
+        private int maxAuthRetries;
 
         public CometApiBuilder() {
-            this.config = ConfigUtils.getDefaultConfigFromClassPath();
-            this.apiKey = config.getString(COMET_API_KEY);
+            this.apiKey = ConfigUtils.getApiKey().orElse(null);
+            this.baseUrl = ConfigUtils.getBaseUrlOrDefault();
+            this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
         }
 
         public CometApiBuilder withConfig(File overrideConfig) {
-            this.config = ConfigUtils.getConfigFromFile(overrideConfig)
-                    .withFallback(this.config)
-                    .resolve();
+            Config config = ConfigUtils.getConfigFromFile(overrideConfig);
+            this.apiKey = config.getString(COMET_API_KEY);
+            this.baseUrl = config.getString(BASE_URL_PLACEHOLDER);
+            this.maxAuthRetries = config.getInt(MAX_AUTH_RETRIES_PLACEHOLDER);
             return this;
         }
 
@@ -81,7 +85,7 @@ public class CometApiImpl implements CometApi {
         }
 
         public CometApiImpl build() {
-            return new CometApiImpl(config, apiKey);
+            return new CometApiImpl(apiKey, baseUrl, maxAuthRetries);
         }
     }
 }
