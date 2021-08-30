@@ -278,6 +278,11 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
+    public void logMetric(String metricName, Object metricValue, Long step) {
+        logMetric(metricName, metricValue, step, this.epoch);
+    }
+
+    @Override
     public void logMetric(String metricName, Object metricValue) {
         logMetric(metricName, metricValue, step, epoch);
     }
@@ -298,6 +303,11 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     public void logParameter(String parameterName, Object paramValue, long step) {
         this.setStep(step);
         super.logParameter(parameterName, paramValue, step);
+    }
+
+    @Override
+    public void uploadAsset(File asset, String fileName, boolean overwrite, long step) {
+        super.uploadAsset(asset, fileName, overwrite, step, this.epoch);
     }
 
     @Override

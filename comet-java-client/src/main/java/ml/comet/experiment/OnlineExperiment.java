@@ -76,7 +76,9 @@ public interface OnlineExperiment extends Experiment {
      * Logs a metric with Comet under the current experiment step.  Metrics are generally values that change from step to step
      * @param metricName The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
+     * @param step The step to be associated with this metric
      */
+    void logMetric(String metricName, Object metricValue, Long step);
     void logMetric(String metricName, Object metricValue);
 
 
@@ -92,7 +94,9 @@ public interface OnlineExperiment extends Experiment {
      * @param asset The asset to be stored
      * @param fileName The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite Whether to overwrite files of the same name in Comet
+     * @param step The step to be associated with asset
      */
+    void uploadAsset(File asset, String fileName, boolean overwrite, long step);
     void uploadAsset(File asset, String fileName, boolean overwrite);
     void uploadAsset(File asset, boolean overwrite);
 }
