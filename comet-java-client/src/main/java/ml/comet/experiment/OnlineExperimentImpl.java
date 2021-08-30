@@ -278,7 +278,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue, Long step) {
+    public void logMetric(String metricName, Object metricValue, long step) {
         logMetric(metricName, metricValue, step, this.epoch);
     }
 

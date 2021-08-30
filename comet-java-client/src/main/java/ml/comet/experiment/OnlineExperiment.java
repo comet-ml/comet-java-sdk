@@ -78,7 +78,7 @@ public interface OnlineExperiment extends Experiment {
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      * @param step The step to be associated with this metric
      */
-    void logMetric(String metricName, Object metricValue, Long step);
+    void logMetric(String metricName, Object metricValue, long step);
     void logMetric(String metricName, Object metricValue);
 
 
