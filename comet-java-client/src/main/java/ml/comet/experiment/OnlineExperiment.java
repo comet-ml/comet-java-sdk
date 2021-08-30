@@ -46,6 +46,22 @@ public interface OnlineExperiment extends Experiment {
     long getStep();
 
     /**
+     * Sets the current epoch for the experiment.
+     */
+    void setEpoch(long epoch);
+
+    /**
+     * Increments the epoch that the experiment is on
+     */
+    void nextEpoch();
+
+    /**
+     * Gets the current epoch as recorded by the Experiment object locally
+     * @return
+     */
+    long getEpoch();
+
+    /**
      * Sets the context for any logs and uploaded files
      */
     void setContext(String context);

@@ -11,7 +11,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.apache.commons.lang3.ObjectUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -110,7 +109,7 @@ public class Connection {
                 }
             }
 
-            if (ObjectUtils.anyNull(response, response.body())) {
+            if (response == null || response.body() == null) {
                 return Optional.empty();
             }
             return Optional.of(response.body().string());

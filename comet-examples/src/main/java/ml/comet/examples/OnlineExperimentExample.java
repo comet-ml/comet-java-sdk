@@ -21,13 +21,16 @@ public class OnlineExperimentExample {
         //you can use a builder or just inject params
         //OnlineExperimentImpl.builder();
 
-        experiment.setExperimentName("Java-SDK15");
+        experiment.setExperimentName("Java-SDK 2.0.2");
         experiment.nextStep();
 
         //metric can be a number, string , or double
         experiment.logMetric("strMetric", "123");
-        experiment.logMetric("numMetric", 123, 123);
+        experiment.logMetric("numMetric", 123, 123, 4);
+        experiment.nextEpoch();
         experiment.logMetric("doubleMetric", 123.5d);
+
+        experiment.setEpoch(3);
 
         generateCharts(experiment);
 
@@ -69,15 +72,15 @@ public class OnlineExperimentExample {
         long currentStep = experiment.getStep();
 
         for (int i = 1; i < 15; i++) {
-            experiment.logMetric("numMetric", 123 + i, currentStep + i);
+            experiment.logMetric("numMetric", 123 + i, currentStep + i, getUpdatedEpochValue(experiment));
         }
 
         for (int i = 1; i < 15; i++) {
-            experiment.logMetric("strMetric", "123" + i, currentStep + i);
+            experiment.logMetric("strMetric", "123" + i, currentStep + i, getUpdatedEpochValue(experiment));
         }
 
         for (int i = 1; i < 15; i++) {
-            experiment.logMetric("doubleMetric", 123.12d + i, currentStep + i);
+            experiment.logMetric("doubleMetric", 123.12d + i, currentStep + i, getUpdatedEpochValue(experiment));
         }
     }
 
@@ -89,6 +92,10 @@ public class OnlineExperimentExample {
     private static String loadGraph(String fileName) throws IOException {
         File file = new File(OnlineExperimentExample.class.getClassLoader().getResource(fileName).getFile());
         return FileUtils.readFileToString(file, "UTF-8");
+    }
+
+    private static long getUpdatedEpochValue(OnlineExperiment experiment) {
+        return experiment.getEpoch() + experiment.getStep() / 5;
     }
 
 }
