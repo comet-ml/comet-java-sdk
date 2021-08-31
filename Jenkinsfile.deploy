@@ -13,7 +13,7 @@ node {
     }
 
 		stage("Run") {
-      sh "mvn -pl comet-java-client clean install deploy"
+      sh "COMET_API_KEY=Vbc3cTFyjrWODd186oLEkHa2k COMET_PROJECT_NAME=java-sdk COMET_WORKSPACE_NAME=javasdktestuser mvn -pl comet-java-client clean install deploy"
 		}
 
 }

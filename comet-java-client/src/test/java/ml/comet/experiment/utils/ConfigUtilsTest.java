@@ -11,7 +11,6 @@ import org.mockito.Mockito;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import static ml.comet.experiment.constants.Constants.BASE_URL_DEFAULT;
 import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_DEFAULT;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.API_KEY;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.BASE_URL;
@@ -21,6 +20,7 @@ import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAM
 public class ConfigUtilsTest {
 
     private static final String MAX_AUTH_RETRIES_MOCKED_VALUE = "1";
+    private static final String TEST_BASE_URL = "https://staging.comet.ml";
     private static MockedStatic<EnvironmentVariableExtractor> mockedErrorReporter;
 
     @Before
@@ -52,7 +52,7 @@ public class ConfigUtilsTest {
     @Test
     public void testBaseUrlDefaultValue() {
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(BASE_URL)).thenReturn(Optional.empty());
-        Assert.assertEquals(BASE_URL_DEFAULT, ConfigUtils.getBaseUrlOrDefault());
+        Assert.assertEquals(TEST_BASE_URL, ConfigUtils.getBaseUrlOrDefault());
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(BASE_URL)).thenReturn(Optional.of(BASE_URL));
         Assert.assertEquals(BASE_URL, ConfigUtils.getBaseUrlOrDefault());
     }
