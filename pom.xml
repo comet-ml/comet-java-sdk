@@ -5,7 +5,7 @@
   <groupId>ml.comet</groupId>
   <artifactId>comet-java-sdk</artifactId>
   <packaging>pom</packaging>
-  <version>1.1.1-SNAPSHOT</version>
+  <version>1.1.1</version>
 
   <name>${project.groupId}:${project.artifactId}</name>
   <description>https://www.comet.ml Java client lib</description>
@@ -35,7 +35,7 @@
     <connection>scm:git:git@github.com:comet-ml/comet-java-sdk.git</connection>
     <url>scm:git:git@github.com:comet-ml/comet-java-sdk.git</url>
     <developerConnection>scm:git:git@github.com:comet-ml/comet-java-sdk.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>comet-java-sdk-1.1.1</tag>
   </scm>
 
   <!-- Internal Repo -->
