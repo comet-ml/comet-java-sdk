@@ -407,7 +407,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
 
     private void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias) {
-        Awaitility.await(conditionAlias).atMost(5, SECONDS)
+        Awaitility.await(conditionAlias).atMost(30, SECONDS)
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
     }
