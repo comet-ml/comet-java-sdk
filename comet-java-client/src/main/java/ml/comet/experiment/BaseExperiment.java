@@ -1,7 +1,6 @@
 package ml.comet.experiment;
 
 import lombok.RequiredArgsConstructor;
-import ml.comet.experiment.constants.Constants;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.model.AddGraphRest;
 import ml.comet.experiment.model.AddTagsToExperimentRest;
@@ -69,11 +68,11 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue, long step) {
+    public void logMetric(String metricName, Object metricValue, long step, long epoch) {
         getLogger().debug("logMetric {} {}", metricName, metricValue);
         validateExperimentKeyPresent();
 
-        MetricRest request = getLogMetricRequest(metricName, metricValue, step);
+        MetricRest request = getLogMetricRequest(metricName, metricValue, step, epoch);
         getConnection().sendPostAsync(request, ADD_METRIC);
     }
 
@@ -173,7 +172,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void uploadAsset(File asset, String fileName, boolean overwrite, long step) {
+    public void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch) {
         getLogger().debug("uploadAsset {} {} {}", asset.getName(), fileName, overwrite);
         validateExperimentKeyPresent();
 
@@ -181,14 +180,15 @@ public abstract class BaseExperiment implements Experiment {
             put(EXPERIMENT_KEY, getExperimentKey());
             put("fileName", fileName);
             put("step", Long.toString(step));
+            put("epoch", Long.toString(epoch));
             put("context", getContext());
             put("overwrite", Boolean.toString(overwrite));
         }});
     }
 
     @Override
-    public void uploadAsset(File asset, boolean overwrite, long step) {
-        uploadAsset(asset, asset.getName(), overwrite, step);
+    public void uploadAsset(File asset, boolean overwrite, long step, long epoch) {
+        uploadAsset(asset, asset.getName(), overwrite, step, epoch);
     }
 
     @Override
@@ -316,12 +316,13 @@ public abstract class BaseExperiment implements Experiment {
         return getExperimentKey();
     }
 
-    private MetricRest getLogMetricRequest(String metricName, Object metricValue, long step) {
+    private MetricRest getLogMetricRequest(String metricName, Object metricValue, long step, long epoch) {
         MetricRest request = new MetricRest();
         request.setExperimentKey(getExperimentKey());
         request.setMetricName(metricName);
         request.setMetricValue(getObjectValue(metricValue));
         request.setStep(step);
+        request.setEpoch(epoch);
         request.setTimestamp(System.currentTimeMillis());
         return request;
     }

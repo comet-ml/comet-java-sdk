@@ -1,14 +1,14 @@
 package ml.comet.experiment;
 
-import java.io.File;
-import java.util.List;
-import java.util.Optional;
-
 import ml.comet.experiment.model.CreateGitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
+
+import java.io.File;
+import java.util.List;
+import java.util.Optional;
 
 public interface Experiment {
 
@@ -114,8 +114,9 @@ public interface Experiment {
      * @param metricName The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      * @param step The current step for this metric, this will set the given step for this experiment
+     * @param epoch The current epoch for this metric, this will set the given epoch for this experiment
      */
-    void logMetric(String metricName, Object metricValue, long step);
+    void logMetric(String metricName, Object metricValue, long step, long epoch);
 
 
     /**
@@ -184,9 +185,10 @@ public interface Experiment {
      * @param fileName The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite Whether to overwrite files of the same name in Comet
      * @param step the step to be associated with asset
+     * @param epoch the epoch to be associated with asset
      */
-    void uploadAsset(File asset, String fileName, boolean overwrite, long step);
-    void uploadAsset(File asset, boolean overwrite, long step);
+    void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch);
+    void uploadAsset(File asset, boolean overwrite, long step, long epoch);
 
     /**
      * Log Git Metadata for the experiment.

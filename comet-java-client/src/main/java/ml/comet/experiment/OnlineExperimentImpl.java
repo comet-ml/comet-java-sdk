@@ -54,6 +54,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private ScheduledFuture pingStatusFuture;
 
     private long step = 0;
+    private long epoch = 0;
     private String context = "";
 
     private OnlineExperimentImpl(
@@ -242,6 +243,21 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
+    public void setEpoch(long epoch) {
+        this.epoch = epoch;
+    }
+
+    @Override
+    public void nextEpoch() {
+        epoch++;
+    }
+
+    @Override
+    public long getEpoch() {
+        return epoch;
+    }
+
+    @Override
     public void setContext(String context) {
         this.context = context;
     }
@@ -262,14 +278,20 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue) {
-        logMetric(metricName, metricValue, step);
+    public void logMetric(String metricName, Object metricValue, long step) {
+        logMetric(metricName, metricValue, step, this.epoch);
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue, long step) {
+    public void logMetric(String metricName, Object metricValue) {
+        logMetric(metricName, metricValue, step, epoch);
+    }
+
+    @Override
+    public void logMetric(String metricName, Object metricValue, long step, long epoch) {
         this.setStep(step);
-        super.logMetric(metricName, metricValue, step);
+        this.setEpoch(epoch);
+        super.logMetric(metricName, metricValue, step, epoch);
     }
 
     @Override
@@ -284,13 +306,18 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
+    public void uploadAsset(File asset, String fileName, boolean overwrite, long step) {
+        super.uploadAsset(asset, fileName, overwrite, step, this.epoch);
+    }
+
+    @Override
     public void uploadAsset(File asset, boolean overwrite) {
         uploadAsset(asset, asset.getName(), overwrite);
     }
 
     @Override
     public void uploadAsset(File asset, String fileName, boolean overwrite) {
-        super.uploadAsset(asset, fileName, overwrite, step);
+        super.uploadAsset(asset, fileName, overwrite, step, epoch);
     }
 
     private void initializeExperiment() {
