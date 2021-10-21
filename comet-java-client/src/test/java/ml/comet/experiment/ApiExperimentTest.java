@@ -24,22 +24,6 @@ public class ApiExperimentTest extends BaseApiTest {
     }
 
     @Test
-    public void testApiExperimentInitializedWithConfigOverride() {
-        try {
-            URL url = Thread.currentThread().getContextClassLoader().getResource("empty-comet-config.conf");
-            File file = new File(url.getPath());
-            OnlineExperimentImpl.builder()
-                    .withConfig(file)
-                    .build();
-        } catch (IllegalArgumentException ex) {
-            Assert.assertEquals("Apikey is not specified!", ex.getMessage());
-            return;
-        }
-
-        fail("expected to read comet override config file");
-    }
-
-    @Test
     public void testApiExperimentInitialized() {
         OnlineExperiment experiment = createOnlineExperiment();
         String experimentKey = experiment.getExperimentKey();
