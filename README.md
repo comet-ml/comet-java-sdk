@@ -28,5 +28,21 @@ OnlineExperiment experiment = OnlineExperimentImpl.builder()
         experiment.logMetric("strMetric", 123);
         experiment.end();
 ```
+
+* Configure you experiment object:
+```
+#Configuration hierarchy:
+#Enviorment varilable > Configuration File Override > typesafe default config file (defaults.conf)
+
+#Setting configuration in code:
+OnlineExperimentImpl.builder().withApiKey("someApiKey").build();
+
+#Override configuration file (can have partial keys)
+OnlineExperimentImpl.builder().withConfig(new File("/tmp/comet.conf")).build();
+
+# Read from environment variables OR from configuration file in classpath (defaults.conf)
+OnlineExperimentImpl.builder().build();
+```
+
 ####You also can check [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
 For more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)
