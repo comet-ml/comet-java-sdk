@@ -12,7 +12,7 @@
         <dependency>
             <groupId>ml.comet</groupId>
             <artifactId>comet-java-client</artifactId>
-            <version>1.1.1</version>
+            <version>1.1.2</version>
         </dependency>
     </dependencies>
 ```
@@ -32,7 +32,7 @@ OnlineExperiment experiment = OnlineExperimentImpl.builder()
 * Configure you experiment object:
 ```
 #Configuration hierarchy:
-#Enviorment varilable > Configuration File Override > typesafe default config file (defaults.conf)
+#Enviorment varilable > Configuration File Override > typesafe default config file (application.conf)
 
 #Setting configuration in code:
 OnlineExperimentImpl.builder().withApiKey("someApiKey").build();
@@ -40,7 +40,7 @@ OnlineExperimentImpl.builder().withApiKey("someApiKey").build();
 #Override configuration file (can have partial keys)
 OnlineExperimentImpl.builder().withConfig(new File("/tmp/comet.conf")).build();
 
-# Read from environment variables OR from configuration file in classpath (defaults.conf)
+# Read from environment variables OR from configuration file in classpath (application.conf)
 OnlineExperimentImpl.builder().build();
 ```
 

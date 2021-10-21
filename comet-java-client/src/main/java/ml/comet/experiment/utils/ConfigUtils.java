@@ -25,21 +25,33 @@ import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAM
 @UtilityClass
 public class ConfigUtils {
 
-    private static Optional<Config> defaultConfig = getConfig();
+    private static Optional<Config> defaultConfig = Optional.empty();
     private static Optional<Config> overrideConfig = Optional.empty();
 
-    private static Optional<Config> getConfig() {
+    static {
+        setDefaultConfig();
+    }
+
+    public static void setDefaultConfig() {
         try {
             Config config = ConfigFactory.load().getConfig("comet");
-            return Optional.of(config);
-        } catch (ConfigException e) {
-            return Optional.empty();
+            defaultConfig = Optional.of(config);
+        } catch (ConfigException ignored) {
         }
     }
 
     public static void setOverrideConfig(File configFile) {
         Config config = ConfigFactory.parseFile(configFile).getConfig("comet");
         ConfigUtils.overrideConfig = Optional.of(config);
+    }
+
+    public static void clearOverrideConfig() {
+        ConfigUtils.overrideConfig = Optional.empty();
+    }
+
+    public static void setDefaultConfig(File configFile) {
+        Config config = ConfigFactory.parseFile(configFile).getConfig("comet");
+        ConfigUtils.defaultConfig = Optional.of(config);
     }
 
     public String getApiKeyOrThrow() {
@@ -93,8 +105,9 @@ public class ConfigUtils {
             return envVariable;
         } else if (overrideConfig.isPresent() && overrideConfig.get().hasPath(configValueName)){
             return overrideConfig.map(x -> x.getString(configValueName));
-        } else {
+        } else if (defaultConfig.isPresent() && defaultConfig.get().hasPath(configValueName)){
             return defaultConfig.map(x -> x.getString(configValueName));
         }
+        return Optional.empty();
     }
 }
