@@ -12,7 +12,7 @@ import java.util.Scanner;
 public class OnlineExperimentExample {
 
     public static void main(String[] args) throws IOException {
-        //this will take configs from /comet-java-sdk/comet-examples/src/main/resources/defaults.conf
+        //this will take configs from /comet-java-sdk/comet-examples/src/main/resources/application.conf
         //be sure you have set up apiKey, project, workspace in defaults.conf before you start!
 
         OnlineExperiment experiment = new OnlineExperimentImpl();
