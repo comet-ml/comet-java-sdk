@@ -26,7 +26,7 @@ public class ApiExperimentTest extends BaseApiTest {
     @Test
     public void testApiExperimentInitializedWithConfigOverride() {
         try {
-            URL url = Thread.currentThread().getContextClassLoader().getResource("comet-override.conf");
+            URL url = Thread.currentThread().getContextClassLoader().getResource("empty-comet-config.conf");
             File file = new File(url.getPath());
             OnlineExperimentImpl.builder()
                     .withConfig(file)

@@ -21,7 +21,7 @@ import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAM
 public class ConfigUtilsTest {
 
     private static final String MAX_AUTH_RETRIES_MOCKED_VALUE = "1";
-    private static final String TEST_BASE_URL = "https://staging.comet.ml";
+    private static final String TEST_BASE_URL = "https://www.comet.ml";
     private static MockedStatic<EnvironmentVariableExtractor> mockedErrorReporter;
     private static File emptyCometConfig = new File(Thread.currentThread().getContextClassLoader().getResource("empty-comet-config.conf").getPath());
     private static File fullCometConfig = new File(Thread.currentThread().getContextClassLoader().getResource("full-comet-config.conf").getPath());

@@ -96,7 +96,7 @@ public class ConfigUtils {
 
     private String getValueFromSystemOrThrow(String envVarName, String configValueName) {
         return getValueFromSystem(envVarName, configValueName)
-                .orElseThrow(() -> new IllegalStateException("No parameter with name " + configValueName + "found! Please specify it in env vars or config"));
+                .orElseThrow(() -> new IllegalStateException("No parameter with name " + configValueName + " found! Please specify it in env vars or config"));
     }
 
     private Optional<String> getValueFromSystem(String envVarName, String configValueName) {
