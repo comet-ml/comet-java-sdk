@@ -30,7 +30,6 @@ public class Constants {
     public static final String GET_TAGS = READ_API_URL + "/experiment/tags";
     public static final String GET_ASSET_INFO = READ_API_URL + "/experiment/asset/list";
 
-    public static final String DEFAULTS_CONF = "defaults.conf";
     public static final String COMET_API_KEY = "comet.apiKey";
     public static final String COMET_PROJECT = "comet.project";
     public static final String COMET_WORKSPACE = "comet.workspace";

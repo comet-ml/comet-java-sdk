@@ -1,14 +1,12 @@
 package ml.comet.experiment.utils;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import lombok.experimental.UtilityClass;
-import ml.comet.experiment.constants.Constants;
 import ml.comet.experiment.env.EnvironmentVariableExtractor;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
-import java.net.URL;
 import java.util.Optional;
 
 import static ml.comet.experiment.constants.Constants.BASE_URL_DEFAULT;
@@ -26,6 +24,23 @@ import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAM
 
 @UtilityClass
 public class ConfigUtils {
+
+    private static Optional<Config> defaultConfig = getConfig();
+    private static Optional<Config> overrideConfig = Optional.empty();
+
+    private static Optional<Config> getConfig() {
+        try {
+            Config config = ConfigFactory.load().getConfig("comet");
+            return Optional.of(config);
+        } catch (ConfigException e) {
+            return Optional.empty();
+        }
+    }
+
+    public static void setOverrideConfig(File configFile) {
+        Config config = ConfigFactory.parseFile(configFile).getConfig("comet");
+        ConfigUtils.overrideConfig = Optional.of(config);
+    }
 
     public String getApiKeyOrThrow() {
         return getValueFromSystemOrThrow(API_KEY, COMET_API_KEY);
@@ -67,15 +82,6 @@ public class ConfigUtils {
         return ConfigFactory.parseFile(configFile);
     }
 
-    private Config getDefaultConfigFromClassPath() {
-        URL resource = getContextClassLoader().getResource(Constants.DEFAULTS_CONF);
-        if (resource == null) {
-            return null;
-        }
-        return ConfigFactory.parseFile(
-                new File(resource.getFile()));
-    }
-
     private String getValueFromSystemOrThrow(String envVarName, String configValueName) {
         return getValueFromSystem(envVarName, configValueName)
                 .orElseThrow(() -> new IllegalStateException("No parameter with name " + configValueName + "found! Please specify it in env vars or config"));
@@ -85,19 +91,10 @@ public class ConfigUtils {
         Optional<String> envVariable = EnvironmentVariableExtractor.getEnvVariable(envVarName);
         if (envVariable.isPresent()) {
             return envVariable;
+        } else if (overrideConfig.isPresent() && overrideConfig.get().hasPath(configValueName)){
+            return overrideConfig.map(x -> x.getString(configValueName));
+        } else {
+            return defaultConfig.map(x -> x.getString(configValueName));
         }
-        Config defaultConfig = getDefaultConfigFromClassPath();
-        if (defaultConfig == null) {
-            return Optional.empty();
-        }
-        String configValue = defaultConfig.getString(configValueName);
-        if (StringUtils.isEmpty(configValue)) {
-            return Optional.empty();
-        }
-        return Optional.of(configValue);
-    }
-
-    private ClassLoader getContextClassLoader() {
-        return Thread.currentThread().getContextClassLoader();
     }
 }
