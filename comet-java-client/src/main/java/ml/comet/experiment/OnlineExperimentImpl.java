@@ -1,9 +1,9 @@
 package ml.comet.experiment;
 
-import com.typesafe.config.Config;
 import lombok.Getter;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
 import ml.comet.experiment.constants.Constants;
+import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
 import ml.comet.experiment.log.StdOutLogger;
@@ -27,12 +27,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import static ml.comet.experiment.constants.Constants.ADD_OUTPUT;
-import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
-import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
-import static ml.comet.experiment.constants.Constants.COMET_PROJECT;
-import static ml.comet.experiment.constants.Constants.COMET_WORKSPACE;
 import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
-import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
 
 @Getter
 public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
@@ -103,7 +98,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         private String workspace;
         private String apiKey;
         private String baseUrl;
-        private int maxAuthRetries;
+        private int maxAuthRetries = -1;
         private String experimentName;
         private String experimentKey;
         private Logger logger;
@@ -113,11 +108,6 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
          * Create a builder to construct an Experiment Object
          */
         private OnlineExperimentBuilderImpl() {
-            this.apiKey = ConfigUtils.getApiKey().orElse(null);
-            this.projectName = ConfigUtils.getProjectName().orElse(null);
-            this.workspace = ConfigUtils.getWorkspaceName().orElse(null);
-            this.baseUrl = ConfigUtils.getBaseUrlOrDefault();
-            this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
         }
 
         @Override
@@ -135,6 +125,18 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         @Override
         public OnlineExperimentBuilderImpl withApiKey(String apiKey) {
             this.apiKey = apiKey;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withMaxAuthRetries(int maxAuthRetries) {
+            this.maxAuthRetries = maxAuthRetries;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withUrlOverride(String urlOverride) {
+            this.baseUrl = urlOverride;
             return this;
         }
 
@@ -158,12 +160,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
         @Override
         public OnlineExperimentBuilderImpl withConfig(File overrideConfig) {
-            Config config = ConfigUtils.getConfigFromFile(overrideConfig);
-            this.apiKey = config.getString(COMET_API_KEY);
-            this.projectName = config.getString(COMET_PROJECT);
-            this.workspace = config.getString(COMET_WORKSPACE);
-            this.baseUrl = config.getString(BASE_URL_PLACEHOLDER);
-            this.maxAuthRetries = config.getInt(MAX_AUTH_RETRIES_PLACEHOLDER);
+            ConfigUtils.setOverrideConfig(overrideConfig);
             return this;
         }
 
@@ -175,6 +172,23 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
         @Override
         public OnlineExperimentImpl build() {
+
+            if (StringUtils.isEmpty(apiKey)){
+                this.apiKey = ConfigUtils.getApiKey().orElse(null);
+            }
+            if (StringUtils.isEmpty(projectName)){
+                projectName = ConfigUtils.getProjectName().orElse(null);
+            }
+            if (StringUtils.isEmpty(workspace)){
+                workspace = ConfigUtils.getWorkspaceName().orElse(null);
+            }
+            if (StringUtils.isEmpty(baseUrl)){
+                baseUrl = ConfigUtils.getBaseUrlOrDefault();
+            }
+            if (maxAuthRetries == -1) {
+                maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
+            }
+
             return new OnlineExperimentImpl(apiKey, projectName, workspace, experimentName, experimentKey, logger, interceptStdout, baseUrl, maxAuthRetries);
         }
     }
@@ -361,7 +375,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         CreateExperimentRequest request = new CreateExperimentRequest(workspaceName, projectName, experimentName);
         String body = JsonUtils.toJson(request);
 
-        connection.sendPost(body, Constants.NEW_EXPERIMENT)
+        connection.sendPost(body, Constants.NEW_EXPERIMENT, true)
                 .ifPresent(response -> {
                     CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
                     this.experimentKey = result.getExperimentKey();
@@ -372,7 +386,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
                 });
 
         if (this.experimentKey == null) {
-            throw new RuntimeException("Failed to register onlineExperiment with Comet ML");
+            throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
         }
     }
 

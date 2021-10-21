@@ -28,6 +28,20 @@ public interface OnlineExperimentBuilder {
     OnlineExperimentBuilder withApiKey(String apiKey);
 
     /**
+     * Set the max auth retry attempts.
+     * @param maxAuthRetries number of times to try auth calls on experiment creation
+     * @return
+     */
+    OnlineExperimentBuilder withMaxAuthRetries(int maxAuthRetries);
+
+    /**
+     * Set the URL of your comet installation.
+     * @param urlOverride full url of comet installation. default is https://www.comet.ml
+     * @return
+     */
+    OnlineExperimentBuilder  withUrlOverride(String urlOverride);
+
+    /**
      * Name the experiment
      * @param experimentName name to be applied to the experiment
      * @return

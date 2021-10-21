@@ -1,6 +1,7 @@
 package ml.comet.experiment.http;
 
 import lombok.Value;
+import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.utils.JsonUtils;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -38,11 +39,11 @@ public class Connection {
         return executeRequestWithAuth(builder, url);
     }
 
-    public Optional<String> sendPost(String body, String endpoint) {
+    public Optional<String> sendPost(String body, String endpoint, boolean failing) {
         String url = cometBaseUrl + endpoint;
         logger.debug("sending {} to {}", body, url);
         Request.Builder builder = createPostJsonRequest(body, url);
-        return executeRequestWithAuth(builder, url);
+        return executeRequestWithAuth(builder, url, failing);
     }
 
     public Optional<String> sendPost(File file, String endpoint, Map<String, String> params) {
@@ -89,6 +90,10 @@ public class Connection {
     }
 
     private Optional<String> executeRequestWithAuth(Request.Builder requestBuilder, String endpoint) {
+        return executeRequestWithAuth(requestBuilder, endpoint, false);
+    }
+
+    private Optional<String> executeRequestWithAuth(Request.Builder requestBuilder, String endpoint, boolean throwOnFailure) {
         requestBuilder.addHeader(COMET_SDK_API, apiKey);
         Request request = requestBuilder.build();
         try {
@@ -102,6 +107,10 @@ public class Connection {
                         Thread.sleep((2 ^ i) * 1000L);
                     } else {
                         logger.error("for endpoint {} response {}, last retry failed\n", endpoint, response.body());
+                        if (throwOnFailure) {
+                            String body = response.body() == null ? "NO BODY" : response.body().string();
+                            throw new CometGeneralException("failed to call: " + endpoint + ", response status: " + response.code() +", body: " + body);
+                        }
                     }
                 } else {
                     logger.debug("for endpoint {} response {}\n", endpoint, response.body());

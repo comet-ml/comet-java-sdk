@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import java.io.File;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -20,11 +21,15 @@ import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAM
 public class ConfigUtilsTest {
 
     private static final String MAX_AUTH_RETRIES_MOCKED_VALUE = "1";
-    private static final String TEST_BASE_URL = "https://staging.comet.ml";
+    private static final String TEST_BASE_URL = "https://www.comet.ml";
     private static MockedStatic<EnvironmentVariableExtractor> mockedErrorReporter;
+    private static File emptyCometConfig = new File(Thread.currentThread().getContextClassLoader().getResource("empty-comet-config.conf").getPath());
+    private static File fullCometConfig = new File(Thread.currentThread().getContextClassLoader().getResource("full-comet-config.conf").getPath());
 
     @Before
     public void init() {
+        ConfigUtils.setDefaultConfig();
+        ConfigUtils.clearOverrideConfig();
         mockedErrorReporter = Mockito.mockStatic(EnvironmentVariableExtractor.class);
     }
 
@@ -67,32 +72,44 @@ public class ConfigUtilsTest {
 
     @Test(expected = IllegalStateException.class)
     public void testExceptionIsThrownWhenNoApiKeyPresent() {
+        ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(API_KEY)).thenReturn(Optional.empty());
         ConfigUtils.getApiKeyOrThrow();
     }
 
     @Test(expected = IllegalStateException.class)
     public void testExceptionIsThrownWhenNoProjectNameIsPresent() {
+        ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(PROJECT_NAME)).thenReturn(Optional.empty());
         ConfigUtils.getProjectNameOrThrow();
     }
 
     @Test(expected = IllegalStateException.class)
     public void testExceptionIsThrownWhenNoWorkspaceNameIsPresent() {
+        ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(WORKSPACE_NAME)).thenReturn(Optional.empty());
         ConfigUtils.getWorkspaceNameOrThrow();
     }
 
 
     public void validateValueExtractOrder(String envVarName, Supplier<Optional<String>> supplier) {
-        mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(envVarName)).thenReturn(Optional.empty());
-
-        Assert.assertFalse(supplier.get().isPresent());
-
+        //test from env var
+        ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(envVarName)).thenReturn(Optional.of(envVarName));
-
         Assert.assertTrue(supplier.get().isPresent());
         Assert.assertEquals(envVarName, supplier.get().get());
+
+        //test from default config
+        ConfigUtils.setDefaultConfig(fullCometConfig);
+        mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(envVarName)).thenReturn(Optional.empty());
+        Assert.assertTrue(supplier.get().isPresent());
+        Assert.assertEquals("full", supplier.get().get());
+
+        //test from comet config override
+        ConfigUtils.setDefaultConfig(emptyCometConfig);
+        ConfigUtils.setOverrideConfig(fullCometConfig);
+        Assert.assertTrue(supplier.get().isPresent());
+        Assert.assertEquals("full", supplier.get().get());
     }
 
 
