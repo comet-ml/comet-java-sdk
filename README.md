@@ -1,12 +1,7 @@
-# comet-java-sdk
+# https://www.comet.ml official Java SDK    [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-client) [![Build Status](https://travis-ci.com/comet-ml/comet-java-sdk.svg?branch=master)](https://travis-ci.com/github/comet-ml/comet-java-sdk)
 
-### This project is still under development.
-
-#### Using Comet Java SDK:
-* The latest released version available in Maven Central:
-  [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-client) 
-   [![Build Status](https://travis-ci.com/comet-ml/comet-java-sdk.svg?branch=master)](https://travis-ci.com/github/comet-ml/comet-java-sdk)
-* Add dependency to pom.xml:
+### Using Comet Java SDK:
+#### Add dependency to pom.xml:
 ```
     <dependencies>
         <dependency>
@@ -16,7 +11,7 @@
         </dependency>
     </dependencies>
 ```
-* create experiment and log stuff:
+#### Create experiment and log metrics and parameters:
 ```java
 OnlineExperiment experiment = OnlineExperimentImpl.builder()
                 .withApiKey("someApiKey")
@@ -29,8 +24,8 @@ OnlineExperiment experiment = OnlineExperimentImpl.builder()
         experiment.end();
 ```
 
-* Configure you experiment object:
-```
+#### Configure you experiment object:
+```java
 #Configuration hierarchy:
 #Environment Variable > Configuration File Override > Default config file (application.conf)
 
@@ -44,8 +39,8 @@ OnlineExperimentImpl.builder().withConfig(new File("/tmp/comet.conf")).build();
 OnlineExperimentImpl.builder().build();
 ```
 
-* Full list of environment variables:
-```
+#### Full list of environment variables:
+```java
 COMET_API_KEY
 COMET_PROJECT_NAME
 COMET_WORKSPACE_NAME
