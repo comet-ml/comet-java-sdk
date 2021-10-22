@@ -44,5 +44,14 @@ OnlineExperimentImpl.builder().withConfig(new File("/tmp/comet.conf")).build();
 OnlineExperimentImpl.builder().build();
 ```
 
+* Full list of environment variables:
+```
+COMET_API_KEY
+COMET_PROJECT_NAME
+COMET_WORKSPACE_NAME
+COMET_BASE_URL
+COMET_MAX_AUTH_RETRIES
+```
+
 ####You also can check [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
 For more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)
