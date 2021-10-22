@@ -32,7 +32,7 @@ OnlineExperiment experiment = OnlineExperimentImpl.builder()
 * Configure you experiment object:
 ```
 #Configuration hierarchy:
-#Enviorment varilable > Configuration File Override > typesafe default config file (application.conf)
+#Environment Variable > Configuration File Override > Default config file (application.conf)
 
 #Setting configuration in code:
 OnlineExperimentImpl.builder().withApiKey("someApiKey").build();
