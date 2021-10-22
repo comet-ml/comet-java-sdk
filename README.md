@@ -53,5 +53,7 @@ COMET_BASE_URL
 COMET_MAX_AUTH_RETRIES
 ```
 
-####You also can check [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
-For more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)
+#### Examples
+
+* You also can check [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
+* For more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)
