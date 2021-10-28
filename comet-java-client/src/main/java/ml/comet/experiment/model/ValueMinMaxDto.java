@@ -1,10 +1,16 @@
 package ml.comet.experiment.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ValueMinMaxDto {
     private String name;
     private String valueMax;
@@ -20,8 +26,6 @@ public class ValueMinMaxDto {
     private Long stepMin;
     private Long stepCurrent;
     private Boolean editable = false;
-
-    public ValueMinMaxDto() {}
 
     public ValueMinMaxDto(String name, String valueCurrent, Long timestampCurrent, Long stepCurrent, String runContextCurrent) {
         this.name = name;
