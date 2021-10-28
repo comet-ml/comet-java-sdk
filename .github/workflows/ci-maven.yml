@@ -24,3 +24,7 @@ jobs:
         cache: maven
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+      env:
+        COMET_API_KEY: env.COMET_API_KEY
+        COMET_PROJECT_NAME: env.COMET_PROJECT_NAME
+        COMET_WORKSPACE_NAME: env.COMET_WORKSPACE_NAME
