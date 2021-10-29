@@ -31,4 +31,14 @@ jobs:
         COMET_PROJECT_NAME: ${{ secrets.COMET_PROJECT_NAME }}
         COMET_WORKSPACE_NAME: ${{ secrets.COMET_WORKSPACE_NAME }}
         
+    - name: Codecov Report upload
+      uses: codecov/codecov-action@v2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+        flags: unittests,integration # optional
+        name: codecov-umbrella # optional
+        fail_ci_if_error: true # optional (default = false)
+        verbose: true # optional (default = false)
+
+        
 
