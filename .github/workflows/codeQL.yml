@@ -63,11 +63,7 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
 
-    - run: mvn --batch-mode --file pom.xml
-      env:
-        COMET_API_KEY: ${{ secrets.COMET_API_KEY }}
-        COMET_PROJECT_NAME: ${{ secrets.COMET_PROJECT_NAME }}
-        COMET_WORKSPACE_NAME: ${{ secrets.COMET_WORKSPACE_NAME }}
+    - run: mvn --batch-mode --file pom.xml compile
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
