@@ -18,7 +18,7 @@ on:
     # The branches below must be a subset of the branches above
     branches: [ master ]
   schedule:
-    - cron: '19 8 * * 1'
+    - cron: '19 8 * * 0' # 08:19 UTC on Sun
 
 jobs:
   analyze:
@@ -58,12 +58,11 @@ jobs:
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 https://git.io/JvXDl
-
-    # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
-    #    and modify them (or add more) to build your code if your project
-    #    uses a compiled language
-
-    - run: mvn --batch-mode --file pom.xml compile
+    # https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-the-codeql-workflow-for-compiled-languages
+    
+    - if: matrix.language == 'java' 
+      name: Build Java
+      run: mvn --batch-mode --file pom.xml compile
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
