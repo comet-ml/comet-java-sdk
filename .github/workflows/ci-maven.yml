@@ -27,8 +27,8 @@ jobs:
     - name: Build with Maven
       run: mvn --batch-mode --update-snapshots --file pom.xml verify
       env:
-        COMET_API_KEY: secrets.COMET_API_KEY
-        COMET_PROJECT_NAME: secrets.COMET_PROJECT_NAME
-        COMET_WORKSPACE_NAME: secrets.COMET_WORKSPACE_NAME
+        COMET_API_KEY: ${{ secrets.secrets.COMET_API_KEY }}
+        COMET_PROJECT_NAME: ${{ secrets.secrets.COMET_PROJECT_NAME }}
+        COMET_WORKSPACE_NAME: ${{ secrets.secrets.COMET_WORKSPACE_NAME }}
         
 
