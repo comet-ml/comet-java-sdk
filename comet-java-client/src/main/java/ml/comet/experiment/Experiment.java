@@ -14,92 +14,92 @@ public interface Experiment {
 
     /**
      * Get the experiment key returned by Comet
-     * @return
+     * @return the experiment key assigned by Comet
      */
     String getExperimentKey();
 
     /**
      * Get the experiment link returned by Comet.
-     * @return
+     * @return the experiment link assigned by Comet.
      */
     Optional<String> getExperimentLink();
 
     /**
      * Get project name of the experiment.
-     * @return
+     * @return the project name of the experiment.
      */
     String getProjectName();
 
     /**
      * Get workspace name of the experiment.
-     * @return
+     * @return the workspace name of the experiment.
      */
     String getWorkspaceName();
 
     /**
      * Get experiment name.
-     * @return
+     * @return the name of the experiment.
      */
     String getExperimentName();
 
 
     /**
      * Get experiment metadata.
-     * @return
+     * @return the metadata associated with experiment.
      */
     ExperimentMetadataRest getMetadata();
 
     /**
      * Get experiment git metadata.
-     * @return
+     * @return the GIT metadata for this experiment.
      */
     GitMetadataRest getGitMetadata();
 
     /**
      * Get experiment html.
-     * @return
+     * @return the HTML of the experiment.
      */
     Optional<String> getHtml();
 
     /**
      * Get experiment output data.
-     * @return
+     * @return the output data of the experiment.
      */
     Optional<String> getOutput();
 
     /**
      * Get experiment graph data.
-     * @return
+     * @return the graph data associated with experiment.
      */
     Optional<String> getGraph();
 
     /**
      * Get experiment parameters.
-     * @return
+     * @return the parameters logged by experiment.
      */
     List<ValueMinMaxDto> getParameters();
 
     /**
      * Get experiment metrics.
-     * @return
+     * @return the metrics logged by experiment.
      */
     List<ValueMinMaxDto> getMetrics();
 
     /**
      * Get experiment log other data.
-     * @return
+     * @return the other data logged with experiment.
      */
     List<ValueMinMaxDto> getLogOther();
 
     /**
      * Get experiment tags.
-     * @return
+     * @return the TAGs associated with experiment
      */
     List<String> getTags();
 
     /**
      * Get experiment asset list.
-     * @return
+     * @return the list of assets associated with experiment.
      */
     List<ExperimentAssetLink> getAssetList(String type);
 
@@ -128,7 +128,7 @@ public interface Experiment {
     void logParameter(String parameterName, Object paramValue, long step);
 
     /**
-     * Let's you create an html report for the experiment
+     * Allows you to create html report for the experiment
      * @param html A block of html to be sent to Comet
      * @param override Whether previous html sent should be deleted.  If true the old html will be deleted.  If false, it will have the new html appended onto the end.
      */
@@ -166,14 +166,14 @@ public interface Experiment {
     void logEndTime(long endTimeMillis);
 
     /**
-     * Let's you report code for the experiment.
+     * Allows you to report code for the experiment.
      * @param code Code to be sent to Comet
      * @param fileName Name of source file to be displayed on UI 'code' tab
      */
     void logCode(String code, String fileName);
 
     /**
-     * Let's you report code for the experiment.
+     * Allows you to report code for the experiment.
      * @param file Asset with source code to be sent
      */
     void logCode(File file);
@@ -191,7 +191,7 @@ public interface Experiment {
     void uploadAsset(File asset, boolean overwrite, long step, long epoch);
 
     /**
-     * Log Git Metadata for the experiment.
+     * Logs Git Metadata for the experiment.
      * @param gitMetadata The Git Metadata for the experiment
      */
     void logGitMetadata(CreateGitMetadata gitMetadata);
