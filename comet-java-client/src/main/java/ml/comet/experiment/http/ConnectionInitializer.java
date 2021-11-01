@@ -11,6 +11,6 @@ public class ConnectionInitializer {
         if (StringUtils.isEmpty(apiKey)) {
             throw new IllegalArgumentException("Api key required!");
         }
-        return new Connection(cometBaseUrl, apiKey, logger, maxAuthRetries);
+        return new Connection(cometBaseUrl, apiKey, maxAuthRetries, logger);
     }
 }
