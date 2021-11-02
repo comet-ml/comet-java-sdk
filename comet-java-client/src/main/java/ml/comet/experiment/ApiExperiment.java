@@ -5,17 +5,15 @@ import ml.comet.experiment.builder.ApiExperimentBuilder;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
 import ml.comet.experiment.utils.ConfigUtils;
-import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Optional;
 
-import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
-import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
-import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
+import static ml.comet.experiment.constants.Constants.*;
 
 public class ApiExperiment extends BaseExperiment {
     private final String baseUrl;
@@ -134,12 +132,15 @@ public class ApiExperiment extends BaseExperiment {
         if (StringUtils.isEmpty(experimentKey)) {
             return Optional.empty();
         }
-        HttpUrl.Builder builder = HttpUrl.get(baseUrl).newBuilder();
-        builder.addPathSegment(getWorkspaceName());
-        builder.addPathSegment(getProjectName());
-        builder.addPathSegment(experimentKey);
-        String link = builder.build().toString();
-        return Optional.of(link);
+        String url = String.format("%s/%s/%s/%s", baseUrl, getWorkspaceName(), getProjectName(), experimentKey);
+        try {
+            // check URI syntax and return
+            URI uri = URI.create(url);
+            return Optional.of(uri.toString());
+        } catch (Exception ex) {
+            this.logger.error("failed to build experiment link", ex);
+            return Optional.empty();
+        }
     }
 
 }
