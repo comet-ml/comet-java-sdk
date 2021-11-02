@@ -8,6 +8,8 @@ import org.asynchttpclient.request.body.multipart.ByteArrayPart;
 import org.asynchttpclient.request.body.multipart.FilePart;
 import org.asynchttpclient.util.HttpConstants;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.net.URI;
@@ -31,7 +33,7 @@ public class ConnectionUtilsTest {
         Request r = ConnectionUtils.createGetRequest(url, params);
 
         this.validateRequest(r, url, params, HttpConstants.Methods.GET, null);
-        assertEquals("wrong HTTP method", HttpConstants.Methods.GET, r.getMethod());
+        assertEquals(HttpConstants.Methods.GET, r.getMethod(), "wrong HTTP method");
     }
 
     @Test
@@ -88,6 +90,18 @@ public class ConnectionUtilsTest {
         this.validateRequest(r, url, null, HttpConstants.Methods.POST, ConnectionUtils.JSON_MIME_TYPE);
 
         assertEquals(json.length(), r.getBodyGenerator().createBody().getContentLength(), "wrong body");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {200, 201, 202, 299})
+    public void testIsResponseSuccessfulTrue(int statusCode) {
+        assertTrue(ConnectionUtils.isResponseSuccessful(statusCode));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {300, 401, 404, 500})
+    public void testIsResponseSuccessfulFalse(int statusCode) {
+        assertFalse(ConnectionUtils.isResponseSuccessful(statusCode));
     }
 
     private void validateRequest(Request r, String url, HashMap<String, String> params,
