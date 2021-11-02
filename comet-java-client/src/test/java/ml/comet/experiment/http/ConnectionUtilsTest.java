@@ -7,14 +7,14 @@ import org.asynchttpclient.Request;
 import org.asynchttpclient.request.body.multipart.ByteArrayPart;
 import org.asynchttpclient.request.body.multipart.FilePart;
 import org.asynchttpclient.util.HttpConstants;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
 
 import java.io.File;
 import java.net.URI;
 import java.util.HashMap;
 
 import static ml.comet.experiment.constants.Constants.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ConnectionUtilsTest {
 
@@ -31,7 +31,7 @@ public class ConnectionUtilsTest {
         Request r = ConnectionUtils.createGetRequest(url, params);
 
         this.validateRequest(r, url, params, HttpConstants.Methods.GET, null);
-        Assert.assertEquals("wrong HTTP method", HttpConstants.Methods.GET, r.getMethod());
+        assertEquals("wrong HTTP method", HttpConstants.Methods.GET, r.getMethod());
     }
 
     @Test
@@ -43,17 +43,17 @@ public class ConnectionUtilsTest {
             put("overwrite", Boolean.toString(false));
         }};
         File file = TestUtils.getFile(SOME_TEXT_FILE_NAME);
-        Assert.assertNotNull("test file not found", file);
+        assertNotNull(file, "test file not found");
 
         Request r = ConnectionUtils.createPostFileRequest(file, url, params);
         this.validateRequest(r, url, params, HttpConstants.Methods.POST, ConnectionUtils.FORM_MIME_TYPE);
 
         // check body parts
-        Assert.assertEquals("wrong number of body parts", 1, r.getBodyParts().size());
-        FilePart part = (FilePart)r.getBodyParts().get(0);
-        Assert.assertEquals("wrong name", ConnectionUtils.FILE, part.getName());
-        Assert.assertEquals("wrong content type", ConnectionUtils.FORM_MIME_TYPE, part.getContentType());
-        Assert.assertEquals("wrong file", file, part.getFile());
+        assertEquals(1, r.getBodyParts().size(), "wrong number of body parts");
+        FilePart part = (FilePart) r.getBodyParts().get(0);
+        assertEquals(ConnectionUtils.FILE, part.getName(), "wrong name");
+        assertEquals(ConnectionUtils.FORM_MIME_TYPE, part.getContentType(), "wrong content type");
+        assertEquals(file, part.getFile(), "wrong file");
     }
 
     @Test
@@ -70,11 +70,11 @@ public class ConnectionUtilsTest {
         this.validateRequest(r, url, params, HttpConstants.Methods.POST, ConnectionUtils.FORM_MIME_TYPE);
 
         // check body parts
-        Assert.assertEquals("wrong number of body parts", 1, r.getBodyParts().size());
-        ByteArrayPart part = (ByteArrayPart)r.getBodyParts().get(0);
-        Assert.assertEquals("wrong name", ConnectionUtils.FILE, part.getName());
-        Assert.assertEquals("wrong content type", ConnectionUtils.FORM_MIME_TYPE, part.getContentType());
-        Assert.assertEquals("wrong data array", data, part.getBytes());
+        assertEquals(1, r.getBodyParts().size(), "wrong number of body parts");
+        ByteArrayPart part = (ByteArrayPart) r.getBodyParts().get(0);
+        assertEquals(ConnectionUtils.FILE, part.getName(), "wrong name");
+        assertEquals(ConnectionUtils.FORM_MIME_TYPE, part.getContentType(), "wrong content type");
+        assertEquals(data, part.getBytes(), "wrong data array");
     }
 
     @Test
@@ -87,7 +87,7 @@ public class ConnectionUtilsTest {
         Request r = ConnectionUtils.createPostJsonRequest(json, url);
         this.validateRequest(r, url, null, HttpConstants.Methods.POST, ConnectionUtils.JSON_MIME_TYPE);
 
-        Assert.assertEquals("wrong body", json.length(), r.getBodyGenerator().createBody().getContentLength());
+        assertEquals(json.length(), r.getBodyGenerator().createBody().getContentLength(), "wrong body");
     }
 
     private void validateRequest(Request r, String url, HashMap<String, String> params,
@@ -96,15 +96,14 @@ public class ConnectionUtilsTest {
         if (params != null) {
             buf.append("?");
             params.forEach((k, v) -> buf.append(k).append("=").append(v).append("&"));
-            buf.deleteCharAt(buf.length()-1); // remove last ampersand
+            buf.deleteCharAt(buf.length() - 1); // remove last ampersand
         }
 
         URI expected = URI.create(buf.toString());
-        Assert.assertEquals(expected, URI.create(r.getUrl()));
-        Assert.assertEquals("wrong HTTP method", method, r.getMethod());
+        assertEquals(expected, URI.create(r.getUrl()));
+        assertEquals(method, r.getMethod(), "wrong HTTP method");
         if (contentType != null) {
-            Assert.assertEquals("wrong content type", contentType,
-                    r.getHeaders().get("Content-Type"));
+            assertEquals(contentType, r.getHeaders().get("Content-Type"), "wrong content type");
         }
     }
 }

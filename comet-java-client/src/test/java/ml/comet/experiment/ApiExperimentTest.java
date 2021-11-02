@@ -1,21 +1,22 @@
 package ml.comet.experiment;
 
 import ml.comet.experiment.exception.CometGeneralException;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ApiExperimentTest extends BaseApiTest {
 
-
-    @Test(expected = CometGeneralException.class)
+    @Test
     public void testApiExperimentInitializedWithInvalidValues() {
-        OnlineExperimentImpl.builder()
+        assertThrows(CometGeneralException.class, () -> OnlineExperimentImpl.builder()
                 .withMaxAuthRetries(1)
                 .withUrlOverride("https://invalid.invalid")
                 .withApiKey("invalid")
                 .withWorkspace("invalid")
                 .withProjectName("invalid")
-                .build();
+                .build());
     }
 
     @Test
@@ -28,8 +29,7 @@ public class ApiExperimentTest extends BaseApiTest {
                 .withApiKey(API_KEY)
                 .build();
 
-        Assert.assertEquals(WORKSPACE_NAME, apiExperiment.getWorkspaceName());
-        Assert.assertEquals(PROJECT_NAME, apiExperiment.getProjectName());
+        assertEquals(WORKSPACE_NAME, apiExperiment.getWorkspaceName());
+        assertEquals(PROJECT_NAME, apiExperiment.getProjectName());
     }
-
 }

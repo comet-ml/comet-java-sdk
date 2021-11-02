@@ -10,18 +10,29 @@
 		<version>1.1.2-SNAPSHOT</version>
 	</parent>
 
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.junit</groupId>
+				<artifactId>junit-bom</artifactId>
+				<version>5.8.1</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.asynchttpclient</groupId>
+				<artifactId>async-http-client-bom</artifactId>
+				<version>2.12.3</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.asynchttpclient</groupId>
-			<artifactId>async-http-client-bom</artifactId>
-			<version>2.12.3</version>
-			<type>pom</type>
-			<scope>import</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.asynchttpclient</groupId>
 			<artifactId>async-http-client</artifactId>
-			<version>2.12.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -56,9 +67,8 @@
 
 		<!-- tests -->
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.13.2</version>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -71,6 +81,12 @@
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-inline</artifactId>
 			<version>4.0.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.github.tomakehurst</groupId>
+			<artifactId>wiremock-jre8</artifactId>
+			<version>2.31.0</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
