@@ -15,8 +15,13 @@ import java.io.File;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Collection of the utilities used by <code>Connection</code>.
+ */
 public class ConnectionUtils {
     static final String FILE = "file";
+    static final String FORM_MIME_TYPE = "multipart/form-data";
+    static final String JSON_MIME_TYPE = "application/json";
 
     /**
      * Creates GET request to the given endpoint with specified query parameters.
@@ -47,7 +52,8 @@ public class ConnectionUtils {
         RequestBuilder builder = new RequestBuilder(HttpConstants.Methods.POST);
         builder
                 .setUrl(url)
-                .addBodyPart(new FilePart(FILE, file, "multipart/form-data", null));
+                .setHeader("Content-Type", FORM_MIME_TYPE)
+                .addBodyPart(new FilePart(FILE, file, FORM_MIME_TYPE));
         if (params != null) {
             params.forEach(builder::addQueryParam);
         }
@@ -67,7 +73,8 @@ public class ConnectionUtils {
         RequestBuilder builder = new RequestBuilder(HttpConstants.Methods.POST);
         builder
                 .setUrl(url)
-                .addBodyPart(new ByteArrayPart(FILE, bytes, "multipart/form-data", null));
+                .setHeader("Content-Type", FORM_MIME_TYPE)
+                .addBodyPart(new ByteArrayPart(FILE, bytes, FORM_MIME_TYPE));
         if (params != null) {
             params.forEach(builder::addQueryParam);
         }
@@ -81,7 +88,7 @@ public class ConnectionUtils {
     static Request createPostJsonRequest(@NonNull String body, @NonNull String url) {
         return new RequestBuilder()
                 .setUrl(url)
-                .setHeader("Content-Type", "application/json")
+                .setHeader("Content-Type", JSON_MIME_TYPE)
                 .setBody(new ByteArrayBodyGenerator(body.getBytes()))
                 .setMethod(HttpConstants.Methods.POST)
                 .build();

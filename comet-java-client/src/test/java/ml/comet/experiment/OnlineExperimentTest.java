@@ -1,18 +1,13 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.model.CreateGitMetadata;
-import ml.comet.experiment.model.ExperimentAssetLink;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.GitMetadataRest;
-import ml.comet.experiment.model.ValueMinMaxDto;
+import ml.comet.experiment.model.*;
+import ml.comet.experiment.utils.TestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,12 +16,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static ml.comet.experiment.constants.Constants.ASSET_TYPE_ALL;
-import static ml.comet.experiment.constants.Constants.ASSET_TYPE_SOURCE_CODE;
-import static ml.comet.experiment.constants.Constants.ASSET_TYPE_UNKNOWN;
+import static java.util.concurrent.TimeUnit.*;
+import static ml.comet.experiment.constants.Constants.*;
 
 public class OnlineExperimentTest extends BaseApiTest {
     private static final String SOME_NAME = "someName";
@@ -250,8 +241,8 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
 
-        experiment.uploadAsset(getFile(IMAGE_FILE_NAME), false);
-        experiment.uploadAsset(getFile(SOME_TEXT_FILE_NAME), false);
+        experiment.uploadAsset(TestUtils.getFile(IMAGE_FILE_NAME), false);
+        experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
 
         awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets uploaded");
 
@@ -259,7 +250,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE);
         validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE);
 
-        experiment.uploadAsset(getFile(ANOTHER_TEXT_FILE_NAME), SOME_TEXT_FILE_NAME, true);
+        experiment.uploadAsset(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME), SOME_TEXT_FILE_NAME, true);
 
         awaitForCondition(() -> {
             List<ExperimentAssetLink> textFiles = experiment.getAssetList(ASSET_TYPE_UNKNOWN);
@@ -277,7 +268,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
 
         experiment.setContext(SOME_TEXT);
-        experiment.uploadAsset(getFile(SOME_TEXT_FILE_NAME), false);
+        experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
 
         awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 1, "Asset uploaded");
 
@@ -345,7 +336,7 @@ public class OnlineExperimentTest extends BaseApiTest {
     public void testLogAndGetFileCode() {
         OnlineExperiment experiment = createOnlineExperiment();
         Assert.assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
-        experiment.logCode(getFile(CODE_FILE_NAME));
+        experiment.logCode(TestUtils.getFile(CODE_FILE_NAME));
         awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(), "Experiment code from file added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
         validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE);
@@ -416,14 +407,6 @@ public class OnlineExperimentTest extends BaseApiTest {
         Awaitility.await("Experiment is shut down")
                 .atMost(1, MINUTES)
                 .until(() -> !experiment.getMetadata().isRunning());
-    }
-
-    private static File getFile(String name) {
-        URL resource = OnlineExperimentTest.class.getClassLoader().getResource(name);
-        if (resource == null) {
-            return null;
-        }
-        return new File(resource.getFile());
     }
 
 }
