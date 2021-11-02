@@ -18,7 +18,7 @@ public class CometApiTest extends BaseApiTest {
 
     @BeforeAll
     public static void initEnvVariables() {
-        COMET_API = createCometApi();
+        COMET_API = CometApiImpl.builder().withApiKey(API_KEY).build();
         SHARED_EXPERIMENT = createOnlineExperiment();
     }
 
@@ -59,12 +59,6 @@ public class CometApiTest extends BaseApiTest {
         boolean experimentExists = experiments.stream()
                 .anyMatch(experiment -> SHARED_EXPERIMENT.getExperimentKey().equals(experiment.getExperimentKey()));
         assertTrue(experimentExists);
-    }
-
-    private static CometApiImpl createCometApi() {
-        return CometApiImpl.builder()
-                .withApiKey(API_KEY)
-                .build();
     }
 
 }

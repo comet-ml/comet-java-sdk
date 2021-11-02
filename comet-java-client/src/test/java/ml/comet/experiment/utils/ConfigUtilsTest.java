@@ -1,5 +1,6 @@
 package ml.comet.experiment.utils;
 
+import lombok.NonNull;
 import ml.comet.experiment.env.EnvironmentVariableExtractor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,11 +21,12 @@ public class ConfigUtilsTest {
 
     private static final String MAX_AUTH_RETRIES_MOCKED_VALUE = "1";
     private static final String TEST_BASE_URL = "https://www.comet.ml";
-    private static MockedStatic<EnvironmentVariableExtractor> mockedErrorReporter;
     private static final File emptyCometConfig = Objects.requireNonNull(
             TestUtils.getFile("empty-comet-config.conf"));
     private static final File fullCometConfig = Objects.requireNonNull(
             TestUtils.getFile("full-comet-config.conf"));
+
+    private MockedStatic<EnvironmentVariableExtractor> mockedErrorReporter;
 
     @BeforeEach
     public void init() {
@@ -91,7 +93,7 @@ public class ConfigUtilsTest {
         assertThrows(IllegalStateException.class, ConfigUtils::getWorkspaceNameOrThrow);
     }
 
-    public void validateValueExtractOrder(String envVarName, Supplier<Optional<String>> supplier) {
+    public void validateValueExtractOrder(@NonNull String envVarName, @NonNull Supplier<Optional<String>> supplier) {
         //test from env var
         ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(envVarName)).thenReturn(Optional.of(envVarName));

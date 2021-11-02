@@ -2,7 +2,6 @@ package ml.comet.experiment.utils;
 
 import java.io.File;
 import java.net.URL;
-import java.util.Objects;
 
 public class TestUtils {
     /**
@@ -13,7 +12,7 @@ public class TestUtils {
      */
     public static File getFile(String name) {
         URL resource = Thread.currentThread().getContextClassLoader().getResource(name);
-        if (Objects.isNull(resource)) {
+        if (resource == null) {
             return null;
         }
         return new File(resource.getFile());
