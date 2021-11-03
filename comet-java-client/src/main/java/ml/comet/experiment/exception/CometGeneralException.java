@@ -1,5 +1,8 @@
 package ml.comet.experiment.exception;
 
+/**
+ * The root exception for all Comet SDK exceptions.
+ */
 public class CometGeneralException extends RuntimeException {
     /**
      * Constructs a new runtime exception with {@code null} as its
