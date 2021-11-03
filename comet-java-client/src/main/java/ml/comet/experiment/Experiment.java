@@ -1,6 +1,12 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.model.*;
+
+
+import ml.comet.experiment.model.CreateGitMetadata;
+import ml.comet.experiment.model.ExperimentAssetLink;
+import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.GitMetadataRest;
+import ml.comet.experiment.model.ValueMinMaxDto;
 
 import java.io.File;
 import java.util.List;
@@ -12,7 +18,7 @@ import java.util.Optional;
 public interface Experiment {
 
     /**
-     * Get the experiment key returned by Comet
+     * Get the experiment key returned by Comet.
      *
      * @return the experiment key assigned by Comet
      */
@@ -119,14 +125,15 @@ public interface Experiment {
     List<ExperimentAssetLink> getAssetList(String type);
 
     /**
-     * Sets the experiment name
+     * Sets the experiment name.
      *
      * @param experimentName The new name for the experiment
      */
     void setExperimentName(String experimentName);
 
     /**
-     * Logs a metric with Comet. For running experiment updates current step to one from param!  Metrics are generally values that change from step to step
+     * Logs a metric with Comet. For running experiment updates current step to one from param!
+     * Metrics are generally values that change from step to step.
      *
      * @param metricName  The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
@@ -137,7 +144,8 @@ public interface Experiment {
 
 
     /**
-     * Logs a param with Comet. For running experiment updates current step to one from param! Params should be set at the start of the experiment
+     * Logs a param with Comet. For running experiment updates current step to one from param!
+     * Params should be set at the start of the experiment.
      *
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
@@ -146,15 +154,17 @@ public interface Experiment {
     void logParameter(String parameterName, Object paramValue, long step);
 
     /**
-     * Allows you to create html report for the experiment
+     * Allows you to create html report for the experiment.
      *
      * @param html     A block of html to be sent to Comet
-     * @param override Whether previous html sent should be deleted.  If true the old html will be deleted.  If false, it will have the new html appended onto the end.
+     * @param override Whether previous html sent should be deleted.  If <code>true</code> the old html will be deleted.
+     *                 If <code>false</code>, it will have the new html appended onto the end.
      */
     void logHtml(String html, boolean override);
 
     /**
-     * Logs a key value pair with Comet.  This can be used for any sort of generic per experiment data you wish to track
+     * Logs a key value pair with Comet.
+     * This can be used for any sort of generic per experiment data you wish to track.
      *
      * @param key   The key for the data to be stored
      * @param value The value for said key
@@ -169,21 +179,21 @@ public interface Experiment {
     void addTag(String tag);
 
     /**
-     * Logs a graph to Comet
+     * Logs a graph to Comet.
      *
      * @param graph The graph to be logged
      */
     void logGraph(String graph);
 
     /**
-     * Logs the start time of the experiment
+     * Logs the start time of the experiment.
      *
      * @param startTimeMillis When you want to say that the experiment started
      */
     void logStartTime(long startTimeMillis);
 
     /**
-     * Logs the start time of the experiment
+     * Logs the start time of the experiment.
      *
      * @param endTimeMillis When you want to say that the experiment ended
      */
