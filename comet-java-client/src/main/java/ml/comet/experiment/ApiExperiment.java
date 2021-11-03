@@ -1,6 +1,7 @@
 package ml.comet.experiment;
 
 import com.typesafe.config.Config;
+import lombok.NonNull;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
@@ -42,7 +43,7 @@ public class ApiExperiment extends BaseExperiment {
         this.connection = ConnectionInitializer.initConnection(apiKey, this.baseUrl, maxAuthRetries, this.logger);
     }
 
-    public static ApiExperiment.ApiExperimentBuilderImpl builder(String experimentKey) {
+    public static ApiExperiment.ApiExperimentBuilderImpl builder(@NonNull String experimentKey) {
         return new ApiExperiment.ApiExperimentBuilderImpl(experimentKey);
     }
 
@@ -61,19 +62,19 @@ public class ApiExperiment extends BaseExperiment {
         }
 
         @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withApiKey(String apiKey) {
+        public ApiExperiment.ApiExperimentBuilderImpl withApiKey(@NonNull String apiKey) {
             this.apiKey = apiKey;
             return this;
         }
 
         @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withLogger(Logger logger) {
+        public ApiExperiment.ApiExperimentBuilderImpl withLogger(@NonNull Logger logger) {
             this.logger = logger;
             return this;
         }
 
         @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withConfig(File overrideConfig) {
+        public ApiExperiment.ApiExperimentBuilderImpl withConfig(@NonNull File overrideConfig) {
             Config config = ConfigUtils.getConfigFromFile(overrideConfig);
             this.apiKey = config.getString(COMET_API_KEY);
             this.baseUrl = config.getString(BASE_URL_PLACEHOLDER);

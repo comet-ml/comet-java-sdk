@@ -301,45 +301,45 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue, long step) {
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step) {
         logMetric(metricName, metricValue, step, this.epoch);
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue) {
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue) {
         logMetric(metricName, metricValue, step, epoch);
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue, long step, long epoch) {
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
         this.setStep(step);
         this.setEpoch(epoch);
         super.logMetric(metricName, metricValue, step, epoch);
     }
 
     @Override
-    public void logParameter(String parameterName, Object paramValue) {
+    public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
         logParameter(parameterName, paramValue, step);
     }
 
     @Override
-    public void logParameter(String parameterName, Object paramValue, long step) {
+    public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
         this.setStep(step);
         super.logParameter(parameterName, paramValue, step);
     }
 
     @Override
-    public void uploadAsset(File asset, String fileName, boolean overwrite, long step) {
+    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step) {
         super.uploadAsset(asset, fileName, overwrite, step, this.epoch);
     }
 
     @Override
-    public void uploadAsset(File asset, boolean overwrite) {
+    public void uploadAsset(@NonNull File asset, boolean overwrite) {
         uploadAsset(asset, asset.getName(), overwrite);
     }
 
     @Override
-    public void uploadAsset(File asset, String fileName, boolean overwrite) {
+    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite) {
         super.uploadAsset(asset, fileName, overwrite, step, epoch);
     }
 
@@ -417,7 +417,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         connection.sendGet(Constants.EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
     }
 
-    private OutputUpdate getLogLineRequest(String line, long offset, boolean stderr) {
+    private OutputUpdate getLogLineRequest(@NonNull String line, long offset, boolean stderr) {
         OutputLine outputLine = new OutputLine();
         outputLine.setOutput(line);
         outputLine.setStderr(stderr);

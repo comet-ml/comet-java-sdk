@@ -50,7 +50,6 @@ public class OnlineExperimentTest extends BaseApiTest {
     public static final String MESSAGE_RUNNING_STATUS_UPDATED = "Experiment running status updated";
 
     @Test
-    @Timeout(120)
     public void testExperimentCreatedAndShutDown() {
         OnlineExperiment experiment = createOnlineExperiment();
         String experimentKey = experiment.getExperimentKey();
@@ -71,7 +70,8 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // use REST API to check experiment status
         ApiExperiment apiExperiment = ApiExperiment.builder(experimentKey).build();
-        awaitForCondition(() -> !apiExperiment.getMetadata().isRunning(), MESSAGE_RUNNING_STATUS_UPDATED);
+        awaitForCondition(() -> !apiExperiment.getMetadata().isRunning(),
+                MESSAGE_RUNNING_STATUS_UPDATED, 60);
         assertFalse(apiExperiment.getMetadata().isRunning(), "Experiment must have status not running");
 
         apiExperiment.end();
@@ -221,7 +221,6 @@ public class OnlineExperimentTest extends BaseApiTest {
     }
 
     @Test
-    @Timeout(60)
     public void testLogAndGetExperimentTime() {
         // create online experiment
         OnlineExperiment experiment = createOnlineExperiment();
@@ -243,7 +242,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         awaitForCondition(() -> {
             ExperimentMetadataRest data = existingExperiment.getMetadata();
             return data.getStartTimeMillis() == now && data.getEndTimeMillis() == now;
-        }, "Experiment start/stop time updated");
+        }, "Experiment start/stop time updated", 60);
 
         ExperimentMetadataRest updatedMetadata = existingExperiment.getMetadata();
         assertNotEquals(startTimeMillis, updatedMetadata.getStartTimeMillis());
@@ -414,6 +413,12 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     private void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias) {
         Awaitility.await(conditionAlias).atMost(30, SECONDS)
+                .pollInterval(300L, MILLISECONDS)
+                .until(booleanSupplier::getAsBoolean);
+    }
+
+    private void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias, long timeoutSeconds) {
+        Awaitility.await(conditionAlias).atMost(timeoutSeconds, SECONDS)
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
     }

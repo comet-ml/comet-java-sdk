@@ -1,6 +1,7 @@
 package ml.comet.experiment;
 
 import com.typesafe.config.Config;
+import lombok.NonNull;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
 import ml.comet.experiment.model.*;
@@ -20,7 +21,7 @@ import static ml.comet.experiment.constants.Constants.*;
 public class CometApiImpl implements CometApi {
     private final Connection connection;
 
-    public CometApiImpl(String apiKey, String baseUrl, int maxAuthRetries) {
+    public CometApiImpl(@NonNull String apiKey, @NonNull  String baseUrl, int maxAuthRetries) {
         Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
         this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, logger);
     }
@@ -30,19 +31,19 @@ public class CometApiImpl implements CometApi {
         return response.getWorkspaceNames();
     }
 
-    public List<RestProject> getAllProjects(String workspaceName) {
+    public List<RestProject> getAllProjects(@NonNull String workspaceName) {
         Map<String, String> params = Collections.singletonMap("workspaceName", workspaceName);
         GetProjectsResponse response = getObject(PROJECTS, params, GetProjectsResponse.class);
         return response.getProjects();
     }
 
-    public List<ExperimentMetadataRest> getAllExperiments(String projectId) {
+    public List<ExperimentMetadataRest> getAllExperiments(@NonNull String projectId) {
         Map<String, String> params = Collections.singletonMap("projectId", projectId);
         GetExperimentsResponse response = getObject(EXPERIMENTS, params, GetExperimentsResponse.class);
         return response.getExperiments();
     }
 
-    private <T> T getObject(String endpoint, Map<String, String> params, Class<T> clazz) {
+    private <T> T getObject(@NonNull String endpoint, @NonNull Map<String, String> params, @NonNull Class<T> clazz) {
         return connection.sendGet(endpoint, params)
                 .map(body -> JsonUtils.fromJson(body, clazz))
                 .orElseThrow(() -> new IllegalArgumentException("Failed to parse endpoint response " + endpoint));
@@ -75,7 +76,7 @@ public class CometApiImpl implements CometApi {
             this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
         }
 
-        public CometApiBuilder withConfig(File overrideConfig) {
+        public CometApiBuilder withConfig(@NonNull File overrideConfig) {
             Config config = ConfigUtils.getConfigFromFile(overrideConfig);
             this.apiKey = config.getString(COMET_API_KEY);
             this.baseUrl = config.getString(BASE_URL_PLACEHOLDER);
@@ -83,7 +84,7 @@ public class CometApiImpl implements CometApi {
             return this;
         }
 
-        public CometApiBuilder withApiKey(String apiKey) {
+        public CometApiBuilder withApiKey(@NonNull String apiKey) {
             this.apiKey = apiKey;
             return this;
         }
