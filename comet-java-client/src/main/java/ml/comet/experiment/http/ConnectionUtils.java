@@ -41,7 +41,7 @@ public class ConnectionUtils {
     }
 
     /**
-     * Creates POST request from given file to the specified endpoint
+     * Creates POST request from given file to the specified endpoint.
      *
      * @param file   the file to be included in the body parts.
      * @param url    the URL of the endpoint.
