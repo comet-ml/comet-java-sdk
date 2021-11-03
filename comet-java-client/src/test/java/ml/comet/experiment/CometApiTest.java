@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,10 +24,9 @@ public class CometApiTest extends BaseApiTest {
     }
 
     @AfterAll
-    public static void shutdownSharedExperiment() {
-        if (SHARED_EXPERIMENT != null) {
-            SHARED_EXPERIMENT.end();
-        }
+    public static void shutdownSharedExperiment() throws IOException {
+        SHARED_EXPERIMENT.end();
+        COMET_API.close();
     }
 
     @Test
