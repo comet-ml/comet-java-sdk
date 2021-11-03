@@ -30,9 +30,13 @@ import java.util.concurrent.TimeUnit;
 import static ml.comet.experiment.constants.Constants.ADD_OUTPUT;
 import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
 
+/**
+ * The implementation of the OnlineExperiment.
+ */
 @Getter
 public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
-    private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    private static final ScheduledExecutorService scheduledExecutorService =
+            Executors.newSingleThreadScheduledExecutor();
     private final String projectName;
     private final String workspaceName;
     private final String apiKey;
@@ -77,6 +81,10 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         this.initializeExperiment();
     }
 
+    /**
+     * Default constructor which reads all configuration parameters of the experiment either from configuration file
+     * or environment variables.
+     */
     public OnlineExperimentImpl() {
         this.projectName = ConfigUtils.getProjectNameOrThrow();
         this.workspaceName = ConfigUtils.getWorkspaceNameOrThrow();
@@ -90,11 +98,19 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         return experimentName;
     }
 
+    /**
+     * Returns builder to be used to create properly configured instance of this class.
+     *
+     * @return the builder to be used to create properly configured instance of this class.
+     */
     public static OnlineExperimentBuilderImpl builder() {
         return new OnlineExperimentBuilderImpl();
     }
 
-    public static class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
+    /**
+     * The builder to create properly configured instance of the OnlineExperimentImpl.
+     */
+    public static final class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
         private String projectName;
         private String workspace;
         private String apiKey;
@@ -106,7 +122,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         private boolean interceptStdout = false;
 
         /**
-         * Create a builder to construct an Experiment Object
+         * Default constructor to avoid direct initialization from the outside.
          */
         private OnlineExperimentBuilderImpl() {
         }
@@ -190,7 +206,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
                 maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
             }
 
-            return new OnlineExperimentImpl(apiKey, projectName, workspace, experimentName, experimentKey, logger, interceptStdout, baseUrl, maxAuthRetries);
+            return new OnlineExperimentImpl(apiKey, projectName, workspace, experimentName, experimentKey,
+                    logger, interceptStdout, baseUrl, maxAuthRetries);
         }
     }
 
@@ -345,7 +362,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     private void initializeExperiment() {
         validateInitialParams();
-        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, this.maxAuthRetries, this.logger);
+        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl,
+                this.maxAuthRetries, this.logger);
         setupStdOutIntercept();
         registerExperiment();
     }
