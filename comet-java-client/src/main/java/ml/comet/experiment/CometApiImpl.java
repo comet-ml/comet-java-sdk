@@ -4,7 +4,11 @@ import com.typesafe.config.Config;
 import lombok.NonNull;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
-import ml.comet.experiment.model.*;
+import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.GetExperimentsResponse;
+import ml.comet.experiment.model.GetProjectsResponse;
+import ml.comet.experiment.model.GetWorkspacesResponse;
+import ml.comet.experiment.model.RestProject;
 import ml.comet.experiment.utils.ConfigUtils;
 import ml.comet.experiment.utils.JsonUtils;
 import org.slf4j.Logger;
@@ -16,12 +20,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static ml.comet.experiment.constants.Constants.*;
+import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
+import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
+import static ml.comet.experiment.constants.Constants.EXPERIMENTS;
+import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
+import static ml.comet.experiment.constants.Constants.PROJECTS;
+import static ml.comet.experiment.constants.Constants.WORKSPACES;
 
-public class CometApiImpl implements CometApi {
+/**
+ * The CometApi implementation.
+ */
+public final class CometApiImpl implements CometApi {
     private final Connection connection;
 
-    public CometApiImpl(@NonNull String apiKey, @NonNull  String baseUrl, int maxAuthRetries) {
+    public CometApiImpl(@NonNull String apiKey, @NonNull String baseUrl, int maxAuthRetries) {
         Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
         this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, logger);
     }
@@ -58,6 +70,11 @@ public class CometApiImpl implements CometApi {
         return new CometApiBuilder();
     }
 
+    /**
+     * Release all resources hold by this instance, such as connection to the Comet server.
+     *
+     * @throws IOException if an I/O exception occurs.
+     */
     @Override
     public void close() throws IOException {
         if (this.connection != null) {
@@ -65,17 +82,26 @@ public class CometApiImpl implements CometApi {
         }
     }
 
-    public static class CometApiBuilder {
+    /**
+     * The builder to create properly configured instance of the CometApiImpl.
+     */
+    public static final class CometApiBuilder {
         private String apiKey;
         private String baseUrl;
         private int maxAuthRetries;
 
-        public CometApiBuilder() {
+        CometApiBuilder() {
             this.apiKey = ConfigUtils.getApiKey().orElse(null);
             this.baseUrl = ConfigUtils.getBaseUrlOrDefault();
             this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
         }
 
+        /**
+         * Provides file with configuration parameters to override default configuration options.
+         *
+         * @param overrideConfig the file with configuration parameters.
+         * @return this builder with override configuration parameters.
+         */
         public CometApiBuilder withConfig(@NonNull File overrideConfig) {
             Config config = ConfigUtils.getConfigFromFile(overrideConfig);
             this.apiKey = config.getString(COMET_API_KEY);
@@ -84,6 +110,12 @@ public class CometApiImpl implements CometApi {
             return this;
         }
 
+        /**
+         * Supplies builder with Comet API key to.
+         *
+         * @param apiKey the Comet API key to get access to the server.
+         * @return this builder with Comet API key configured.
+         */
         public CometApiBuilder withApiKey(@NonNull String apiKey) {
             this.apiKey = apiKey;
             return this;
