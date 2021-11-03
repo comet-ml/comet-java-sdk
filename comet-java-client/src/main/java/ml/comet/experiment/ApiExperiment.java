@@ -15,66 +15,102 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 
-import static ml.comet.experiment.constants.Constants.*;
+import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
+import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
+import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
 
 /**
- * Implementation of the Experiment which provides methods to access meta-data of particular experiment through the
- * REST API exposed by the Comet.ml server.
+ * Implementation of the Experiment which provides methods to access meta-data of particular
+ * experiment through the REST API exposed by the Comet.ml server.
  * <p>
  * The ApiExperiment should be used to directly read experiment data from the Comet.ml server.
  */
-public class ApiExperiment extends BaseExperiment {
+public final class ApiExperiment extends BaseExperiment {
+    /**
+     * The base URL of the experiment.
+     */
     private final String baseUrl;
+    /**
+     * The unique key of the experiment.
+     */
     private final String experimentKey;
+    /**
+     * The connection to the Comet server.
+     */
     private final Connection connection;
+    /**
+     * The logger instance.
+     */
     private Logger logger = LoggerFactory.getLogger(ApiExperiment.class);
 
     private ApiExperiment(
-            String apiKey,
-            String experimentKey,
-            Logger logger,
-            String baseUrl,
-            int maxAuthRetries) {
-        this.experimentKey = experimentKey;
-        if (logger != null) {
-            this.logger = logger;
+            final String apiKey,
+            final String anExperimentKey,
+            final Logger aLogger,
+            final String aBaseUrl,
+            final int maxAuthRetries) {
+        this.experimentKey = anExperimentKey;
+        if (aLogger != null) {
+            this.logger = aLogger;
         }
-        this.baseUrl = baseUrl;
-        this.connection = ConnectionInitializer.initConnection(apiKey, this.baseUrl, maxAuthRetries, this.logger);
+        this.baseUrl = aBaseUrl;
+        this.connection = ConnectionInitializer.initConnection(
+                apiKey, this.baseUrl, maxAuthRetries, this.logger);
     }
 
-    public static ApiExperiment.ApiExperimentBuilderImpl builder(@NonNull String experimentKey) {
+    /**
+     * Returns builder to create ApiExperiment instance.
+     *
+     * @param experimentKey the unique identifier of the existing experiment.
+     * @return the initialized ApiExperiment instance.
+     */
+    public static ApiExperiment.ApiExperimentBuilderImpl builder(@NonNull final String experimentKey) {
         return new ApiExperiment.ApiExperimentBuilderImpl(experimentKey);
     }
 
-    public static class ApiExperimentBuilderImpl implements ApiExperimentBuilder {
+    public static final class ApiExperimentBuilderImpl implements ApiExperimentBuilder {
+        /**
+         * The unique key of the experiment.
+         */
         private final String experimentKey;
+        /**
+         * The Comet API key to get access to the server.
+         */
         private String apiKey;
+        /**
+         * The logger instance.
+         */
         private Logger logger;
+        /**
+         * The base URL of the experiment.
+         */
         private String baseUrl;
+        /**
+         * The maximal number of authentication retries against Comet server.
+         */
         private int maxAuthRetries;
 
-        private ApiExperimentBuilderImpl(String experimentKey) {
-            this.experimentKey = experimentKey;
+        private ApiExperimentBuilderImpl(final String anExperimentKey) {
+            this.experimentKey = anExperimentKey;
             this.apiKey = ConfigUtils.getApiKey().orElse(null);
             this.baseUrl = ConfigUtils.getBaseUrlOrDefault();
             this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
         }
 
         @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withApiKey(@NonNull String apiKey) {
-            this.apiKey = apiKey;
+        public ApiExperiment.ApiExperimentBuilderImpl withApiKey(@NonNull final String anApiKey) {
+            this.apiKey = anApiKey;
             return this;
         }
 
         @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withLogger(@NonNull Logger logger) {
-            this.logger = logger;
+        public ApiExperiment.ApiExperimentBuilderImpl withLogger(@NonNull final Logger aLogger) {
+            this.logger = aLogger;
             return this;
         }
 
         @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withConfig(@NonNull File overrideConfig) {
+        public ApiExperiment.ApiExperimentBuilderImpl withConfig(@NonNull final File overrideConfig) {
             Config config = ConfigUtils.getConfigFromFile(overrideConfig);
             this.apiKey = config.getString(COMET_API_KEY);
             this.baseUrl = config.getString(BASE_URL_PLACEHOLDER);
@@ -128,7 +164,8 @@ public class ApiExperiment extends BaseExperiment {
         if (StringUtils.isEmpty(experimentKey)) {
             return Optional.empty();
         }
-        String url = String.format("%s/%s/%s/%s", baseUrl, getWorkspaceName(), getProjectName(), experimentKey);
+        String url = String.format("%s/%s/%s/%s",
+                baseUrl, getWorkspaceName(), getProjectName(), experimentKey);
         try {
             // check URI syntax and return
             URI uri = URI.create(url);
