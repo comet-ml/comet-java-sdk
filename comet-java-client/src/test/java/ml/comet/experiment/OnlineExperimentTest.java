@@ -5,6 +5,7 @@ import ml.comet.experiment.utils.TestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -15,7 +16,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
-import static java.util.concurrent.TimeUnit.*;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static ml.comet.experiment.constants.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -45,8 +47,10 @@ public class OnlineExperimentTest extends BaseApiTest {
     private static final String NON_LOGGED_LINE = "This should not end up in Comet ML.";
     public static final String MESSAGE_NAME_UPDATED = "Experiment name updated";
     public static final String MESSAGE_HTML_UPDATED = "Experiment html updated";
+    public static final String MESSAGE_RUNNING_STATUS_UPDATED = "Experiment running status updated";
 
     @Test
+    @Timeout(120)
     public void testExperimentCreatedAndShutDown() {
         OnlineExperiment experiment = createOnlineExperiment();
         String experimentKey = experiment.getExperimentKey();
@@ -64,21 +68,31 @@ public class OnlineExperimentTest extends BaseApiTest {
         assertEquals(experiment.getProjectName(), metadata.getProjectName());
 
         experiment.end();
-        awaitExperimentShutDown(experiment);
+
+        // use REST API to check experiment status
+        ApiExperiment apiExperiment = ApiExperiment.builder(experimentKey).build();
+        awaitForCondition(() -> !apiExperiment.getMetadata().isRunning(), MESSAGE_RUNNING_STATUS_UPDATED);
+        assertFalse(apiExperiment.getMetadata().isRunning(), "Experiment must have status not running");
+
+        apiExperiment.end();
     }
 
     @Test
     public void testInitAndUpdateExistingExperiment() {
+        // create dummy experiment and make sure it has no name
         OnlineExperiment experiment = createOnlineExperiment();
         experiment.end();
         assertNull(experiment.getExperimentName());
 
+        // get previous experiment by key and check that update is working
         String experimentKey = experiment.getExperimentKey();
 
         OnlineExperiment updatedExperiment = fetchExperiment(experimentKey);
         updatedExperiment.setExperimentName(SOME_NAME);
 
-        awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()), MESSAGE_NAME_UPDATED);
+        awaitForCondition(
+                () -> SOME_NAME.equals(updatedExperiment.getMetadata().getExperimentName()), MESSAGE_NAME_UPDATED);
+        updatedExperiment.end();
     }
 
     @Test
@@ -207,32 +221,33 @@ public class OnlineExperimentTest extends BaseApiTest {
     }
 
     @Test
+    @Timeout(60)
     public void testLogAndGetExperimentTime() {
+        // create online experiment
         OnlineExperiment experiment = createOnlineExperiment();
 
         ExperimentMetadataRest metadata = experiment.getMetadata();
         Long startTimeMillis = metadata.getStartTimeMillis();
         Long endTimeMillis = metadata.getEndTimeMillis();
+        String experimentKey = experiment.getExperimentKey();
 
         experiment.end();
 
-        awaitExperimentShutDown(experiment);
+        // fetch existing experiment and update time
+        OnlineExperiment existingExperiment = fetchExperiment(experimentKey);
 
         long now = System.currentTimeMillis();
-        experiment.logStartTime(now);
-        experiment.logEndTime(now);
+        existingExperiment.logStartTime(now);
+        existingExperiment.logEndTime(now);
 
-        Awaitility.await()
-                .atMost(1, MINUTES)
-                .until(() -> {
-                    ExperimentMetadataRest data = experiment.getMetadata();
-                    return data.getStartTimeMillis() == now && data.getEndTimeMillis() == now;
-                });
+        awaitForCondition(() -> {
+            ExperimentMetadataRest data = existingExperiment.getMetadata();
+            return data.getStartTimeMillis() == now && data.getEndTimeMillis() == now;
+        }, "Experiment start/stop time updated");
 
-        ExperimentMetadataRest updatedMetadata = experiment.getMetadata();
+        ExperimentMetadataRest updatedMetadata = existingExperiment.getMetadata();
         assertNotEquals(startTimeMillis, updatedMetadata.getStartTimeMillis());
         assertNotEquals(endTimeMillis, updatedMetadata.getEndTimeMillis());
-
     }
 
     @Test
@@ -402,11 +417,4 @@ public class OnlineExperimentTest extends BaseApiTest {
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
     }
-
-    private void awaitExperimentShutDown(OnlineExperiment experiment) {
-        Awaitility.await("Experiment is shut down")
-                .atMost(1, MINUTES)
-                .until(() -> !experiment.getMetadata().isRunning());
-    }
-
 }
