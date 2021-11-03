@@ -3,11 +3,7 @@ package ml.comet.experiment;
 import com.typesafe.config.Config;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.GetExperimentsResponse;
-import ml.comet.experiment.model.GetProjectsResponse;
-import ml.comet.experiment.model.GetWorkspacesResponse;
-import ml.comet.experiment.model.RestProject;
+import ml.comet.experiment.model.*;
 import ml.comet.experiment.utils.ConfigUtils;
 import ml.comet.experiment.utils.JsonUtils;
 import org.slf4j.Logger;
@@ -18,12 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
-import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
-import static ml.comet.experiment.constants.Constants.EXPERIMENTS;
-import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
-import static ml.comet.experiment.constants.Constants.PROJECTS;
-import static ml.comet.experiment.constants.Constants.WORKSPACES;
+import static ml.comet.experiment.constants.Constants.*;
 
 public class CometApiImpl implements CometApi {
     private final Connection connection;

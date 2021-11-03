@@ -19,7 +19,7 @@ import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 /**
  * Represents connection with the CometML server. Provides utility methods to send various data records to the server.
- *
+ * <p>
  * Make sure to close this connection to avoid resources leak.
  */
 @Value
@@ -108,7 +108,7 @@ public class Connection implements Closeable {
      *
      * @param json     the JSON encoded text.
      * @param endpoint the relative path to the endpoint.
-     * @return the <code>ListenableFuture<Response></code> which can be used to monitor status of
+     * @return the <code>ListenableFuture&lt;Response&gt;</code> which can be used to monitor status of
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull String json, @NonNull String endpoint) {
@@ -122,7 +122,7 @@ public class Connection implements Closeable {
      * @param file     the file to be included.
      * @param endpoint the relative path to the endpoint.
      * @param params   the request parameters
-     * @return the <code>ListenableFuture<Response></code> which can be used to monitor status of
+     * @return the <code>ListenableFuture&lt;Response&gt;</code> which can be used to monitor status of
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull File file, @NonNull String endpoint,
@@ -137,7 +137,7 @@ public class Connection implements Closeable {
      * @param bytes    the data array
      * @param endpoint the relative path to the endpoint.
      * @param params   the request parameters map.
-     * @return the <code>ListenableFuture<Response></code> which can be used to monitor status of
+     * @return the <code>ListenableFuture&lt;Response&gt;</code> which can be used to monitor status of
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(byte[] bytes, @NonNull String endpoint,

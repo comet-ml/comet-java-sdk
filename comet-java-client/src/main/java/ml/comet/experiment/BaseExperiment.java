@@ -2,56 +2,15 @@ package ml.comet.experiment;
 
 import lombok.RequiredArgsConstructor;
 import ml.comet.experiment.http.Connection;
-import ml.comet.experiment.model.AddGraphRest;
-import ml.comet.experiment.model.AddTagsToExperimentRest;
-import ml.comet.experiment.model.CreateGitMetadata;
-import ml.comet.experiment.model.ExperimentAssetLink;
-import ml.comet.experiment.model.ExperimentAssetListResponse;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.ExperimentTimeRequest;
-import ml.comet.experiment.model.GetGraphResponse;
-import ml.comet.experiment.model.GetHtmlResponse;
-import ml.comet.experiment.model.GetOutputResponse;
-import ml.comet.experiment.model.GitMetadataRest;
-import ml.comet.experiment.model.HtmlRest;
-import ml.comet.experiment.model.LogOtherRest;
-import ml.comet.experiment.model.MetricRest;
-import ml.comet.experiment.model.MinMaxResponse;
-import ml.comet.experiment.model.ParameterRest;
-import ml.comet.experiment.model.TagsResponse;
-import ml.comet.experiment.model.ValueMinMaxDto;
+import ml.comet.experiment.model.*;
 import ml.comet.experiment.utils.JsonUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
-import static ml.comet.experiment.constants.Constants.ADD_ASSET;
-import static ml.comet.experiment.constants.Constants.ADD_GIT_METADATA;
-import static ml.comet.experiment.constants.Constants.ADD_GRAPH;
-import static ml.comet.experiment.constants.Constants.ADD_HTML;
-import static ml.comet.experiment.constants.Constants.ADD_LOG_OTHER;
-import static ml.comet.experiment.constants.Constants.ADD_METRIC;
-import static ml.comet.experiment.constants.Constants.ADD_PARAMETER;
-import static ml.comet.experiment.constants.Constants.ADD_START_END_TIME;
-import static ml.comet.experiment.constants.Constants.ADD_TAG;
-import static ml.comet.experiment.constants.Constants.ASSET_TYPE_SOURCE_CODE;
-import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
-import static ml.comet.experiment.constants.Constants.GET_ASSET_INFO;
-import static ml.comet.experiment.constants.Constants.GET_GIT_METADATA;
-import static ml.comet.experiment.constants.Constants.GET_GRAPH;
-import static ml.comet.experiment.constants.Constants.GET_HTML;
-import static ml.comet.experiment.constants.Constants.GET_LOG_OTHER;
-import static ml.comet.experiment.constants.Constants.GET_METADATA;
-import static ml.comet.experiment.constants.Constants.GET_METRICS;
-import static ml.comet.experiment.constants.Constants.GET_OUTPUT;
-import static ml.comet.experiment.constants.Constants.GET_PARAMETERS;
-import static ml.comet.experiment.constants.Constants.GET_TAGS;
+import static ml.comet.experiment.constants.Constants.*;
 
 @RequiredArgsConstructor
 public abstract class BaseExperiment implements Experiment {

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
 
@@ -79,7 +78,7 @@ public class GetProject {
         this.isShared = isShared;
         this.isStarterProject = isStarterProject;
 
-        if (isOwner){
+        if (isOwner) {
             this.canEdit = true;
         }
 
@@ -92,7 +91,7 @@ public class GetProject {
 
     public void setGeneral(boolean general) {
         isGeneral = general;
-        if (general){
+        if (general) {
             this.canEdit = true;
         }
     }
@@ -109,14 +108,14 @@ public class GetProject {
 
     public void setOwner(boolean owner) {
         isOwner = owner;
-        if (owner){
+        if (owner) {
             this.canEdit = true;
         }
     }
 
     public void setUserOnTeamForProject(boolean userOnTeamForProject) {
         isUserOnTeamForProject = userOnTeamForProject;
-        if (userOnTeamForProject){
+        if (userOnTeamForProject) {
             this.canEdit = true;
         }
     }

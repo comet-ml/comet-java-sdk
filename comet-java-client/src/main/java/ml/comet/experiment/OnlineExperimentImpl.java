@@ -173,16 +173,16 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         @Override
         public OnlineExperimentImpl build() {
 
-            if (StringUtils.isEmpty(apiKey)){
+            if (StringUtils.isEmpty(apiKey)) {
                 this.apiKey = ConfigUtils.getApiKey().orElse(null);
             }
-            if (StringUtils.isEmpty(projectName)){
+            if (StringUtils.isEmpty(projectName)) {
                 projectName = ConfigUtils.getProjectName().orElse(null);
             }
-            if (StringUtils.isEmpty(workspace)){
+            if (StringUtils.isEmpty(workspace)) {
                 workspace = ConfigUtils.getWorkspaceName().orElse(null);
             }
-            if (StringUtils.isEmpty(baseUrl)){
+            if (StringUtils.isEmpty(baseUrl)) {
                 baseUrl = ConfigUtils.getBaseUrlOrDefault();
             }
             if (maxAuthRetries == -1) {

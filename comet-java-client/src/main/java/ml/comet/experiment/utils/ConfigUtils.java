@@ -9,18 +9,8 @@ import ml.comet.experiment.env.EnvironmentVariableExtractor;
 import java.io.File;
 import java.util.Optional;
 
-import static ml.comet.experiment.constants.Constants.BASE_URL_DEFAULT;
-import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
-import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
-import static ml.comet.experiment.constants.Constants.COMET_PROJECT;
-import static ml.comet.experiment.constants.Constants.COMET_WORKSPACE;
-import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_DEFAULT;
-import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.API_KEY;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.BASE_URL;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.MAX_AUTH_RETRIES;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.PROJECT_NAME;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAME;
+import static ml.comet.experiment.constants.Constants.*;
+import static ml.comet.experiment.env.EnvironmentVariableExtractor.*;
 
 @UtilityClass
 public class ConfigUtils {
@@ -96,16 +86,17 @@ public class ConfigUtils {
 
     private String getValueFromSystemOrThrow(String envVarName, String configValueName) {
         return getValueFromSystem(envVarName, configValueName)
-                .orElseThrow(() -> new IllegalStateException("No parameter with name " + configValueName + " found! Please specify it in env vars or config"));
+                .orElseThrow(() -> new IllegalStateException("No parameter with name " + configValueName +
+                        " found! Please specify it in env vars or config"));
     }
 
     private Optional<String> getValueFromSystem(String envVarName, String configValueName) {
         Optional<String> envVariable = EnvironmentVariableExtractor.getEnvVariable(envVarName);
         if (envVariable.isPresent()) {
             return envVariable;
-        } else if (overrideConfig.isPresent() && overrideConfig.get().hasPath(configValueName)){
+        } else if (overrideConfig.isPresent() && overrideConfig.get().hasPath(configValueName)) {
             return overrideConfig.map(x -> x.getString(configValueName));
-        } else if (defaultConfig.isPresent() && defaultConfig.get().hasPath(configValueName)){
+        } else if (defaultConfig.isPresent() && defaultConfig.get().hasPath(configValueName)) {
             return defaultConfig.map(x -> x.getString(configValueName));
         }
         return Optional.empty();

@@ -2,14 +2,7 @@ package ml.comet.experiment.log;
 
 import ml.comet.experiment.OnlineExperiment;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class StdOutLogger implements Runnable {
@@ -29,7 +22,7 @@ public class StdOutLogger implements Runnable {
 
     @Override
     public void run() {
-        for (;;) {
+        for (; ; ) {
             try {
                 String line = reader.readLine();
                 experiment.logLine(line, offset.incrementAndGet(), !stdOut);
@@ -48,7 +41,7 @@ public class StdOutLogger implements Runnable {
     }
 
     public static StdOutLogger createStdoutLogger(OnlineExperiment experiment) throws IOException {
-        return createLogger(experiment, System.out,true);
+        return createLogger(experiment, System.out, true);
     }
 
     public static StdOutLogger createStderrLogger(OnlineExperiment experiment) throws IOException {
