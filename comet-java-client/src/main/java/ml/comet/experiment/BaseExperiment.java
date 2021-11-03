@@ -3,15 +3,57 @@ package ml.comet.experiment;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import ml.comet.experiment.http.Connection;
-import ml.comet.experiment.model.*;
+import ml.comet.experiment.model.AddGraphRest;
+import ml.comet.experiment.model.AddTagsToExperimentRest;
+import ml.comet.experiment.model.CreateGitMetadata;
+import ml.comet.experiment.model.ExperimentAssetLink;
+import ml.comet.experiment.model.ExperimentAssetListResponse;
+import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.ExperimentTimeRequest;
+import ml.comet.experiment.model.GetGraphResponse;
+import ml.comet.experiment.model.GetHtmlResponse;
+import ml.comet.experiment.model.GetOutputResponse;
+import ml.comet.experiment.model.GitMetadataRest;
+import ml.comet.experiment.model.HtmlRest;
+import ml.comet.experiment.model.LogOtherRest;
+import ml.comet.experiment.model.MetricRest;
+import ml.comet.experiment.model.MinMaxResponse;
+import ml.comet.experiment.model.ParameterRest;
+import ml.comet.experiment.model.TagsResponse;
+import ml.comet.experiment.model.ValueMinMaxDto;
 import ml.comet.experiment.utils.JsonUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import static ml.comet.experiment.constants.Constants.*;
+import static ml.comet.experiment.constants.Constants.ADD_ASSET;
+import static ml.comet.experiment.constants.Constants.ADD_GIT_METADATA;
+import static ml.comet.experiment.constants.Constants.ADD_GRAPH;
+import static ml.comet.experiment.constants.Constants.ADD_HTML;
+import static ml.comet.experiment.constants.Constants.ADD_LOG_OTHER;
+import static ml.comet.experiment.constants.Constants.ADD_METRIC;
+import static ml.comet.experiment.constants.Constants.ADD_PARAMETER;
+import static ml.comet.experiment.constants.Constants.ADD_START_END_TIME;
+import static ml.comet.experiment.constants.Constants.ADD_TAG;
+import static ml.comet.experiment.constants.Constants.ASSET_TYPE_SOURCE_CODE;
+import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
+import static ml.comet.experiment.constants.Constants.GET_ASSET_INFO;
+import static ml.comet.experiment.constants.Constants.GET_GIT_METADATA;
+import static ml.comet.experiment.constants.Constants.GET_GRAPH;
+import static ml.comet.experiment.constants.Constants.GET_HTML;
+import static ml.comet.experiment.constants.Constants.GET_LOG_OTHER;
+import static ml.comet.experiment.constants.Constants.GET_METADATA;
+import static ml.comet.experiment.constants.Constants.GET_METRICS;
+import static ml.comet.experiment.constants.Constants.GET_OUTPUT;
+import static ml.comet.experiment.constants.Constants.GET_PARAMETERS;
+import static ml.comet.experiment.constants.Constants.GET_TAGS;
+
 
 /**
  * The base class for all experiment implementations providing implementation of common routines.
@@ -23,7 +65,6 @@ public abstract class BaseExperiment implements Experiment {
      * Gets the current context as recorded in the Experiment object locally.
      *
      * @return the current context which associated with log records of this experiment.
-     * <p>
      * TODO: 03.11.2021 this can be made Optional
      */
     protected abstract String getContext();
@@ -170,13 +211,14 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         getConnection().sendPostAsync(asset, ADD_ASSET, new HashMap<String, String>() {{
-            put(EXPERIMENT_KEY, getExperimentKey());
-            put("fileName", fileName);
-            put("step", Long.toString(step));
-            put("epoch", Long.toString(epoch));
-            put("context", getContext());
-            put("overwrite", Boolean.toString(overwrite));
-        }});
+                    put(EXPERIMENT_KEY, getExperimentKey());
+                    put("fileName", fileName);
+                    put("step", Long.toString(step));
+                    put("epoch", Long.toString(epoch));
+                    put("context", getContext());
+                    put("overwrite", Boolean.toString(overwrite));
+                }}
+        );
     }
 
     @Override
@@ -280,7 +322,8 @@ public abstract class BaseExperiment implements Experiment {
             put("experimentKey", experimentKey);
             put("type", type);
         }};
-        ExperimentAssetListResponse response = getForExperiment(GET_ASSET_INFO, params, ExperimentAssetListResponse.class);
+        ExperimentAssetListResponse response = getForExperiment(GET_ASSET_INFO, params,
+                ExperimentAssetListResponse.class);
         return response.getAssets();
     }
 
@@ -291,7 +334,8 @@ public abstract class BaseExperiment implements Experiment {
     private <T> T getForExperiment(@NonNull String endpoint, @NonNull Map<String, String> params, Class<T> clazz) {
         return getConnection().sendGet(endpoint, params)
                 .map(body -> JsonUtils.fromJson(body, clazz))
-                .orElseThrow(() -> new IllegalArgumentException("Empty response received for experiment from " + endpoint));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Empty response received for experiment from " + endpoint));
     }
 
     private String getObjectValue(Object val) {
@@ -309,7 +353,8 @@ public abstract class BaseExperiment implements Experiment {
         return getExperimentKey();
     }
 
-    private MetricRest getLogMetricRequest(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
+    private MetricRest getLogMetricRequest(@NonNull String metricName, @NonNull Object metricValue,
+                                           long step, long epoch) {
         MetricRest request = new MetricRest();
         request.setExperimentKey(getExperimentKey());
         request.setMetricName(metricName);
