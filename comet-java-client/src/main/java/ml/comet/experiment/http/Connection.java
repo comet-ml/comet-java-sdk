@@ -4,7 +4,12 @@ import lombok.NonNull;
 import lombok.Value;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.utils.JsonUtils;
-import org.asynchttpclient.*;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.AsyncHttpClientConfig;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+import org.asynchttpclient.ListenableFuture;
+import org.asynchttpclient.Request;
+import org.asynchttpclient.Response;
 import org.slf4j.Logger;
 
 import java.io.Closeable;
@@ -18,9 +23,10 @@ import java.util.function.Function;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 /**
- * Represents connection with the CometML server. Provides utility methods to send various data records to the server.
- * <p>
- * Make sure to close this connection to avoid resources leak.
+ * Represents connection with the CometML server. Provides utility methods to send
+ * various data records to the server.
+ *
+ * <p>Make sure to close this connection to avoid resources leak.
  */
 @Value
 public class Connection implements Closeable {
@@ -45,14 +51,15 @@ public class Connection implements Closeable {
      * @param maxAuthRetries the maximum number of retries per failed request.
      * @param logger         the Logger to collect log records.
      */
-    public Connection(@NonNull String cometBaseUrl, @NonNull String apiKey, int maxAuthRetries, @NonNull Logger logger) {
+    public Connection(@NonNull String cometBaseUrl, @NonNull String apiKey,
+                      int maxAuthRetries, @NonNull Logger logger) {
         this.cometBaseUrl = cometBaseUrl;
         this.apiKey = apiKey;
         this.logger = logger;
         this.maxAuthRetries = maxAuthRetries;
         // create configured HTTP client
-        AsyncHttpClientConfig conf = new DefaultAsyncHttpClientConfig.Builder().
-                setRequestTimeout(REQUEST_TIMEOUT_MS).build();
+        AsyncHttpClientConfig conf = new DefaultAsyncHttpClientConfig.Builder()
+                .setRequestTimeout(REQUEST_TIMEOUT_MS).build();
         this.asyncHttpClient = asyncHttpClient(conf);
     }
 
@@ -69,7 +76,7 @@ public class Connection implements Closeable {
     }
 
     /**
-     * Allows sending POST to the specified endpoint with body as JSON string
+     * Allows sending POST to the specified endpoint with body as JSON string.
      *
      * @param json           the JSON string to be posted.
      * @param endpoint       the relative path to the endpoint
@@ -91,9 +98,9 @@ public class Connection implements Closeable {
      * @param endpoint the relative path to the endpoint.
      */
     public void sendPostAsync(@NonNull Object payload, @NonNull String endpoint) {
-        CompletableFuture<Response> future = sendPostAsync(JsonUtils.toJson(payload), endpoint).
-                toCompletableFuture().
-                exceptionally(t -> {
+        CompletableFuture<Response> future = sendPostAsync(JsonUtils.toJson(payload), endpoint)
+                .toCompletableFuture()
+                .exceptionally(t -> {
                             logger.error("failed to execute asynchronous request to endpoint: " + endpoint, t);
                             return null;
                         }
