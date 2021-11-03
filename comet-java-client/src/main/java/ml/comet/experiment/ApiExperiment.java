@@ -22,8 +22,8 @@ import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLD
 /**
  * Implementation of the Experiment which provides methods to access meta-data of particular
  * experiment through the REST API exposed by the Comet.ml server.
- * <p>
- * The ApiExperiment should be used to directly read experiment data from the Comet.ml server.
+ *
+ * <p>The ApiExperiment should be used to directly read experiment data from the Comet.ml server.
  */
 public final class ApiExperiment extends BaseExperiment {
     /**
@@ -46,14 +46,14 @@ public final class ApiExperiment extends BaseExperiment {
     private ApiExperiment(
             final String apiKey,
             final String anExperimentKey,
-            final Logger aLogger,
-            final String aBaseUrl,
+            final Logger logger,
+            final String baseUrl,
             final int maxAuthRetries) {
         this.experimentKey = anExperimentKey;
-        if (aLogger != null) {
-            this.logger = aLogger;
+        if (logger != null) {
+            this.logger = logger;
         }
-        this.baseUrl = aBaseUrl;
+        this.baseUrl = baseUrl;
         this.connection = ConnectionInitializer.initConnection(
                 apiKey, this.baseUrl, maxAuthRetries, this.logger);
     }
@@ -68,6 +68,9 @@ public final class ApiExperiment extends BaseExperiment {
         return new ApiExperiment.ApiExperimentBuilderImpl(experimentKey);
     }
 
+    /**
+     * The builder to create properly configured ApiExperiment instance.
+     */
     public static final class ApiExperimentBuilderImpl implements ApiExperimentBuilder {
         /**
          * The unique key of the experiment.
@@ -104,8 +107,8 @@ public final class ApiExperiment extends BaseExperiment {
         }
 
         @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withLogger(@NonNull final Logger aLogger) {
-            this.logger = aLogger;
+        public ApiExperiment.ApiExperimentBuilderImpl withLogger(@NonNull final Logger logger) {
+            this.logger = logger;
             return this;
         }
 
