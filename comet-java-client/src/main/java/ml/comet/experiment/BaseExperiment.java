@@ -1,5 +1,6 @@
 package ml.comet.experiment;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.model.*;
@@ -22,7 +23,7 @@ public abstract class BaseExperiment implements Experiment {
      * Gets the current context as recorded in the Experiment object locally.
      *
      * @return the current context which associated with log records of this experiment.
-     *
+     * <p>
      * TODO: 03.11.2021 this can be made Optional
      */
     protected abstract String getContext();
@@ -44,12 +45,12 @@ public abstract class BaseExperiment implements Experiment {
     protected abstract Logger getLogger();
 
     @Override
-    public void setExperimentName(String experimentName) {
+    public void setExperimentName(@NonNull String experimentName) {
         logOther("Name", experimentName);
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue, long step, long epoch) {
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
         getLogger().debug("logMetric {} {}", metricName, metricValue);
         validateExperimentKeyPresent();
 
@@ -58,7 +59,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logParameter(String parameterName, Object paramValue, long step) {
+    public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
         getLogger().debug("logParameter {} {}", parameterName, paramValue);
         validateExperimentKeyPresent();
 
@@ -67,7 +68,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logHtml(String html, boolean override) {
+    public void logHtml(@NonNull String html, boolean override) {
         getLogger().debug("logHtml {} {}", html, override);
         validateExperimentKeyPresent();
 
@@ -76,39 +77,50 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logCode(String code, String fileName) {
+    public void logCode(@NonNull String code, @NonNull String fileName) {
         getLogger().debug("log raw code");
 
         validateExperimentKeyPresent();
 
-        getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8),
-                ADD_ASSET,
-                new HashMap<String, String>() {{
-                    put(EXPERIMENT_KEY, getExperimentKey());
-                    put("fileName", fileName);
-                    put("context", getContext());
-                    put("type", ASSET_TYPE_SOURCE_CODE);
-                    put("overwrite", Boolean.toString(false));
-                }});
+        Map<String, String> params = new HashMap<String, String>() {{
+            put(EXPERIMENT_KEY, getExperimentKey());
+            put("fileName", fileName);
+            put("context", getContext());
+            put("type", ASSET_TYPE_SOURCE_CODE);
+            put("overwrite", Boolean.toString(false));
+        }};
+
+        getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
+                .toCompletableFuture()
+                .exceptionally(t -> {
+                    getLogger().error("failed to log source code", t);
+                    return null;
+                });
     }
 
     @Override
-    public void logCode(File asset) {
+    public void logCode(@NonNull File asset) {
         getLogger().debug("logCode {}", asset.getName());
         validateExperimentKeyPresent();
 
-        getConnection().sendPostAsync(asset, ADD_ASSET, new HashMap<String, String>() {{
+        Map<String, String> params = new HashMap<String, String>() {{
             put(EXPERIMENT_KEY, getExperimentKey());
             put("fileName", asset.getName());
             put("context", getContext());
             put("type", ASSET_TYPE_SOURCE_CODE);
             put("overwrite", Boolean.toString(false));
-        }});
+        }};
+
+        getConnection().sendPostAsync(asset, ADD_ASSET, params)
+                .toCompletableFuture()
+                .exceptionally(t -> {
+                    getLogger().error("failed to log source code", t);
+                    return null;
+                });
     }
 
-
     @Override
-    public void logOther(String key, Object value) {
+    public void logOther(@NonNull String key, @NonNull Object value) {
         getLogger().debug("logOther {} {}", key, value);
         validateExperimentKeyPresent();
 
@@ -117,7 +129,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void addTag(String tag) {
+    public void addTag(@NonNull String tag) {
         getLogger().debug("logTag {}", tag);
         validateExperimentKeyPresent();
 
@@ -126,7 +138,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logGraph(String graph) {
+    public void logGraph(@NonNull String graph) {
         getLogger().debug("logOther {}", graph);
         validateExperimentKeyPresent();
 
@@ -153,7 +165,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch) {
+    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step, long epoch) {
         getLogger().debug("uploadAsset {} {} {}", asset.getName(), fileName, overwrite);
         validateExperimentKeyPresent();
 
@@ -168,7 +180,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void uploadAsset(File asset, boolean overwrite, long step, long epoch) {
+    public void uploadAsset(@NonNull File asset, boolean overwrite, long step, long epoch) {
         uploadAsset(asset, asset.getName(), overwrite, step, epoch);
     }
 
@@ -260,7 +272,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<ExperimentAssetLink> getAssetList(String type) {
+    public List<ExperimentAssetLink> getAssetList(@NonNull String type) {
         String experimentKey = validateAndGetExperimentKey();
         getLogger().debug("get tags for experiment {}", experimentKey);
 
@@ -272,11 +284,11 @@ public abstract class BaseExperiment implements Experiment {
         return response.getAssets();
     }
 
-    private <T> T getForExperimentByKey(String endpoint, Class<T> clazz) {
+    private <T> T getForExperimentByKey(@NonNull String endpoint, Class<T> clazz) {
         return getForExperiment(endpoint, Collections.singletonMap("experimentKey", getExperimentKey()), clazz);
     }
 
-    private <T> T getForExperiment(String endpoint, Map<String, String> params, Class<T> clazz) {
+    private <T> T getForExperiment(@NonNull String endpoint, @NonNull Map<String, String> params, Class<T> clazz) {
         return getConnection().sendGet(endpoint, params)
                 .map(body -> JsonUtils.fromJson(body, clazz))
                 .orElseThrow(() -> new IllegalArgumentException("Empty response received for experiment from " + endpoint));
@@ -297,7 +309,7 @@ public abstract class BaseExperiment implements Experiment {
         return getExperimentKey();
     }
 
-    private MetricRest getLogMetricRequest(String metricName, Object metricValue, long step, long epoch) {
+    private MetricRest getLogMetricRequest(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
         MetricRest request = new MetricRest();
         request.setExperimentKey(getExperimentKey());
         request.setMetricName(metricName);
@@ -308,7 +320,7 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private ParameterRest getLogParameterRequest(String parameterName, Object paramValue, long step) {
+    private ParameterRest getLogParameterRequest(@NonNull String parameterName, @NonNull Object paramValue, long step) {
         ParameterRest request = new ParameterRest();
         request.setExperimentKey(getExperimentKey());
         request.setParameterName(parameterName);
@@ -318,7 +330,7 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private HtmlRest getLogHtmlRequest(String html, boolean override) {
+    private HtmlRest getLogHtmlRequest(@NonNull String html, boolean override) {
         HtmlRest request = new HtmlRest();
         request.setExperimentKey(getExperimentKey());
         request.setHtml(html);
@@ -327,7 +339,7 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private LogOtherRest getLogOtherRequest(String key, Object value) {
+    private LogOtherRest getLogOtherRequest(@NonNull String key, @NonNull Object value) {
         LogOtherRest request = new LogOtherRest();
         request.setExperimentKey(getExperimentKey());
         request.setKey(key);
@@ -336,14 +348,14 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private AddTagsToExperimentRest getTagRequest(String tag) {
+    private AddTagsToExperimentRest getTagRequest(@NonNull String tag) {
         AddTagsToExperimentRest request = new AddTagsToExperimentRest();
         request.setExperimentKey(getExperimentKey());
         request.setAddedTags(Collections.singletonList(tag));
         return request;
     }
 
-    private AddGraphRest getGraphRequest(String graph) {
+    private AddGraphRest getGraphRequest(@NonNull String graph) {
         AddGraphRest request = new AddGraphRest();
         request.setExperimentKey(getExperimentKey());
         request.setGraph(graph);
