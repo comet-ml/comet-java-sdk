@@ -28,4 +28,5 @@ jobs:
           FILTER_REGEX_INCLUDE: .*src/main/.*/.*.java
           VALIDATE_ALL_CODEBASE: false # validate only modified files
           DEFAULT_BRANCH: master
+          JAVA_FILE_NAME: checkstyle.xml
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
