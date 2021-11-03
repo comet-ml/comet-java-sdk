@@ -6,6 +6,9 @@ import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Describes the public contract of the Experiment.
+ */
 public interface Experiment {
 
     /**
@@ -222,4 +225,8 @@ public interface Experiment {
      */
     void logGitMetadata(CreateGitMetadata gitMetadata);
 
+    /**
+     * Tells Comet that the Experiment is complete and release all associated resources.
+     */
+    void end();
 }

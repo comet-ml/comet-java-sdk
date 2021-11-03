@@ -3,12 +3,11 @@ package ml.comet.experiment;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Describes the public contract of the online experiment which extends functionality of the Experiment by providing
+ * additional methods to log various parameters in real time.
+ */
 public interface OnlineExperiment extends Experiment {
-
-    /**
-     * Tells Comet that the Experiment is complete.
-     */
-    void end();
 
     /**
      * Turn on intercept of stdout and stderr and the logging of both in Comet

@@ -10,15 +10,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 
 import static ml.comet.experiment.constants.Constants.*;
 
+/**
+ * Implementation of the Experiment which provides methods to access meta-data of particular experiment through the
+ * REST API exposed by the Comet.ml server.
+ * <p>
+ * The ApiExperiment should be used to directly read experiment data from the Comet.ml server.
+ */
 public class ApiExperiment extends BaseExperiment {
     private final String baseUrl;
-    private final int maxAuthRetries;
-    private final String apiKey;
     private final String experimentKey;
     private final Connection connection;
     private Logger logger = LoggerFactory.getLogger(ApiExperiment.class);
@@ -29,22 +34,12 @@ public class ApiExperiment extends BaseExperiment {
             Logger logger,
             String baseUrl,
             int maxAuthRetries) {
-        this.apiKey = apiKey;
         this.experimentKey = experimentKey;
         if (logger != null) {
             this.logger = logger;
         }
         this.baseUrl = baseUrl;
-        this.maxAuthRetries = maxAuthRetries;
-        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, this.maxAuthRetries, this.logger);
-    }
-
-    public ApiExperiment(String experimentKey) {
-        this.experimentKey = experimentKey;
-        this.apiKey = ConfigUtils.getApiKey().orElse(null);
-        this.baseUrl = ConfigUtils.getBaseUrlOrDefault();
-        this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
-        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, this.maxAuthRetries, this.logger);
+        this.connection = ConnectionInitializer.initConnection(apiKey, this.baseUrl, maxAuthRetries, this.logger);
     }
 
     public static ApiExperiment.ApiExperimentBuilderImpl builder(String experimentKey) {
@@ -143,4 +138,15 @@ public class ApiExperiment extends BaseExperiment {
         }
     }
 
+    @Override
+    public void end() {
+        // close connection
+        if (this.connection != null) {
+            try {
+                this.connection.close();
+            } catch (IOException e) {
+                this.logger.error("failed to close connection", e);
+            }
+        }
+    }
 }

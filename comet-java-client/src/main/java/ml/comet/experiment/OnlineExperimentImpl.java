@@ -1,6 +1,7 @@
 package ml.comet.experiment;
 
 import lombok.Getter;
+import lombok.NonNull;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
 import ml.comet.experiment.constants.Constants;
 import ml.comet.experiment.exception.CometGeneralException;
@@ -46,7 +47,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private StdOutLogger stdOutLogger;
     private StdOutLogger stdErrLogger;
     private boolean interceptStdout;
-    private ScheduledFuture pingStatusFuture;
+    private ScheduledFuture<?> pingStatusFuture;
 
     private long step = 0;
     private long epoch = 0;
@@ -111,19 +112,19 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withProjectName(String projectName) {
+        public OnlineExperimentBuilderImpl withProjectName(@NonNull String projectName) {
             this.projectName = projectName;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withWorkspace(String workspace) {
+        public OnlineExperimentBuilderImpl withWorkspace(@NonNull String workspace) {
             this.workspace = workspace;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withApiKey(String apiKey) {
+        public OnlineExperimentBuilderImpl withApiKey(@NonNull String apiKey) {
             this.apiKey = apiKey;
             return this;
         }
@@ -135,31 +136,31 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withUrlOverride(String urlOverride) {
+        public OnlineExperimentBuilderImpl withUrlOverride(@NonNull String urlOverride) {
             this.baseUrl = urlOverride;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withExperimentName(String experimentName) {
+        public OnlineExperimentBuilderImpl withExperimentName(@NonNull String experimentName) {
             this.experimentName = experimentName;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withExistingExperimentKey(String experimentKey) {
+        public OnlineExperimentBuilderImpl withExistingExperimentKey(@NonNull String experimentKey) {
             this.experimentKey = experimentKey;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withLogger(Logger logger) {
+        public OnlineExperimentBuilderImpl withLogger(@NonNull Logger logger) {
             this.logger = logger;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withConfig(File overrideConfig) {
+        public OnlineExperimentBuilderImpl withConfig(@NonNull File overrideConfig) {
             ConfigUtils.setOverrideConfig(overrideConfig);
             return this;
         }
@@ -208,6 +209,14 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         if (pingStatusFuture != null) {
             pingStatusFuture.cancel(true);
             pingStatusFuture = null;
+        }
+        // close connection
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (IOException e) {
+                logger.error("failed to close connection", e);
+            }
         }
     }
 

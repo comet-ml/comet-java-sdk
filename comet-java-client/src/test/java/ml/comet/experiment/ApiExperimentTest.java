@@ -31,5 +31,7 @@ public class ApiExperimentTest extends BaseApiTest {
 
         assertEquals(WORKSPACE_NAME, apiExperiment.getWorkspaceName());
         assertEquals(PROJECT_NAME, apiExperiment.getProjectName());
+
+        apiExperiment.end();
     }
 }

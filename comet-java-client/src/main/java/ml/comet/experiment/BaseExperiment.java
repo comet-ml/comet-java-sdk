@@ -12,13 +12,35 @@ import java.util.*;
 
 import static ml.comet.experiment.constants.Constants.*;
 
+/**
+ * The base class for all experiment implementations providing implementation of common routines.
+ */
 @RequiredArgsConstructor
 public abstract class BaseExperiment implements Experiment {
 
+    /**
+     * Gets the current context as recorded in the Experiment object locally.
+     *
+     * @return the current context which associated with log records of this experiment.
+     *
+     * TODO: 03.11.2021 this can be made Optional
+     */
     protected abstract String getContext();
 
+    /**
+     * Returns connection associated with particular experiment. The subclasses must override this method to provide
+     * relevant connection instance.
+     *
+     * @return the initialized connection associated with particular experiment.
+     */
     protected abstract Connection getConnection();
 
+    /**
+     * Returns logger instance associated with particular experiment. The subclasses should override this method to
+     * provide specific logger instance.
+     *
+     * @return the logger instance associated with particular experiment.
+     */
     protected abstract Logger getLogger();
 
     @Override

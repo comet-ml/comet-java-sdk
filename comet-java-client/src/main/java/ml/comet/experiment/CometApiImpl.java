@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +48,20 @@ public class CometApiImpl implements CometApi {
                 .orElseThrow(() -> new IllegalArgumentException("Failed to parse endpoint response " + endpoint));
     }
 
+    /**
+     * Returns builder to be used to properly create instance of this class.
+     *
+     * @return the builder to be used to properly create instance of this class.
+     */
     public static CometApiBuilder builder() {
         return new CometApiBuilder();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (this.connection != null) {
+            this.connection.close();
+        }
     }
 
     public static class CometApiBuilder {
