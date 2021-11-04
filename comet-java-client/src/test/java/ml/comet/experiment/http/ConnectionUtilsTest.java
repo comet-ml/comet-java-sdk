@@ -26,9 +26,8 @@ public class ConnectionUtilsTest {
     public void testCreateGetRequest() {
         String url = "http://test.com/get";
         HashMap<String, String> params = new HashMap<String, String>() {{
-            put(EXPERIMENT_KEY, "test_key");
-            put("type", ASSET_TYPE_SOURCE_CODE);
-            put("overwrite", Boolean.toString(false));
+            put("someParam", "someValue");
+            put("anotherParam", Boolean.toString(true));
         }};
         Request r = ConnectionUtils.createGetRequest(url, params);
 
@@ -39,9 +38,8 @@ public class ConnectionUtilsTest {
     public void testCreatePostFileRequest() {
         String url = "http://test.com" + ADD_ASSET;
         HashMap<String, String> params = new HashMap<String, String>() {{
-            put(EXPERIMENT_KEY, "test_key");
-            put("type", ASSET_TYPE_SOURCE_CODE);
-            put("overwrite", Boolean.toString(false));
+            put("someParam", "someValue");
+            put("anotherParam", Boolean.toString(true));
         }};
         File file = TestUtils.getFile(SOME_TEXT_FILE_NAME);
         assertNotNull(file, "test file not found");
@@ -61,9 +59,8 @@ public class ConnectionUtilsTest {
     public void testCreatePostByteArrayRequest() {
         String url = "http://test.com" + ADD_ASSET;
         HashMap<String, String> params = new HashMap<String, String>() {{
-            put(EXPERIMENT_KEY, "test_key");
-            put("type", ASSET_TYPE_UNKNOWN);
-            put("overwrite", Boolean.toString(true));
+            put("someParam", "someValue");
+            put("anotherParam", Boolean.toString(true));
         }};
         byte[] data = "The test byte data".getBytes();
 
