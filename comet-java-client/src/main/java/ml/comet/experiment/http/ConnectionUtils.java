@@ -31,13 +31,9 @@ public class ConnectionUtils {
      * @return the GET request.
      */
     static Request createGetRequest(@NonNull String url, Map<String, String> params) {
-        RequestBuilder builder = new RequestBuilder();
-        builder.setUrl(url);
-        if (params != null) {
-            params.forEach(builder::addQueryParam);
-        }
-
-        return builder.build();
+        return createRequestBuilder(HttpConstants.Methods.GET, params)
+                .setUrl(url)
+                .build();
     }
 
     /**
@@ -49,16 +45,11 @@ public class ConnectionUtils {
      * @return the POST request with specified file.
      */
     static Request createPostFileRequest(@NonNull File file, @NonNull String url, Map<String, String> params) {
-        RequestBuilder builder = new RequestBuilder(HttpConstants.Methods.POST);
-        builder
+        return createRequestBuilder(HttpConstants.Methods.POST, params)
                 .setUrl(url)
                 .setHeader("Content-Type", FORM_MIME_TYPE)
-                .addBodyPart(new FilePart(FILE, file, FORM_MIME_TYPE));
-        if (params != null) {
-            params.forEach(builder::addQueryParam);
-        }
-
-        return builder.build();
+                .addBodyPart(new FilePart(FILE, file, FORM_MIME_TYPE))
+                .build();
     }
 
     /**
@@ -70,16 +61,11 @@ public class ConnectionUtils {
      * @return the POST request with specified byte array as body part.
      */
     static Request createPostByteArrayRequest(byte[] bytes, @NonNull String url, Map<String, String> params) {
-        RequestBuilder builder = new RequestBuilder(HttpConstants.Methods.POST);
-        builder
+        return createRequestBuilder(HttpConstants.Methods.POST, params)
                 .setUrl(url)
                 .setHeader("Content-Type", FORM_MIME_TYPE)
-                .addBodyPart(new ByteArrayPart(FILE, bytes, FORM_MIME_TYPE));
-        if (params != null) {
-            params.forEach(builder::addQueryParam);
-        }
-
-        return builder.build();
+                .addBodyPart(new ByteArrayPart(FILE, bytes, FORM_MIME_TYPE))
+                .build();
     }
 
     /**
@@ -100,6 +86,21 @@ public class ConnectionUtils {
      */
     static boolean isResponseSuccessful(int statusCode) {
         return statusCode >= 200 && statusCode < 300;
+    }
+
+    /**
+     * Creates request builder configured with common parameters.
+     *
+     * @param httpMethod the HTTP method.
+     * @param params     the query parameters to be added to the request builder.
+     * @return the pre-configured request builder.
+     */
+    static RequestBuilder createRequestBuilder(@NonNull String httpMethod, Map<String, String> params) {
+        RequestBuilder builder = new RequestBuilder(httpMethod);
+        if (params != null) {
+            params.forEach(builder::addQueryParam);
+        }
+        return builder;
     }
 
     /**
