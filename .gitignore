@@ -46,4 +46,7 @@ buildNumber.properties
 .classpath
 .factorypath
 
+# Checkstyle specific
+*.iml
+
 # End of https://www.gitignore.io/api/java,maven
