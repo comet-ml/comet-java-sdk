@@ -33,7 +33,6 @@ public class ConnectionUtilsTest {
         Request r = ConnectionUtils.createGetRequest(url, params);
 
         this.validateRequest(r, url, params, HttpConstants.Methods.GET, null);
-        assertEquals(HttpConstants.Methods.GET, r.getMethod(), "wrong HTTP method");
     }
 
     @Test
