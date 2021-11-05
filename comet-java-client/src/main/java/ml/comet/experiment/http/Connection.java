@@ -4,6 +4,7 @@ import lombok.NonNull;
 import lombok.Value;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.utils.JsonUtils;
+import org.asynchttpclient.AsyncCompletionHandler;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.AsyncHttpClientConfig;
 import org.asynchttpclient.DefaultAsyncHttpClientConfig;
@@ -18,6 +19,9 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
@@ -42,6 +46,11 @@ public class Connection implements Closeable {
     Logger logger;
     int maxAuthRetries;
     AsyncHttpClient asyncHttpClient;
+    /**
+     * This is inventory tracker to maintain remaining list of scheduled asynchronous request posts. It will be used
+     * to properly close this connection only after all scheduled requests are processed.
+     */
+    AtomicInteger requestsInventory;
 
     /**
      * Creates new instance with specified parameters.
@@ -57,6 +66,7 @@ public class Connection implements Closeable {
         this.apiKey = apiKey;
         this.logger = logger;
         this.maxAuthRetries = maxAuthRetries;
+        this.requestsInventory = new AtomicInteger();
         // create configured HTTP client
         AsyncHttpClientConfig conf = new DefaultAsyncHttpClientConfig.Builder()
                 .setRequestTimeout(REQUEST_TIMEOUT_MS).build();
@@ -101,7 +111,8 @@ public class Connection implements Closeable {
         CompletableFuture<Response> future = sendPostAsync(JsonUtils.toJson(payload), endpoint)
                 .toCompletableFuture()
                 .exceptionally(t -> {
-                            logger.error("failed to execute asynchronous request to endpoint: " + endpoint, t);
+                            logger.error("failed to execute asynchronous request to endpoint {} with payload {}",
+                                    endpoint, payload, t);
                             return null;
                         }
                 );
@@ -158,7 +169,11 @@ public class Connection implements Closeable {
     }
 
     /**
-     * Closes this connection by releasing underlying resources.
+     * Closes this connection immediately by releasing underlying resources.
+     *
+     * <p>Please note that some asynchronous post request can still be not processed, which will result in errors.
+     * Use this method with great caution and only if you are not expecting any request still be unprocessed. For all
+     * other cases it is recommended to use waitAndClose method.
      *
      * @throws IOException if an I/O error occurs.
      */
@@ -168,14 +183,58 @@ public class Connection implements Closeable {
     }
 
     /**
+     * Allows to properly close this connection after all scheduled posts request are executed or if timeout expired.
+     *
+     * @param timeout the maximum time to wait.
+     * @param unit    the time unit of the timeout argument.
+     * @throws IOException          if an I/O error occurs.
+     * @throws InterruptedException if current thread was interrupted during wait.
+     */
+    public void waitAndClose(long timeout, TimeUnit unit) throws IOException, InterruptedException, TimeoutException {
+        long nanosTimeout = unit.toNanos(timeout);
+        final long deadline = System.nanoTime() + nanosTimeout;
+        // block until all requests in inventory are processed or timeout exceeded
+        while (this.requestsInventory.get() > 0) {
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
+            }
+            nanosTimeout = deadline - System.nanoTime();
+            if (nanosTimeout <= 0L) {
+                throw new TimeoutException(String.format(
+                        "timeout exceeded while waiting for remaining requests to complete, "
+                                + "remaining requests: %d", this.requestsInventory.get()));
+            }
+            if (this.logger.isDebugEnabled()) {
+                this.logger.debug("waiting for {} request items to execute, elapsed {} seconds",
+                        this.requestsInventory.get(), TimeUnit.SECONDS.convert(nanosTimeout, TimeUnit.NANOSECONDS));
+            }
+        }
+
+        // close connection immediately
+        this.close();
+    }
+
+    /**
      * Executes provided request asynchronously.
      *
      * @param request the request to be executed.
      * @return the <code>ListenableFuture</code> which can be used to check request status.
      */
     ListenableFuture<Response> executeRequestWithAuthAsync(@NonNull Request request) {
+        // check that client is not closed
+        if (this.asyncHttpClient.isClosed()) {
+            String msg = String.format("failed to execute request %s connection to the server already closed", request);
+            return new ListenableFuture.CompletedFailure<>(
+                    "asyncHttpClient already closed", new CometGeneralException(msg));
+        }
+
+        // increment inventory
+        this.requestsInventory.incrementAndGet();
+
         request.getHeaders().add(COMET_SDK_API_HEADER, apiKey);
-        return this.asyncHttpClient.executeRequest(request);
+        String endpoint = request.getUrl();
+        return this.asyncHttpClient.executeRequest(request,
+                new AsyncCompletionInventoryHandler(this.requestsInventory, this.logger, endpoint));
     }
 
     /**
@@ -189,6 +248,15 @@ public class Connection implements Closeable {
      * @return the response body or empty Optional.
      */
     Optional<String> executeRequestWithAuth(@NonNull Request request, boolean throwOnFailure) {
+        // check if client already closed
+        if (this.asyncHttpClient.isClosed()) {
+            logger.error("Failed to execute request {}, the connection already closed.", request);
+            if (throwOnFailure) {
+                throw new CometGeneralException("failed to execute request, the connection already closed.");
+            }
+            return Optional.empty();
+        }
+
         request.getHeaders().add(COMET_SDK_API_HEADER, apiKey);
         String endpoint = request.getUrl();
         try {
@@ -235,5 +303,38 @@ public class Connection implements Closeable {
 
     private String buildCometUrl(String endpoint) {
         return this.cometBaseUrl + endpoint;
+    }
+
+    /**
+     * The request completion listener to be used to maintain the current requests' inventory status.
+     */
+    static final class AsyncCompletionInventoryHandler extends AsyncCompletionHandler<Response> {
+        AtomicInteger requestInventory;
+        Logger logger;
+        String endpoint;
+
+        AsyncCompletionInventoryHandler(AtomicInteger inventory, Logger logger, String endpoint) {
+            this.requestInventory = inventory;
+            this.logger = logger;
+            this.endpoint = endpoint;
+        }
+
+        @Override
+        public Response onCompleted(Response response) {
+            // decrease inventory
+            this.decreaseInventory();
+            return response;
+        }
+
+        @Override
+        public void onThrowable(Throwable t) {
+            // decrease inventory
+            this.decreaseInventory();
+            this.logger.error("failed to execute request to the endpoint {}", this.endpoint, t);
+        }
+
+        private void decreaseInventory() {
+            this.requestInventory.decrementAndGet();
+        }
     }
 }
