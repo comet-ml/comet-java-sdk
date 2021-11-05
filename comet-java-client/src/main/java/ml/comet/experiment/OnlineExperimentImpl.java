@@ -223,18 +223,22 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void end() {
+        // stop pinging server
         if (pingStatusFuture != null) {
             pingStatusFuture.cancel(true);
             pingStatusFuture = null;
         }
-        // close connection
-        if (connection != null) {
+        // stop intercepting stdout
+        if (this.interceptStdout) {
             try {
-                connection.close();
+                this.stopInterceptStdout();
             } catch (IOException e) {
-                logger.error("failed to close connection", e);
+                logger.error("failed to stop StdOut/StdErr intercepting", e);
             }
         }
+
+        // invoke end of the superclass for common cleanup routines
+        super.end();
     }
 
     @Override
@@ -246,14 +250,14 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
-    public void stopInterceptStdout() {
+    public void stopInterceptStdout() throws IOException {
         if (stdOutLogger != null) {
-            stdOutLogger.stop();
+            stdOutLogger.close();
             stdOutLogger = null;
             interceptStdout = false;
         }
         if (stdErrLogger != null) {
-            stdErrLogger.stop();
+            stdErrLogger.close();
             stdErrLogger = null;
         }
     }
@@ -274,12 +278,12 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void nextStep() {
-        step++;
+        this.step++;
     }
 
     @Override
     public long getStep() {
-        return step;
+        return this.step;
     }
 
     @Override
@@ -289,12 +293,12 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void nextEpoch() {
-        epoch++;
+        this.epoch++;
     }
 
     @Override
     public long getEpoch() {
-        return epoch;
+        return this.epoch;
     }
 
     @Override
@@ -324,7 +328,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void logMetric(@NonNull String metricName, @NonNull Object metricValue) {
-        logMetric(metricName, metricValue, step, epoch);
+        logMetric(metricName, metricValue, this.step, this.epoch);
     }
 
     @Override
@@ -336,7 +340,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
-        logParameter(parameterName, paramValue, step);
+        logParameter(parameterName, paramValue, this.step);
     }
 
     @Override
@@ -357,7 +361,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite) {
-        super.uploadAsset(asset, fileName, overwrite, step, epoch);
+        super.uploadAsset(asset, fileName, overwrite, this.step, this.epoch);
     }
 
     private void initializeExperiment() {

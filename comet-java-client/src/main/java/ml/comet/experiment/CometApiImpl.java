@@ -78,6 +78,7 @@ public final class CometApiImpl implements CometApi {
     @Override
     public void close() throws IOException {
         if (this.connection != null) {
+            // no need to wait for asynchronous requests to proceed because this class use only synchronous requests
             this.connection.close();
         }
     }

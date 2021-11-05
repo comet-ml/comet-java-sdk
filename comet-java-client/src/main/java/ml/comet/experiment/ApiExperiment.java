@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 
@@ -176,18 +175,6 @@ public final class ApiExperiment extends BaseExperiment {
         } catch (Exception ex) {
             this.logger.error("failed to build experiment link", ex);
             return Optional.empty();
-        }
-    }
-
-    @Override
-    public void end() {
-        // close connection
-        if (this.connection != null) {
-            try {
-                this.connection.close();
-            } catch (IOException e) {
-                this.logger.error("failed to close connection", e);
-            }
         }
     }
 }

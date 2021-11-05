@@ -21,6 +21,7 @@ import ml.comet.experiment.model.MinMaxResponse;
 import ml.comet.experiment.model.ParameterRest;
 import ml.comet.experiment.model.TagsResponse;
 import ml.comet.experiment.model.ValueMinMaxDto;
+import ml.comet.experiment.utils.ConfigUtils;
 import ml.comet.experiment.utils.JsonUtils;
 import org.slf4j.Logger;
 
@@ -31,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static ml.comet.experiment.constants.Constants.ADD_ASSET;
 import static ml.comet.experiment.constants.Constants.ADD_GIT_METADATA;
@@ -311,6 +313,19 @@ public abstract class BaseExperiment implements Experiment {
 
         TagsResponse response = getForExperimentByKey(GET_TAGS, TagsResponse.class);
         return response.getTags();
+    }
+
+    @Override
+    public void end() {
+        // close connection
+        Connection connection = this.getConnection();
+        if (connection != null) {
+            try {
+                connection.waitAndClose(ConfigUtils.getConnectionCloseTimeoutSec(), TimeUnit.SECONDS);
+            } catch (Exception e) {
+                getLogger().error("failed to close connection", e);
+            }
+        }
     }
 
     @Override

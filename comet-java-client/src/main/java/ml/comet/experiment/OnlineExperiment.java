@@ -19,7 +19,7 @@ public interface OnlineExperiment extends Experiment {
     /**
      * Turn off intercept of stdout and stderr and turns off their logging in Comet.
      */
-    void stopInterceptStdout();
+    void stopInterceptStdout() throws IOException;
 
     /**
      * Send logs to Comet.
