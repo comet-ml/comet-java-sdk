@@ -86,7 +86,7 @@ public class OnlineExperimentExample {
             e.printStackTrace();
         }
 
-        //will close connection, if not called connection will close on jvm exit
+        // will close connection, if not called connection will close on jvm exit
         experiment.end();
     }
 
