@@ -340,6 +340,13 @@ public class OnlineExperimentTest extends BaseApiTest {
         System.out.flush();
         System.err.flush();
 
+        // wait for flush to complete before stopping interception
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         experiment.stopInterceptStdout();
 
         System.out.println(NON_LOGGED_LINE);
