@@ -2,13 +2,11 @@ package ml.comet.examples;
 
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.OnlineExperimentImpl;
-import org.apache.commons.io.FileUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
-import java.util.Scanner;
+
+import static ml.comet.examples.Utils.getResourceFile;
+import static ml.comet.examples.Utils.readResourceToString;
 
 /**
  * Provides variety of example logging using OnlineExperiment.
@@ -24,7 +22,21 @@ import java.util.Scanner;
  */
 public class OnlineExperimentExample {
 
-    public static void main(String[] args) throws IOException {
+    /**
+     * The main entry point to the example.
+     *
+     * @param args the command line arguments if any.
+     */
+    public static void main(String[] args) {
+        OnlineExperimentExample main = new OnlineExperimentExample();
+        try {
+            main.run();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void run() throws IOException {
         //this will take configs from /comet-java-sdk/comet-examples/src/main/resources/application.conf
         //be sure you have set up apiKey, project, workspace in defaults.conf before you start!
 
@@ -66,24 +78,16 @@ public class OnlineExperimentExample {
 
         System.out.println("===== Experiment completed ====");
 
+        // Flush thread and wait for a while to make sure everything is flushed
+        System.out.flush();
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         //will close connection, if not called connection will close on jvm exit
         experiment.end();
-    }
-
-    public static String askUserForInputOn(String message) {
-        System.out.println(message);
-        Scanner scan = new Scanner(System.in);
-        String s = scan.next();
-        scan.close();
-        return s;
-    }
-
-    private static File getResourceFile(String name) {
-        URL resource = Thread.currentThread().getContextClassLoader().getResource(name);
-        if (resource == null) {
-            return null;
-        }
-        return new File(resource.getFile());
     }
 
     private static void generateCharts(OnlineExperiment experiment) {
@@ -104,14 +108,6 @@ public class OnlineExperimentExample {
 
     private static String generateCustomHtmlReport() throws IOException {
         return readResourceToString("report.html");
-    }
-
-    private static String readResourceToString(String fileName) throws IOException {
-        File file = getResourceFile(fileName);
-        if (file == null) {
-            throw new FileNotFoundException(fileName);
-        }
-        return FileUtils.readFileToString(file, "UTF-8");
     }
 
     private static long getUpdatedEpochValue(OnlineExperiment experiment) {
