@@ -1,11 +1,14 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.model.*;
+import ml.comet.experiment.model.CreateGitMetadata;
+import ml.comet.experiment.model.ExperimentAssetLink;
+import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.GitMetadataRest;
+import ml.comet.experiment.model.ValueMinMaxDto;
 import ml.comet.experiment.utils.TestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -18,8 +21,14 @@ import java.util.function.Function;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static ml.comet.experiment.constants.Constants.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static ml.comet.experiment.constants.Constants.ASSET_TYPE_ALL;
+import static ml.comet.experiment.constants.Constants.ASSET_TYPE_SOURCE_CODE;
+import static ml.comet.experiment.constants.Constants.ASSET_TYPE_UNKNOWN;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class OnlineExperimentTest extends BaseApiTest {
     private static final String SOME_NAME = "someName";
