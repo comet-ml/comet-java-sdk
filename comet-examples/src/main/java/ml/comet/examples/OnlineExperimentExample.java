@@ -10,7 +10,18 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Scanner;
 
-
+/**
+ * Provides variety of example logging using OnlineExperiment.
+ *
+ * <p>To run from command line execute the following at the root of this module:
+ * <pre>
+ * COMET_API_KEY=your_api_key \
+ * COMET_WORKSPACE_NAME=your_workspace \
+ * COMET_PROJECT_NAME=your_project_name \
+ * mvn exec:java -Dexec.mainClass="ml.comet.examples.OnlineExperimentExample"
+ * </pre>
+ * Make sure to provide correct values above.
+ */
 public class OnlineExperimentExample {
 
     public static void main(String[] args) throws IOException {
