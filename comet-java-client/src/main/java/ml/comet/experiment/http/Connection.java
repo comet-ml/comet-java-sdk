@@ -36,6 +36,8 @@ import static org.asynchttpclient.Dsl.asyncHttpClient;
 public class Connection implements Closeable {
     // The default request timeout in milliseconds
     public static final int REQUEST_TIMEOUT_MS = 60 * 1000;
+    // The default connection shutdown timeout in milliseconds
+    public static final int CONNECTION_SHUTDOWN_TIMEOUT_MS = 5 * 1000;
     // The name of the HTTP header with Comet API key
     public static final String COMET_SDK_API_HEADER = "Comet-Sdk-Api";
 
@@ -69,7 +71,7 @@ public class Connection implements Closeable {
         this.requestsInventory = new AtomicInteger();
         // create configured HTTP client
         AsyncHttpClientConfig conf = new DefaultAsyncHttpClientConfig.Builder()
-                .setRequestTimeout(REQUEST_TIMEOUT_MS).build();
+                .setRequestTimeout(REQUEST_TIMEOUT_MS).setShutdownTimeout(CONNECTION_SHUTDOWN_TIMEOUT_MS).build();
         this.asyncHttpClient = asyncHttpClient(conf);
     }
 
