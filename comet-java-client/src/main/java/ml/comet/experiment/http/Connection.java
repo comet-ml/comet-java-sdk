@@ -250,22 +250,21 @@ public class Connection implements Closeable {
      * @return the response body or empty Optional.
      */
     Optional<String> executeRequestWithAuth(@NonNull Request request, boolean throwOnFailure) {
-        // check if client already closed
-        if (this.asyncHttpClient.isClosed()) {
-            logger.error("Failed to execute request {}, the connection already closed.", request);
-            if (throwOnFailure) {
-                throw new CometGeneralException("failed to execute request, the connection already closed.");
-            }
-            return Optional.empty();
-        }
-
         request.getHeaders().add(COMET_SDK_API_HEADER, apiKey);
         String endpoint = request.getUrl();
         try {
             org.asynchttpclient.Response response = null;
             for (int i = 1; i < maxAuthRetries; i++) {
                 // execute request and wait for completion until default REQUEST_TIMEOUT_MS exceeded
-                response = this.asyncHttpClient.executeRequest(request).get();
+                if (!this.asyncHttpClient.isClosed()) {
+                    response = this.asyncHttpClient.executeRequest(request).get();
+                } else {
+                    logger.warn("failed to execute request {}, the connection already closed.", request);
+                    if (throwOnFailure) {
+                        throw new CometGeneralException("failed to execute request, the connection already closed.");
+                    }
+                    return Optional.empty();
+                }
 
                 if (!ConnectionUtils.isResponseSuccessful(response.getStatusCode())) {
                     // request attempt failed
