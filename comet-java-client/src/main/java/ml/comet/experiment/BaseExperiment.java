@@ -144,7 +144,7 @@ public abstract class BaseExperiment implements Experiment {
         getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
                 .toCompletableFuture()
                 .exceptionally(t -> {
-                    getLogger().error("failed to log source code", t);
+                    getLogger().error("failed to log raw source code with file name {}", fileName, t);
                     return null;
                 });
     }
@@ -167,7 +167,7 @@ public abstract class BaseExperiment implements Experiment {
         getConnection().sendPostAsync(asset, ADD_ASSET, params)
                 .toCompletableFuture()
                 .exceptionally(t -> {
-                    getLogger().error("failed to log source code", t);
+                    getLogger().error("failed to log source code from file {}", asset, t);
                     return null;
                 });
     }
@@ -235,15 +235,20 @@ public abstract class BaseExperiment implements Experiment {
         }
         validateExperimentKeyPresent();
 
-        getConnection().sendPostAsync(asset, ADD_ASSET, new HashMap<String, String>() {{
+        getConnection()
+                .sendPostAsync(asset, ADD_ASSET, new HashMap<String, String>() {{
                     put(EXPERIMENT_KEY, getExperimentKey());
                     put("fileName", fileName);
                     put("step", Long.toString(step));
                     put("epoch", Long.toString(epoch));
                     put("context", getContext());
                     put("overwrite", Boolean.toString(overwrite));
-                }}
-        );
+                }})
+                .toCompletableFuture()
+                .exceptionally(t -> {
+                    getLogger().error("failed to upload asset from file {} with name {}", asset, fileName, t);
+                    return null;
+                });
     }
 
     @Override
@@ -360,6 +365,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void end() {
+        getLogger().info("Waiting for all uploads to complete. It can take up to {} seconds",
+                ConfigUtils.getConnectionCloseTimeoutSec());
+
         // close connection
         Connection connection = this.getConnection();
         if (connection != null) {
@@ -480,6 +488,4 @@ public abstract class BaseExperiment implements Experiment {
         request.setEndTimeMillis(endTimeMillis);
         return request;
     }
-
-
 }
