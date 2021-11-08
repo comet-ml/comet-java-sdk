@@ -112,6 +112,7 @@ public class StdOutLogger implements Runnable, Closeable {
 
         StdOutLogger logger = new StdOutLogger(original, experiment, in, out, stdOut);
         Thread loggerThread = new Thread(logger);
+        loggerThread.setDaemon(true);
         loggerThread.start();
         return logger;
     }
