@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static ml.comet.experiment.constants.Constants.ADD_OUTPUT;
 import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
@@ -35,7 +36,8 @@ import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
  */
 @Getter
 public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
-    private static final ScheduledExecutorService scheduledExecutorService =
+    private static final int SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC = 60;
+    private final ScheduledExecutorService scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor();
     private final String projectName;
     private final String workspaceName;
@@ -56,6 +58,9 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private long step = 0;
     private long epoch = 0;
     private String context = "";
+
+    // The flag to indicate if experiment end() was called and experiment shutdown initialized
+    private final AtomicBoolean atShutdown = new AtomicBoolean();
 
     private OnlineExperimentImpl(
             String apiKey,
@@ -223,11 +228,29 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void end() {
+        // set shutdown flag
+        this.atShutdown.set(true);
+
         // stop pinging server
         if (pingStatusFuture != null) {
-            pingStatusFuture.cancel(true);
+            if (!pingStatusFuture.cancel(true)) {
+                this.logger.error("failed to stop Comet STATUS PING");
+            } else {
+                this.logger.info("Comet STATUS PING stopped");
+            }
             pingStatusFuture = null;
         }
+        // release executor
+        this.scheduledExecutorService.shutdownNow();
+        try {
+            if (!this.scheduledExecutorService.awaitTermination(
+                    SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC, TimeUnit.SECONDS)) {
+                this.logger.warn("scheduled executor failed to terminate");
+            }
+        } catch (InterruptedException e) {
+            this.logger.error("scheduled executor's wait for termination was interrupted", e);
+        }
+
         // stop intercepting stdout
         if (this.interceptStdout) {
             try {
@@ -411,8 +434,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
                     CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
                     this.experimentKey = result.getExperimentKey();
                     this.experimentLink = result.getLink();
-                    logger.info("Experiment is live on comet.ml " + getExperimentUrl());
-                    pingStatusFuture = scheduledExecutorService.scheduleAtFixedRate(
+                    this.logger.info("Experiment is live on comet.ml " + getExperimentUrl());
+                    this.pingStatusFuture = this.scheduledExecutorService.scheduleAtFixedRate(
                             new StatusPing(this), 1, 3, TimeUnit.SECONDS);
                 });
 
@@ -432,7 +455,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     protected void pingStatus() {
-        if (experimentKey == null) {
+        if (experimentKey == null || this.atShutdown.get()) {
             return;
         }
         logger.debug("pingStatus");
