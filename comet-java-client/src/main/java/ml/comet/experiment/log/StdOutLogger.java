@@ -3,7 +3,6 @@ package ml.comet.experiment.log;
 import lombok.NonNull;
 import ml.comet.experiment.OnlineExperiment;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
@@ -19,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * The logger to capture StdOut/StdErr streams and log collected text to the Comet.
  */
 public class StdOutLogger implements Runnable, Closeable {
-    AtomicLong offset = new AtomicLong();
+    final AtomicLong offset = new AtomicLong();
 
     OutputStream outputStream;
     InputStream inputStream;
@@ -80,7 +79,7 @@ public class StdOutLogger implements Runnable, Closeable {
 
     @Override
     public void run() {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new BufferedInputStream(this.inputStream)));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(this.inputStream));
         String line;
         try {
             while (this.running && (line = reader.readLine()) != null) {
