@@ -19,6 +19,12 @@
             <groupId>ml.comet</groupId>
             <artifactId>comet-java-client</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-simple</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -39,6 +45,17 @@
             <groupId>com.beust</groupId>
             <artifactId>jcommander</artifactId>
             <version>1.81</version>
+        </dependency>
+        <!-- logging with Log4J backend -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.32</version>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
         </dependency>
     </dependencies>
     <build>
