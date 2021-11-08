@@ -144,6 +144,7 @@ public final class MnistExperimentExample {
 
         log.info("Train model....");
         for (int i = 0; i < numEpochs; i++) {
+            experiment.setEpoch(i);
             model.fit(mnistTrain);
         }
 
@@ -192,15 +193,15 @@ public final class MnistExperimentExample {
 
         @Override
         public void iterationDone(Model model, int iteration) {
-            if (printIterations <= 0)
+            if (printIterations <= 0) {
                 printIterations = 1;
+            }
+            // print score and log metric
             if (iterCount % printIterations == 0) {
                 invoke();
                 double result = model.score();
                 log.info("Score at iteration " + iterCount + " is " + result);
-                this.experiment.setStep(iteration);
-                experiment.logMetric("score", model.score());
-
+                this.experiment.logMetric("score", model.score(), iterCount);
             }
             iterCount++;
         }
