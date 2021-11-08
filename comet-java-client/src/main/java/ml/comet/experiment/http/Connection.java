@@ -208,6 +208,8 @@ public class Connection implements Closeable {
                 this.logger.debug("waiting for {} request items to execute, elapsed {} seconds",
                         this.requestsInventory.get(), TimeUnit.SECONDS.convert(nanosTimeout, TimeUnit.NANOSECONDS));
             }
+            // give other processes a chance
+            Thread.sleep(100);
         }
 
         // close connection immediately
