@@ -30,6 +30,13 @@ public class Constants {
     public static final String GET_TAGS = READ_API_URL + "/experiment/tags";
     public static final String GET_ASSET_INFO = READ_API_URL + "/experiment/asset/list";
 
+    public static final String EXPERIMENT_KEY = "experimentKey";
+
+    public static final String ASSET_TYPE_ALL = "all";
+    public static final String ASSET_TYPE_UNKNOWN = "unknown";
+    public static final String ASSET_TYPE_SOURCE_CODE = "source_code";
+
+    // configuration options
     public static final String COMET_API_KEY = "apiKey";
     public static final String COMET_PROJECT = "project";
     public static final String COMET_WORKSPACE = "workspace";
@@ -37,11 +44,6 @@ public class Constants {
     public static final String MAX_AUTH_RETRIES_PLACEHOLDER = "maxAuthRetries";
     public static final String BASE_URL_DEFAULT = "https://www.comet.ml";
     public static final int MAX_AUTH_RETRIES_DEFAULT = 4;
-    public static final String EXPERIMENT_KEY = "experimentKey";
-
-    public static final String ASSET_TYPE_ALL = "all";
-    public static final String ASSET_TYPE_UNKNOWN = "unknown";
-    public static final String ASSET_TYPE_SOURCE_CODE = "source_code";
-
-
+    public static final String CONNECTION_CLOSE_TIMEOUT_SEC = "connection.close.timeout";
+    public static final long CONNECTION_CLOSE_TIMEOUT_SEC_DEFAULT = 3600;
 }

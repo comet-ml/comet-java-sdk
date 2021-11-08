@@ -1,39 +1,41 @@
 package ml.comet.experiment.utils;
 
+import lombok.NonNull;
 import ml.comet.experiment.env.EnvironmentVariableExtractor;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_DEFAULT;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.API_KEY;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.BASE_URL;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.PROJECT_NAME;
-import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAME;
+import static ml.comet.experiment.env.EnvironmentVariableExtractor.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ConfigUtilsTest {
 
     private static final String MAX_AUTH_RETRIES_MOCKED_VALUE = "1";
     private static final String TEST_BASE_URL = "https://www.comet.ml";
-    private static MockedStatic<EnvironmentVariableExtractor> mockedErrorReporter;
-    private static File emptyCometConfig = new File(Thread.currentThread().getContextClassLoader().getResource("empty-comet-config.conf").getPath());
-    private static File fullCometConfig = new File(Thread.currentThread().getContextClassLoader().getResource("full-comet-config.conf").getPath());
+    private static final File emptyCometConfig = Objects.requireNonNull(
+            TestUtils.getFile("empty-comet-config.conf"));
+    private static final File fullCometConfig = Objects.requireNonNull(
+            TestUtils.getFile("full-comet-config.conf"));
 
-    @Before
+    private MockedStatic<EnvironmentVariableExtractor> mockedErrorReporter;
+
+    @BeforeEach
     public void init() {
         ConfigUtils.setDefaultConfig();
         ConfigUtils.clearOverrideConfig();
         mockedErrorReporter = Mockito.mockStatic(EnvironmentVariableExtractor.class);
     }
 
-    @After
+    @AfterEach
     public void close() {
         mockedErrorReporter.close();
     }
@@ -57,61 +59,57 @@ public class ConfigUtilsTest {
     @Test
     public void testBaseUrlDefaultValue() {
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(BASE_URL)).thenReturn(Optional.empty());
-        Assert.assertEquals(TEST_BASE_URL, ConfigUtils.getBaseUrlOrDefault());
+        assertEquals(TEST_BASE_URL, ConfigUtils.getBaseUrlOrDefault());
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(BASE_URL)).thenReturn(Optional.of(BASE_URL));
-        Assert.assertEquals(BASE_URL, ConfigUtils.getBaseUrlOrDefault());
+        assertEquals(BASE_URL, ConfigUtils.getBaseUrlOrDefault());
     }
 
     @Test
     public void testMaxAuthRetriesDefaultValue() {
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(EnvironmentVariableExtractor.MAX_AUTH_RETRIES)).thenReturn(Optional.empty());
-        Assert.assertEquals(MAX_AUTH_RETRIES_DEFAULT, ConfigUtils.getMaxAuthRetriesOrDefault());
+        assertEquals(MAX_AUTH_RETRIES_DEFAULT, ConfigUtils.getMaxAuthRetriesOrDefault());
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(EnvironmentVariableExtractor.MAX_AUTH_RETRIES)).thenReturn(Optional.of(MAX_AUTH_RETRIES_MOCKED_VALUE));
-        Assert.assertEquals(Integer.parseInt(MAX_AUTH_RETRIES_MOCKED_VALUE), ConfigUtils.getMaxAuthRetriesOrDefault());
+        assertEquals(Integer.parseInt(MAX_AUTH_RETRIES_MOCKED_VALUE), ConfigUtils.getMaxAuthRetriesOrDefault());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testExceptionIsThrownWhenNoApiKeyPresent() {
         ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(API_KEY)).thenReturn(Optional.empty());
-        ConfigUtils.getApiKeyOrThrow();
+        assertThrows(IllegalStateException.class, ConfigUtils::getApiKeyOrThrow);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testExceptionIsThrownWhenNoProjectNameIsPresent() {
         ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(PROJECT_NAME)).thenReturn(Optional.empty());
-        ConfigUtils.getProjectNameOrThrow();
+        assertThrows(IllegalStateException.class, ConfigUtils::getProjectNameOrThrow);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testExceptionIsThrownWhenNoWorkspaceNameIsPresent() {
         ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(WORKSPACE_NAME)).thenReturn(Optional.empty());
-        ConfigUtils.getWorkspaceNameOrThrow();
+        assertThrows(IllegalStateException.class, ConfigUtils::getWorkspaceNameOrThrow);
     }
 
-
-    public void validateValueExtractOrder(String envVarName, Supplier<Optional<String>> supplier) {
+    public void validateValueExtractOrder(@NonNull String envVarName, @NonNull Supplier<Optional<String>> supplier) {
         //test from env var
         ConfigUtils.setDefaultConfig(emptyCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(envVarName)).thenReturn(Optional.of(envVarName));
-        Assert.assertTrue(supplier.get().isPresent());
-        Assert.assertEquals(envVarName, supplier.get().get());
+        assertTrue(supplier.get().isPresent());
+        assertEquals(envVarName, supplier.get().get());
 
         //test from default config
         ConfigUtils.setDefaultConfig(fullCometConfig);
         mockedErrorReporter.when(() -> EnvironmentVariableExtractor.getEnvVariable(envVarName)).thenReturn(Optional.empty());
-        Assert.assertTrue(supplier.get().isPresent());
-        Assert.assertEquals("full", supplier.get().get());
+        assertTrue(supplier.get().isPresent());
+        assertEquals("full", supplier.get().get());
 
         //test from comet config override
         ConfigUtils.setDefaultConfig(emptyCometConfig);
         ConfigUtils.setOverrideConfig(fullCometConfig);
-        Assert.assertTrue(supplier.get().isPresent());
-        Assert.assertEquals("full", supplier.get().get());
+        assertTrue(supplier.get().isPresent());
+        assertEquals("full", supplier.get().get());
     }
-
-
-
 }

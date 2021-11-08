@@ -1,6 +1,7 @@
 package ml.comet.experiment;
 
 import lombok.Getter;
+import lombok.NonNull;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
 import ml.comet.experiment.constants.Constants;
 import ml.comet.experiment.exception.CometGeneralException;
@@ -25,13 +26,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static ml.comet.experiment.constants.Constants.ADD_OUTPUT;
 import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
 
+/**
+ * The implementation of the OnlineExperiment.
+ */
 @Getter
 public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
-    private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    private static final int SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC = 60;
+    private final ScheduledExecutorService scheduledExecutorService =
+            Executors.newSingleThreadScheduledExecutor();
     private final String projectName;
     private final String workspaceName;
     private final String apiKey;
@@ -46,11 +53,14 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private StdOutLogger stdOutLogger;
     private StdOutLogger stdErrLogger;
     private boolean interceptStdout;
-    private ScheduledFuture pingStatusFuture;
+    private ScheduledFuture<?> pingStatusFuture;
 
     private long step = 0;
     private long epoch = 0;
     private String context = "";
+
+    // The flag to indicate if experiment end() was called and experiment shutdown initialized
+    private final AtomicBoolean atShutdown = new AtomicBoolean();
 
     private OnlineExperimentImpl(
             String apiKey,
@@ -76,6 +86,10 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         this.initializeExperiment();
     }
 
+    /**
+     * Default constructor which reads all configuration parameters of the experiment either from configuration file
+     * or environment variables.
+     */
     public OnlineExperimentImpl() {
         this.projectName = ConfigUtils.getProjectNameOrThrow();
         this.workspaceName = ConfigUtils.getWorkspaceNameOrThrow();
@@ -89,11 +103,19 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         return experimentName;
     }
 
+    /**
+     * Returns builder to be used to create properly configured instance of this class.
+     *
+     * @return the builder to be used to create properly configured instance of this class.
+     */
     public static OnlineExperimentBuilderImpl builder() {
         return new OnlineExperimentBuilderImpl();
     }
 
-    public static class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
+    /**
+     * The builder to create properly configured instance of the OnlineExperimentImpl.
+     */
+    public static final class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
         private String projectName;
         private String workspace;
         private String apiKey;
@@ -105,25 +127,25 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         private boolean interceptStdout = false;
 
         /**
-         * Create a builder to construct an Experiment Object
+         * Default constructor to avoid direct initialization from the outside.
          */
         private OnlineExperimentBuilderImpl() {
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withProjectName(String projectName) {
+        public OnlineExperimentBuilderImpl withProjectName(@NonNull String projectName) {
             this.projectName = projectName;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withWorkspace(String workspace) {
+        public OnlineExperimentBuilderImpl withWorkspace(@NonNull String workspace) {
             this.workspace = workspace;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withApiKey(String apiKey) {
+        public OnlineExperimentBuilderImpl withApiKey(@NonNull String apiKey) {
             this.apiKey = apiKey;
             return this;
         }
@@ -135,31 +157,31 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withUrlOverride(String urlOverride) {
+        public OnlineExperimentBuilderImpl withUrlOverride(@NonNull String urlOverride) {
             this.baseUrl = urlOverride;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withExperimentName(String experimentName) {
+        public OnlineExperimentBuilderImpl withExperimentName(@NonNull String experimentName) {
             this.experimentName = experimentName;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withExistingExperimentKey(String experimentKey) {
+        public OnlineExperimentBuilderImpl withExistingExperimentKey(@NonNull String experimentKey) {
             this.experimentKey = experimentKey;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withLogger(Logger logger) {
+        public OnlineExperimentBuilderImpl withLogger(@NonNull Logger logger) {
             this.logger = logger;
             return this;
         }
 
         @Override
-        public OnlineExperimentBuilderImpl withConfig(File overrideConfig) {
+        public OnlineExperimentBuilderImpl withConfig(@NonNull File overrideConfig) {
             ConfigUtils.setOverrideConfig(overrideConfig);
             return this;
         }
@@ -173,23 +195,24 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         @Override
         public OnlineExperimentImpl build() {
 
-            if (StringUtils.isEmpty(apiKey)){
+            if (StringUtils.isEmpty(apiKey)) {
                 this.apiKey = ConfigUtils.getApiKey().orElse(null);
             }
-            if (StringUtils.isEmpty(projectName)){
+            if (StringUtils.isEmpty(projectName)) {
                 projectName = ConfigUtils.getProjectName().orElse(null);
             }
-            if (StringUtils.isEmpty(workspace)){
+            if (StringUtils.isEmpty(workspace)) {
                 workspace = ConfigUtils.getWorkspaceName().orElse(null);
             }
-            if (StringUtils.isEmpty(baseUrl)){
+            if (StringUtils.isEmpty(baseUrl)) {
                 baseUrl = ConfigUtils.getBaseUrlOrDefault();
             }
             if (maxAuthRetries == -1) {
                 maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
             }
 
-            return new OnlineExperimentImpl(apiKey, projectName, workspace, experimentName, experimentKey, logger, interceptStdout, baseUrl, maxAuthRetries);
+            return new OnlineExperimentImpl(apiKey, projectName, workspace, experimentName, experimentKey,
+                    logger, interceptStdout, baseUrl, maxAuthRetries);
         }
     }
 
@@ -205,10 +228,40 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void end() {
+        // set shutdown flag
+        this.atShutdown.set(true);
+
+        // stop pinging server
         if (pingStatusFuture != null) {
-            pingStatusFuture.cancel(true);
+            if (!pingStatusFuture.cancel(true)) {
+                this.logger.error("failed to stop Comet STATUS PING");
+            } else {
+                this.logger.info("Comet STATUS PING stopped");
+            }
             pingStatusFuture = null;
         }
+        // release executor
+        this.scheduledExecutorService.shutdownNow();
+        try {
+            if (!this.scheduledExecutorService.awaitTermination(
+                    SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC, TimeUnit.SECONDS)) {
+                this.logger.warn("scheduled executor failed to terminate");
+            }
+        } catch (InterruptedException e) {
+            this.logger.error("scheduled executor's wait for termination was interrupted", e);
+        }
+
+        // stop intercepting stdout
+        if (this.interceptStdout) {
+            try {
+                this.stopInterceptStdout();
+            } catch (IOException e) {
+                logger.error("failed to stop StdOut/StdErr intercepting", e);
+            }
+        }
+
+        // invoke end of the superclass for common cleanup routines
+        super.end();
     }
 
     @Override
@@ -220,14 +273,14 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
-    public void stopInterceptStdout() {
+    public void stopInterceptStdout() throws IOException {
         if (stdOutLogger != null) {
-            stdOutLogger.stop();
+            stdOutLogger.close();
             stdOutLogger = null;
             interceptStdout = false;
         }
         if (stdErrLogger != null) {
-            stdErrLogger.stop();
+            stdErrLogger.close();
             stdErrLogger = null;
         }
     }
@@ -248,12 +301,12 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void nextStep() {
-        step++;
+        this.step++;
     }
 
     @Override
     public long getStep() {
-        return step;
+        return this.step;
     }
 
     @Override
@@ -263,12 +316,12 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void nextEpoch() {
-        epoch++;
+        this.epoch++;
     }
 
     @Override
     public long getEpoch() {
-        return epoch;
+        return this.epoch;
     }
 
     @Override
@@ -292,51 +345,52 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue, long step) {
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step) {
         logMetric(metricName, metricValue, step, this.epoch);
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue) {
-        logMetric(metricName, metricValue, step, epoch);
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue) {
+        logMetric(metricName, metricValue, this.step, this.epoch);
     }
 
     @Override
-    public void logMetric(String metricName, Object metricValue, long step, long epoch) {
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
         this.setStep(step);
         this.setEpoch(epoch);
         super.logMetric(metricName, metricValue, step, epoch);
     }
 
     @Override
-    public void logParameter(String parameterName, Object paramValue) {
-        logParameter(parameterName, paramValue, step);
+    public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
+        logParameter(parameterName, paramValue, this.step);
     }
 
     @Override
-    public void logParameter(String parameterName, Object paramValue, long step) {
+    public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
         this.setStep(step);
         super.logParameter(parameterName, paramValue, step);
     }
 
     @Override
-    public void uploadAsset(File asset, String fileName, boolean overwrite, long step) {
+    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step) {
         super.uploadAsset(asset, fileName, overwrite, step, this.epoch);
     }
 
     @Override
-    public void uploadAsset(File asset, boolean overwrite) {
+    public void uploadAsset(@NonNull File asset, boolean overwrite) {
         uploadAsset(asset, asset.getName(), overwrite);
     }
 
     @Override
-    public void uploadAsset(File asset, String fileName, boolean overwrite) {
-        super.uploadAsset(asset, fileName, overwrite, step, epoch);
+    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite) {
+        super.uploadAsset(asset, fileName, overwrite, this.step, this.epoch);
     }
 
     private void initializeExperiment() {
         validateInitialParams();
-        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, this.maxAuthRetries, this.logger);
+        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl,
+                this.maxAuthRetries, this.logger);
         setupStdOutIntercept();
         registerExperiment();
     }
@@ -380,8 +434,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
                     CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
                     this.experimentKey = result.getExperimentKey();
                     this.experimentLink = result.getLink();
-                    logger.info("Experiment is live on comet.ml " + getExperimentUrl());
-                    pingStatusFuture = scheduledExecutorService.scheduleAtFixedRate(
+                    this.logger.info("Experiment is live on comet.ml " + getExperimentUrl());
+                    this.pingStatusFuture = this.scheduledExecutorService.scheduleAtFixedRate(
                             new StatusPing(this), 1, 3, TimeUnit.SECONDS);
                 });
 
@@ -401,14 +455,14 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     protected void pingStatus() {
-        if (experimentKey == null) {
+        if (experimentKey == null || this.atShutdown.get()) {
             return;
         }
         logger.debug("pingStatus");
         connection.sendGet(Constants.EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
     }
 
-    private OutputUpdate getLogLineRequest(String line, long offset, boolean stderr) {
+    private OutputUpdate getLogLineRequest(@NonNull String line, long offset, boolean stderr) {
         OutputLine outputLine = new OutputLine();
         outputLine.setOutput(line);
         outputLine.setStderr(stderr);

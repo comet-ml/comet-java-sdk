@@ -2,16 +2,41 @@ package ml.comet.examples;
 
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.OnlineExperimentImpl;
-import org.apache.commons.io.FileUtils;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Scanner;
 
+import static ml.comet.examples.Utils.getResourceFile;
+import static ml.comet.examples.Utils.readResourceToString;
 
+/**
+ * Provides variety of example logging using OnlineExperiment.
+ *
+ * <p>To run from command line execute the following at the root of this module:
+ * <pre>
+ * COMET_API_KEY=your_api_key \
+ * COMET_WORKSPACE_NAME=your_workspace \
+ * COMET_PROJECT_NAME=your_project_name \
+ * mvn exec:java -Dexec.mainClass="ml.comet.examples.OnlineExperimentExample"
+ * </pre>
+ * Make sure to provide correct values above.
+ */
 public class OnlineExperimentExample {
 
-    public static void main(String[] args) throws IOException {
+    /**
+     * The main entry point to the example.
+     *
+     * @param args the command line arguments if any.
+     */
+    public static void main(String[] args) {
+        OnlineExperimentExample main = new OnlineExperimentExample();
+        try {
+            main.run();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void run() throws IOException {
         //this will take configs from /comet-java-sdk/comet-examples/src/main/resources/application.conf
         //be sure you have set up apiKey, project, workspace in defaults.conf before you start!
 
@@ -41,34 +66,31 @@ public class OnlineExperimentExample {
         experiment.logParameter("batch_size", "500");
         experiment.logParameter("learning_rate", 12);
 
-        experiment.uploadAsset(getFile("chart.png"), "amazing chart.png", false);
-        experiment.uploadAsset(getFile("model.hd5"), false);
+        experiment.uploadAsset(getResourceFile("chart.png"), "amazing chart.png", false);
+        experiment.uploadAsset(getResourceFile("model.hd5"), false);
 
         experiment.logOther("Parameter", 4);
 
         System.out.println("Epoch 1/20");
         System.out.println("- loss: 0.7858 - acc: 0.7759 - val_loss: 0.3416 - val_acc: 0.9026");
 
-        experiment.logGraph(loadGraph("graph.json"));
+        experiment.logGraph(readResourceToString("graph.json"));
 
-        //will close connection, if not called connection will close on jvm exit
+        System.out.println("===== Experiment completed ====");
+
+        // Flush thread and wait for a while to make sure everything is flushed
+        System.out.flush();
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // will close connection, if not called connection will close on jvm exit
         experiment.end();
     }
 
-    public static String askUserForInputOn(String message) {
-        System.out.println(message);
-        Scanner scan = new Scanner(System.in);
-        String s = scan.next();
-        scan.close();
-        return s;
-    }
-
-    private static File getFile(String imageName) {
-        File file = new File(OnlineExperimentExample.class.getClassLoader().getResource(imageName).getFile());
-        return file;
-    }
-
-    private static void generateCharts(OnlineExperiment experiment){
+    private static void generateCharts(OnlineExperiment experiment) {
         long currentStep = experiment.getStep();
 
         for (int i = 1; i < 15; i++) {
@@ -85,13 +107,7 @@ public class OnlineExperimentExample {
     }
 
     private static String generateCustomHtmlReport() throws IOException {
-        File file = new File(OnlineExperimentExample.class.getClassLoader().getResource("report.html").getFile());
-        return FileUtils.readFileToString(file, "UTF-8");
-    }
-
-    private static String loadGraph(String fileName) throws IOException {
-        File file = new File(OnlineExperimentExample.class.getClassLoader().getResource(fileName).getFile());
-        return FileUtils.readFileToString(file, "UTF-8");
+        return readResourceToString("report.html");
     }
 
     private static long getUpdatedEpochValue(OnlineExperiment experiment) {

@@ -14,10 +14,13 @@ import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
 import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
 import static ml.comet.experiment.constants.Constants.COMET_PROJECT;
 import static ml.comet.experiment.constants.Constants.COMET_WORKSPACE;
+import static ml.comet.experiment.constants.Constants.CONNECTION_CLOSE_TIMEOUT_SEC;
+import static ml.comet.experiment.constants.Constants.CONNECTION_CLOSE_TIMEOUT_SEC_DEFAULT;
 import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_DEFAULT;
 import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.API_KEY;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.BASE_URL;
+import static ml.comet.experiment.env.EnvironmentVariableExtractor.CONNECTION_CLOSE_TIMEOUT_SEC_ENV;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.MAX_AUTH_RETRIES;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.PROJECT_NAME;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAME;
@@ -89,6 +92,12 @@ public class ConfigUtils {
                 .orElse(MAX_AUTH_RETRIES_DEFAULT);
     }
 
+    public long getConnectionCloseTimeoutSec() {
+        return getValueFromSystem(CONNECTION_CLOSE_TIMEOUT_SEC_ENV, CONNECTION_CLOSE_TIMEOUT_SEC)
+                .map(Long::parseLong)
+                .orElse(CONNECTION_CLOSE_TIMEOUT_SEC_DEFAULT);
+    }
+
 
     public Config getConfigFromFile(File configFile) {
         return ConfigFactory.parseFile(configFile);
@@ -96,16 +105,17 @@ public class ConfigUtils {
 
     private String getValueFromSystemOrThrow(String envVarName, String configValueName) {
         return getValueFromSystem(envVarName, configValueName)
-                .orElseThrow(() -> new IllegalStateException("No parameter with name " + configValueName + " found! Please specify it in env vars or config"));
+                .orElseThrow(() -> new IllegalStateException(String.format(
+                        "No parameter with name %s found! Please specify it in env vars or config", configValueName)));
     }
 
     private Optional<String> getValueFromSystem(String envVarName, String configValueName) {
         Optional<String> envVariable = EnvironmentVariableExtractor.getEnvVariable(envVarName);
         if (envVariable.isPresent()) {
             return envVariable;
-        } else if (overrideConfig.isPresent() && overrideConfig.get().hasPath(configValueName)){
+        } else if (overrideConfig.isPresent() && overrideConfig.get().hasPath(configValueName)) {
             return overrideConfig.map(x -> x.getString(configValueName));
-        } else if (defaultConfig.isPresent() && defaultConfig.get().hasPath(configValueName)){
+        } else if (defaultConfig.isPresent() && defaultConfig.get().hasPath(configValueName)) {
             return defaultConfig.map(x -> x.getString(configValueName));
         }
         return Optional.empty();
