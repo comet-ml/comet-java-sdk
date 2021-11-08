@@ -94,7 +94,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
-        getLogger().debug("logMetric {} {}", metricName, metricValue);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logMetric {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
+        }
         validateExperimentKeyPresent();
 
         MetricRest request = getLogMetricRequest(metricName, metricValue, step, epoch);
@@ -103,7 +105,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
-        getLogger().debug("logParameter {} {}", parameterName, paramValue);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logParameter {} = {}, step: {}", parameterName, paramValue, step);
+        }
         validateExperimentKeyPresent();
 
         ParameterRest request = getLogParameterRequest(parameterName, paramValue, step);
@@ -112,7 +116,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logHtml(@NonNull String html, boolean override) {
-        getLogger().debug("logHtml {} {}", html, override);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logHtml {}, override: {}", html, override);
+        }
         validateExperimentKeyPresent();
 
         HtmlRest request = getLogHtmlRequest(html, override);
@@ -121,7 +127,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logCode(@NonNull String code, @NonNull String fileName) {
-        getLogger().debug("log raw code");
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("log raw source code, file name: {}", fileName);
+        }
 
         validateExperimentKeyPresent();
 
@@ -143,7 +151,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logCode(@NonNull File asset) {
-        getLogger().debug("logCode {}", asset.getName());
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("log source code from file {}", asset.getName());
+        }
         validateExperimentKeyPresent();
 
         Map<String, String> params = new HashMap<String, String>() {{
@@ -164,7 +174,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logOther(@NonNull String key, @NonNull Object value) {
-        getLogger().debug("logOther {} {}", key, value);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logOther {} {}", key, value);
+        }
         validateExperimentKeyPresent();
 
         LogOtherRest request = getLogOtherRequest(key, value);
@@ -173,7 +185,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void addTag(@NonNull String tag) {
-        getLogger().debug("logTag {}", tag);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logTag {}", tag);
+        }
         validateExperimentKeyPresent();
 
         AddTagsToExperimentRest request = getTagRequest(tag);
@@ -182,7 +196,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logGraph(@NonNull String graph) {
-        getLogger().debug("logOther {}", graph);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logOther {}", graph);
+        }
         validateExperimentKeyPresent();
 
         AddGraphRest request = getGraphRequest(graph);
@@ -191,7 +207,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logStartTime(long startTimeMillis) {
-        getLogger().debug("logStartTime {}", startTimeMillis);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logStartTime {}", startTimeMillis);
+        }
         validateExperimentKeyPresent();
 
         ExperimentTimeRequest request = getLogStartTimeRequest(startTimeMillis);
@@ -200,7 +218,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logEndTime(long endTimeMillis) {
-        getLogger().debug("logEndTime {}", endTimeMillis);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logEndTime {}", endTimeMillis);
+        }
         validateExperimentKeyPresent();
 
         ExperimentTimeRequest request = getLogEndTimeRequest(endTimeMillis);
@@ -209,7 +229,10 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step, long epoch) {
-        getLogger().debug("uploadAsset {} {} {}", asset.getName(), fileName, overwrite);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("uploadAsset from file {}, name {}, override {}, step {}, epoch {}",
+                    asset.getName(), fileName, overwrite, step, epoch);
+        }
         validateExperimentKeyPresent();
 
         getConnection().sendPostAsync(asset, ADD_ASSET, new HashMap<String, String>() {{
@@ -230,7 +253,9 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void logGitMetadata(CreateGitMetadata gitMetadata) {
-        getLogger().debug("gitMetadata {}", gitMetadata);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("gitMetadata {}", gitMetadata);
+        }
         validateExperimentKeyPresent();
 
         getConnection().sendPostAsync(gitMetadata, ADD_GIT_METADATA);
@@ -239,7 +264,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public ExperimentMetadataRest getMetadata() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get metadata for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get metadata for experiment {}", experimentKey);
+        }
 
         return getForExperimentByKey(GET_METADATA, ExperimentMetadataRest.class);
     }
@@ -247,7 +274,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public GitMetadataRest getGitMetadata() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get git metadata for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get git metadata for experiment {}", experimentKey);
+        }
 
         return getForExperimentByKey(GET_GIT_METADATA, GitMetadataRest.class);
     }
@@ -255,7 +284,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public Optional<String> getHtml() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get html for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get html for experiment {}", experimentKey);
+        }
 
         GetHtmlResponse response = getForExperimentByKey(GET_HTML, GetHtmlResponse.class);
         return Optional.ofNullable(response.getHtml());
@@ -264,7 +295,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public Optional<String> getOutput() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get output for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get output for experiment {}", experimentKey);
+        }
 
         GetOutputResponse response = getForExperimentByKey(GET_OUTPUT, GetOutputResponse.class);
         return Optional.ofNullable(response.getOutput());
@@ -273,7 +306,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public Optional<String> getGraph() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get graph for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get graph for experiment {}", experimentKey);
+        }
 
         GetGraphResponse response = getForExperimentByKey(GET_GRAPH, GetGraphResponse.class);
         return Optional.ofNullable(response.getGraph());
@@ -282,7 +317,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public List<ValueMinMaxDto> getParameters() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get params for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get params for experiment {}", experimentKey);
+        }
 
         MinMaxResponse response = getForExperimentByKey(GET_PARAMETERS, MinMaxResponse.class);
         return response.getValues();
@@ -291,7 +328,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public List<ValueMinMaxDto> getMetrics() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get metrics summary for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get metrics summary for experiment {}", experimentKey);
+        }
 
         MinMaxResponse response = getForExperimentByKey(GET_METRICS, MinMaxResponse.class);
         return response.getValues();
@@ -300,7 +339,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public List<ValueMinMaxDto> getLogOther() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get log other for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get log other for experiment {}", experimentKey);
+        }
 
         MinMaxResponse response = getForExperimentByKey(GET_LOG_OTHER, MinMaxResponse.class);
         return response.getValues();
@@ -309,7 +350,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public List<String> getTags() {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get tags for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get tags for experiment {}", experimentKey);
+        }
 
         TagsResponse response = getForExperimentByKey(GET_TAGS, TagsResponse.class);
         return response.getTags();
@@ -331,7 +374,9 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public List<ExperimentAssetLink> getAssetList(@NonNull String type) {
         String experimentKey = validateAndGetExperimentKey();
-        getLogger().debug("get tags for experiment {}", experimentKey);
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("get assets with type {} for experiment {}", type, experimentKey);
+        }
 
         HashMap<String, String> params = new HashMap<String, String>() {{
             put("experimentKey", experimentKey);
