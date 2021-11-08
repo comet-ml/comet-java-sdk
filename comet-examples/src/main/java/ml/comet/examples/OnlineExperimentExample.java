@@ -5,7 +5,9 @@ import ml.comet.experiment.OnlineExperimentImpl;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URL;
 import java.util.Scanner;
 
 
@@ -41,15 +43,17 @@ public class OnlineExperimentExample {
         experiment.logParameter("batch_size", "500");
         experiment.logParameter("learning_rate", 12);
 
-        experiment.uploadAsset(getFile("chart.png"), "amazing chart.png", false);
-        experiment.uploadAsset(getFile("model.hd5"), false);
+        experiment.uploadAsset(getResourceFile("chart.png"), "amazing chart.png", false);
+        experiment.uploadAsset(getResourceFile("model.hd5"), false);
 
         experiment.logOther("Parameter", 4);
 
         System.out.println("Epoch 1/20");
         System.out.println("- loss: 0.7858 - acc: 0.7759 - val_loss: 0.3416 - val_acc: 0.9026");
 
-        experiment.logGraph(loadGraph("graph.json"));
+        experiment.logGraph(readResourceToString("graph.json"));
+
+        System.out.println("===== Experiment completed ====");
 
         //will close connection, if not called connection will close on jvm exit
         experiment.end();
@@ -63,12 +67,15 @@ public class OnlineExperimentExample {
         return s;
     }
 
-    private static File getFile(String imageName) {
-        File file = new File(OnlineExperimentExample.class.getClassLoader().getResource(imageName).getFile());
-        return file;
+    private static File getResourceFile(String name) {
+        URL resource = Thread.currentThread().getContextClassLoader().getResource(name);
+        if (resource == null) {
+            return null;
+        }
+        return new File(resource.getFile());
     }
 
-    private static void generateCharts(OnlineExperiment experiment){
+    private static void generateCharts(OnlineExperiment experiment) {
         long currentStep = experiment.getStep();
 
         for (int i = 1; i < 15; i++) {
@@ -85,12 +92,14 @@ public class OnlineExperimentExample {
     }
 
     private static String generateCustomHtmlReport() throws IOException {
-        File file = new File(OnlineExperimentExample.class.getClassLoader().getResource("report.html").getFile());
-        return FileUtils.readFileToString(file, "UTF-8");
+        return readResourceToString("report.html");
     }
 
-    private static String loadGraph(String fileName) throws IOException {
-        File file = new File(OnlineExperimentExample.class.getClassLoader().getResource(fileName).getFile());
+    private static String readResourceToString(String fileName) throws IOException {
+        File file = getResourceFile(fileName);
+        if (file == null) {
+            throw new FileNotFoundException(fileName);
+        }
         return FileUtils.readFileToString(file, "UTF-8");
     }
 
