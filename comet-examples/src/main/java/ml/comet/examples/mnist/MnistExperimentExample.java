@@ -5,21 +5,19 @@ import com.beust.jcommander.Parameter;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.OnlineExperimentImpl;
 import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator;
-import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.api.Model;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
-import org.deeplearning4j.nn.conf.Updater;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
-import org.deeplearning4j.optimize.api.IterationListener;
+import org.deeplearning4j.optimize.api.BaseTrainingListener;
+import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.linalg.activations.Activation;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
+import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 /**
- * https://github.com/deeplearning4j/oreilly-book-dl4j-examples/blob/master/dl4j-examples/src/main/java/org/deeplearning4j/examples/feedforward/mnist/MLPMnistSingleLayerExample.java
+ * https://github.com/eclipse/deeplearning4j-examples/blob/master/dl4j-examples/src/main/java/org/deeplearning4j/examples/quickstart/modeling/feedforward/classification/MNISTSingleLayer.java
  * A Simple Multi Layered Perceptron (MLP) applied to digit classification for
  * the MNIST Dataset (http://yann.lecun.com/exdb/mnist/).
  *
@@ -55,8 +53,17 @@ public final class MnistExperimentExample {
     /**
      * The experiment entry point.
      *
+     * <p>You need to set three environment variables to run this experiment:
+     * <ul>
+     *      <li>COMET_API_KEY - the API key to access Comet</li>
+     *      <li>COMET_WORKSPACE_NAME - the name of the workspace for your project</li>
+     *      <li>COMET_PROJECT_NAME - the name of the project.</li>
+     * </ul>
+     *
+     * <p>Alternatively you can set these values in the <strong>resources/application.conf</strong> file
+     *
      * @param args the command line arguments.
-     * @throws Exception if any execption occurs during experiment execution.
+     * @throws Exception if any exception occurs during experiment execution.
      */
     public static void main(String[] args) throws Exception {
         MnistExperimentExample main = new MnistExperimentExample();
@@ -64,28 +71,29 @@ public final class MnistExperimentExample {
                 .addObject(main)
                 .build()
                 .parse(args);
-        main.runMnistExperiment();
+
+        // update application.conf or provide environment variables as described in JavaDoc.
+        OnlineExperiment experiment = OnlineExperimentImpl.builder().build();
+        experiment.setInterceptStdout();
+        try {
+            main.runMnistExperiment(experiment);
+        } catch (Exception e) {
+            System.out.println("--- Failed to run experiment ---");
+            e.printStackTrace();
+        } finally {
+            // make sure to close experiment
+            experiment.end();
+        }
     }
 
     /**
      * The experiment runner.
      *
-     * <p>You need to set three environment variables to run this experiment:
-     * <ul>
-     *     <li>COMET_API_KEY - the API key to access Comet</li>
-     *     <li>COMET_WORKSPACE_NAME - the name of the workspace for your project</li>
-     *     <li>COMET_PROJECT_NAME - the name of the project.</li>
-     * </ul>
-     *
-     * <p>Alternatively you can set these values in the <strong>resources/application.conf</strong> file
-     *
+     * @param experiment the Comet experiment instance.
      * @throws IOException if any exception raised.
      */
-    public void runMnistExperiment() throws IOException {
-        OnlineExperiment experiment = OnlineExperimentImpl.builder().build(); //update application.conf
-        experiment.setInterceptStdout();
-
-        System.out.println("experiment live at: " + experiment.getExperimentLink());
+    public void runMnistExperiment(OnlineExperiment experiment) throws IOException {
+        log.info("****************MNIST Experiment Example Started********************");
 
         //number of rows and columns in the input pictures
         final int numRows = 28;
@@ -102,7 +110,12 @@ public final class MnistExperimentExample {
         experiment.logParameter("numEpochs", numEpochs);
 
         double lr = 0.006;
-        experiment.logParameter("lr", lr);
+        double nesterovsMomentum = 0.9;
+        double l2Regularization = 1e-4;
+
+        experiment.logParameter("learningRate", lr);
+        experiment.logParameter("nesterovsMomentum", nesterovsMomentum);
+        experiment.logParameter("l2Regularization", l2Regularization);
 
         OptimizationAlgorithm optimizationAlgorithm = OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT;
         experiment.logParameter("optimizationAlgorithm", OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT);
@@ -111,25 +124,22 @@ public final class MnistExperimentExample {
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
                 .seed(rngSeed) //include a random seed for reproducibility
                 // use stochastic gradient descent as an optimization algorithm
+                .updater(new Nesterovs(lr, nesterovsMomentum))
                 .optimizationAlgo(optimizationAlgorithm)
-                .iterations(1)
-                .learningRate(lr) //specify the learning rate
-                .updater(Updater.NESTEROVS).momentum(0.9) //specify the rate of change of the learning rate.
-                .regularization(true).l2(1e-4)
+                .l2(l2Regularization)
                 .list()
-                .layer(0, new DenseLayer.Builder() //create the first, input layer with xavier initialization
+                .layer(new DenseLayer.Builder() //create the first, input layer with xavier initialization
                         .nIn(numRows * numColumns)
                         .nOut(1000)
                         .activation(Activation.RELU)
                         .weightInit(WeightInit.XAVIER)
                         .build())
-                .layer(1, new OutputLayer.Builder(LossFunction.NEGATIVELOGLIKELIHOOD) //create hidden layer
+                .layer(new OutputLayer.Builder(LossFunction.NEGATIVELOGLIKELIHOOD) //create hidden layer
                         .nIn(1000)
                         .nOut(outputNum)
                         .activation(Activation.SOFTMAX)
                         .weightInit(WeightInit.XAVIER)
                         .build())
-                .pretrain(false).backprop(true) //use backpropagation to adjust weights
                 .build();
 
         experiment.logGraph(conf.toJson());
@@ -143,24 +153,16 @@ public final class MnistExperimentExample {
         DataSetIterator mnistTrain = new MnistDataSetIterator(batchSize, true, rngSeed);
 
         log.info("Train model....");
-        for (int i = 0; i < numEpochs; i++) {
-            experiment.setEpoch(i);
-            model.fit(mnistTrain);
-        }
+        model.fit(mnistTrain, numEpochs);
 
         // Get the test dataset iterator
         DataSetIterator mnistTest = new MnistDataSetIterator(batchSize, false, rngSeed);
-        log.info("Evaluate model....");
-        Evaluation eval = new Evaluation(outputNum); //create an evaluation object with 10 possible classes
-        while (mnistTest.hasNext()) {
-            DataSet next = mnistTest.next();
-            INDArray output = model.output(next.getFeatureMatrix()); //get the networks prediction
-            eval.eval(next.getLabels(), output); //check the prediction against the true class
-        }
 
+        log.info("Evaluate model....");
+        Evaluation eval = model.evaluate(mnistTest);
         log.info(eval.stats());
+
         experiment.logHtml(eval.getConfusionMatrix().toHTML(), false);
-        experiment.end();
 
         log.info("****************MNIST Experiment Example finished********************");
     }
@@ -168,8 +170,7 @@ public final class MnistExperimentExample {
     /**
      * The listener to be invoked at each iteration of model training.
      */
-    static class StepScoreListener implements IterationListener {
-        private boolean invoked;
+    static class StepScoreListener extends BaseTrainingListener {
         private final OnlineExperiment experiment;
         private int printIterations;
         private final Logger log;
@@ -182,26 +183,16 @@ public final class MnistExperimentExample {
         }
 
         @Override
-        public boolean invoked() {
-            return this.invoked;
-        }
-
-        @Override
-        public void invoke() {
-            this.invoked = true;
-        }
-
-        @Override
-        public void iterationDone(Model model, int iteration) {
+        public void iterationDone(Model model, int iteration, int epoch) {
             if (printIterations <= 0) {
                 printIterations = 1;
             }
             // print score and log metric
             if (iterCount % printIterations == 0) {
-                invoke();
                 double result = model.score();
-                log.info("Score at iteration " + iterCount + " is " + result);
-                this.experiment.logMetric("score", model.score(), iterCount);
+                log.info("Score at iteration/epoch {}/{}  is {} ", iteration, epoch, result);
+                experiment.setEpoch(epoch);
+                this.experiment.logMetric("score", model.score(), iteration);
             }
             iterCount++;
         }
