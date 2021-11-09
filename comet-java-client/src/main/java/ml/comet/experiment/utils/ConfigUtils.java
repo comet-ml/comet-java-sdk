@@ -7,7 +7,9 @@ import lombok.experimental.UtilityClass;
 import ml.comet.experiment.env.EnvironmentVariableExtractor;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
+import java.util.Properties;
 
 import static ml.comet.experiment.constants.Constants.BASE_URL_DEFAULT;
 import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
@@ -25,14 +27,27 @@ import static ml.comet.experiment.env.EnvironmentVariableExtractor.MAX_AUTH_RETR
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.PROJECT_NAME;
 import static ml.comet.experiment.env.EnvironmentVariableExtractor.WORKSPACE_NAME;
 
+/**
+ * Collection of the configuration utilities.
+ */
 @UtilityClass
 public class ConfigUtils {
+    // The name of the properties file bundled as resource with JAVA SDK options, such as current version.
+    private static final String SDK_OPTIONS_RESOURCE_FILE = "comet-java-sdk-options.properties";
+    // The key in the properties file for current version
+    private static final String COMET_SDK_VERSION_KEY = "comet.java.sdk.version";
+
+    /**
+     * The Comet Java SDK version.
+     */
+    public static String COMET_JAVA_SDK_VERSION;
 
     private static Optional<Config> defaultConfig = Optional.empty();
     private static Optional<Config> overrideConfig = Optional.empty();
 
     static {
         setDefaultConfig();
+        readCometSdkVersion();
     }
 
     public static void setDefaultConfig() {
@@ -40,6 +55,19 @@ public class ConfigUtils {
             Config config = ConfigFactory.load().getConfig("comet");
             defaultConfig = Optional.of(config);
         } catch (ConfigException ignored) {
+        }
+    }
+
+    private static void readCometSdkVersion() {
+        try {
+            Properties p = ResourceUtils.readProperties(SDK_OPTIONS_RESOURCE_FILE);
+            if (p.containsKey(COMET_SDK_VERSION_KEY)) {
+                COMET_JAVA_SDK_VERSION = p.getProperty(COMET_SDK_VERSION_KEY);
+                // print version
+                System.out.println("Comet Java SDK version: " + COMET_JAVA_SDK_VERSION);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
