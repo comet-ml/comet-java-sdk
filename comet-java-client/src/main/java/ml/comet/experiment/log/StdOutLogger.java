@@ -79,17 +79,17 @@ public class StdOutLogger implements Runnable, Closeable {
 
     @Override
     public void run() {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(this.inputStream));
-        String line;
-        try {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(this.inputStream))) {
+            String line;
             while (this.running && (line = reader.readLine()) != null) {
                 experiment.logLine(line, offset.incrementAndGet(), !stdOut);
             }
-        } catch (IOException ex) {
+        } catch (IOException e) {
             // nothing to do except to inform
             System.out.println("---- StdLogger error ---");
-            ex.printStackTrace();
+            e.printStackTrace();
         }
+
         if (this.stdOut) {
             System.out.println("StdOut interception stopped");
         } else {
