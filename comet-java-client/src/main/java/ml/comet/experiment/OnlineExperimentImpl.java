@@ -12,6 +12,7 @@ import ml.comet.experiment.model.CreateExperimentRequest;
 import ml.comet.experiment.model.CreateExperimentResponse;
 import ml.comet.experiment.model.OutputLine;
 import ml.comet.experiment.model.OutputUpdate;
+import ml.comet.experiment.utils.CometUtils;
 import ml.comet.experiment.utils.ConfigUtils;
 import ml.comet.experiment.utils.JsonUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -388,6 +389,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     private void initializeExperiment() {
+        CometUtils.printCometSdkVersion();
         validateInitialParams();
         this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl,
                 this.maxAuthRetries, this.logger);

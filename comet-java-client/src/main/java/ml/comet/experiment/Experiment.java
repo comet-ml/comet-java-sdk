@@ -1,7 +1,5 @@
 package ml.comet.experiment;
 
-
-
 import ml.comet.experiment.model.CreateGitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;

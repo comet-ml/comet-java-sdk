@@ -5,6 +5,7 @@ import lombok.NonNull;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
+import ml.comet.experiment.utils.CometUtils;
 import ml.comet.experiment.utils.ConfigUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -55,6 +56,7 @@ public final class ApiExperiment extends BaseExperiment {
         this.baseUrl = baseUrl;
         this.connection = ConnectionInitializer.initConnection(
                 apiKey, this.baseUrl, maxAuthRetries, this.logger);
+        CometUtils.printCometSdkVersion();
     }
 
     /**

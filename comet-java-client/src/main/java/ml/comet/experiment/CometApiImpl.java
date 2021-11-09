@@ -9,6 +9,7 @@ import ml.comet.experiment.model.GetExperimentsResponse;
 import ml.comet.experiment.model.GetProjectsResponse;
 import ml.comet.experiment.model.GetWorkspacesResponse;
 import ml.comet.experiment.model.RestProject;
+import ml.comet.experiment.utils.CometUtils;
 import ml.comet.experiment.utils.ConfigUtils;
 import ml.comet.experiment.utils.JsonUtils;
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ public final class CometApiImpl implements CometApi {
     public CometApiImpl(@NonNull String apiKey, @NonNull String baseUrl, int maxAuthRetries) {
         Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
         this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, logger);
+        CometUtils.printCometSdkVersion();
     }
 
     public List<String> getAllWorkspaces() {

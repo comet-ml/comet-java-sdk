@@ -37,38 +37,34 @@ public class ConfigUtils {
     // The key in the properties file for current version
     private static final String COMET_SDK_VERSION_KEY = "comet.java.sdk.version";
 
-    /**
-     * The Comet Java SDK version.
-     */
-    public static String COMET_JAVA_SDK_VERSION;
 
     private static Optional<Config> defaultConfig = Optional.empty();
     private static Optional<Config> overrideConfig = Optional.empty();
 
     static {
         setDefaultConfig();
-        readCometSdkVersion();
     }
+
 
     public static void setDefaultConfig() {
         try {
             Config config = ConfigFactory.load().getConfig("comet");
             defaultConfig = Optional.of(config);
-        } catch (ConfigException ignored) {
+        } catch (ConfigException e) {
+            e.printStackTrace();
         }
     }
 
-    private static void readCometSdkVersion() {
+    static String readCometSdkVersion() {
         try {
             Properties p = ResourceUtils.readProperties(SDK_OPTIONS_RESOURCE_FILE);
             if (p.containsKey(COMET_SDK_VERSION_KEY)) {
-                COMET_JAVA_SDK_VERSION = p.getProperty(COMET_SDK_VERSION_KEY);
-                // print version
-                System.out.println("Comet Java SDK version: " + COMET_JAVA_SDK_VERSION);
+                return p.getProperty(COMET_SDK_VERSION_KEY);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return "";
     }
 
     public static void setOverrideConfig(File configFile) {
