@@ -365,7 +365,7 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void end() {
-        getLogger().info("Waiting for all uploads to complete. It can take up to {} seconds",
+        getLogger().info("Waiting for all scheduled uploads to complete. It can take up to {} seconds.",
                 ConfigUtils.getConnectionCloseTimeoutSec());
 
         // close connection
