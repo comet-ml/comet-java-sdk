@@ -174,7 +174,6 @@ public final class MnistExperimentExample {
         private final OnlineExperiment experiment;
         private int printIterations;
         private final Logger log;
-        private long iterCount;
 
         StepScoreListener(OnlineExperiment experiment, int printIterations, Logger log) {
             this.experiment = experiment;
@@ -188,13 +187,12 @@ public final class MnistExperimentExample {
                 printIterations = 1;
             }
             // print score and log metric
-            if (iterCount % printIterations == 0) {
+            if (iteration % printIterations == 0) {
                 double result = model.score();
-                log.info("Score at iteration/epoch {}/{}  is {} ", iteration, epoch, result);
+                log.info("Score at step/epoch {}/{}  is {} ", iteration, epoch, result);
                 experiment.setEpoch(epoch);
                 this.experiment.logMetric("score", model.score(), iteration);
             }
-            iterCount++;
         }
     }
 }
