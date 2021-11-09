@@ -55,7 +55,7 @@ public class StdOutLogger implements Runnable, Closeable {
      * @throws IOException if I/O exception occurs.
      */
     public void close() throws IOException {
-        if (stdOut) {
+        if (this.stdOut) {
             System.setOut(original);
         } else {
             System.setErr(original);
@@ -65,6 +65,18 @@ public class StdOutLogger implements Runnable, Closeable {
 
         // close output stream to release resources - this will cause logger thread to stop as well.
         this.outputStream.close();
+    }
+
+    /**
+     * Flushes this logger by flushing intercepted system stream. It is recommended to call this method before closing
+     * this logger to make sure that all outputs properly propagated.
+     */
+    public void flush() {
+        if (this.stdOut) {
+            System.out.flush();
+        } else {
+            System.err.flush();
+        }
     }
 
     private StdOutLogger(PrintStream original, OnlineExperiment experiment,

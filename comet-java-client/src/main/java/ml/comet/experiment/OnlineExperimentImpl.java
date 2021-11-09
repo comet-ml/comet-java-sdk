@@ -38,6 +38,8 @@ import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
 @Getter
 public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
     private static final int SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC = 60;
+    private static final int STD_OUT_LOGGER_FLUSH_WAIT_DELAY_MS = 2000;
+
     private final ScheduledExecutorService scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor();
     private final String projectName;
@@ -275,15 +277,30 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     @Override
     public void stopInterceptStdout() throws IOException {
-        if (stdOutLogger != null) {
-            stdOutLogger.close();
-            stdOutLogger = null;
-            interceptStdout = false;
+        if (this.stdOutLogger != null) {
+            this.stopStdOutLogger(this.stdOutLogger, STD_OUT_LOGGER_FLUSH_WAIT_DELAY_MS);
+            this.stdOutLogger = null;
+            this.interceptStdout = false;
         }
-        if (stdErrLogger != null) {
-            stdErrLogger.close();
-            stdErrLogger = null;
+        if (this.stdErrLogger != null) {
+            this.stopStdOutLogger(this.stdErrLogger, 0);
+            this.stdErrLogger = null;
         }
+    }
+
+    private void stopStdOutLogger(@NonNull StdOutLogger stdOutLogger, long delay) throws IOException {
+        // flush first
+        stdOutLogger.flush();
+
+        // wait a bit for changes to propagate
+        try {
+            Thread.sleep(delay);
+        } catch (InterruptedException e) {
+            this.logger.warn("interrupted while waiting for stdlogger to flush", e);
+        }
+
+        // close after that
+        stdOutLogger.close();
     }
 
     @Override
