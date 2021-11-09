@@ -251,7 +251,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         awaitForCondition(() -> {
             ExperimentMetadataRest data = existingExperiment.getMetadata();
             return data.getStartTimeMillis() == now && data.getEndTimeMillis() == now;
-        }, "Experiment start/stop time updated", 60);
+        }, "Experiment start/stop time updated", 180);
 
         ExperimentMetadataRest updatedMetadata = existingExperiment.getMetadata();
         assertNotEquals(startTimeMillis, updatedMetadata.getStartTimeMillis());
