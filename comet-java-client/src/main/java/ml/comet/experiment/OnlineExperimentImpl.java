@@ -42,6 +42,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
 
     private final ScheduledExecutorService scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor();
+
     private final String projectName;
     private final String workspaceName;
     private final String apiKey;
@@ -56,7 +57,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private StdOutLogger stdOutLogger;
     private StdOutLogger stdErrLogger;
     private boolean interceptStdout;
-    private ScheduledFuture<?> pingStatusFuture;
+    private ScheduledFuture<?> heartbeatSendFuture;
 
     private long step = 0;
     private long epoch = 0;
@@ -235,13 +236,13 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         this.atShutdown.set(true);
 
         // stop pinging server
-        if (pingStatusFuture != null) {
-            if (!pingStatusFuture.cancel(true)) {
-                this.logger.error("failed to stop Comet STATUS PING");
+        if (heartbeatSendFuture != null) {
+            if (!heartbeatSendFuture.cancel(true)) {
+                this.logger.error("failed to stop experiment's heartbeat sender");
             } else {
-                this.logger.info("Comet STATUS PING stopped");
+                this.logger.info("Experiment's heartbeat sender stopped");
             }
-            pingStatusFuture = null;
+            heartbeatSendFuture = null;
         }
         // release executor
         this.scheduledExecutorService.shutdownNow();
@@ -454,8 +455,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
                     this.experimentKey = result.getExperimentKey();
                     this.experimentLink = result.getLink();
                     this.logger.info("Experiment is live on comet.ml " + getExperimentUrl());
-                    this.pingStatusFuture = this.scheduledExecutorService.scheduleAtFixedRate(
-                            new StatusPing(this), 1, 3, TimeUnit.SECONDS);
+                    this.heartbeatSendFuture = this.scheduledExecutorService.scheduleAtFixedRate(
+                            new HeartbeatPing(this), 1, 3, TimeUnit.SECONDS);
                 });
 
         if (this.experimentKey == null) {
@@ -473,11 +474,11 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         stdErrLogger = StdOutLogger.createStderrLogger(this);
     }
 
-    protected void pingStatus() {
+    protected void sendHeartbeat() {
         if (experimentKey == null || this.atShutdown.get()) {
             return;
         }
-        logger.debug("pingStatus");
+        logger.debug("sendHeartbeat");
         connection.sendGet(Constants.EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
     }
 
@@ -495,16 +496,19 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         return outputUpdate;
     }
 
-    static class StatusPing implements Runnable {
+    /**
+     * The runnable to be invoked to send periodic heartbeat ping to mark this experiment as still running.
+     */
+    static class HeartbeatPing implements Runnable {
         OnlineExperimentImpl onlineExperiment;
 
-        StatusPing(OnlineExperimentImpl onlineExperiment) {
+        HeartbeatPing(OnlineExperimentImpl onlineExperiment) {
             this.onlineExperiment = onlineExperiment;
         }
 
         @Override
         public void run() {
-            onlineExperiment.pingStatus();
+            onlineExperiment.sendHeartbeat();
         }
     }
 
