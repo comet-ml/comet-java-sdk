@@ -1,5 +1,6 @@
 package ml.comet.experiment;
 
+import ml.comet.experiment.constants.AssetType;
 import ml.comet.experiment.model.CreateGitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -121,7 +122,7 @@ public interface Experiment {
      * @param type the type of assets to be included.
      * @return the list of assets associated with experiment.
      */
-    List<ExperimentAssetLink> getAssetList(String type);
+    List<ExperimentAssetLink> getAssetList(AssetType type);
 
     /**
      * Sets the experiment name.

@@ -1,8 +1,5 @@
 package ml.comet.experiment;
 
-
-import ml.comet.experiment.config.CometConfig;
-
 import static ml.comet.experiment.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.config.CometConfig.COMET_PROJECT_NAME;
 import static ml.comet.experiment.config.CometConfig.COMET_WORKSPACE_NAME;

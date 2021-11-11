@@ -2,6 +2,7 @@ package ml.comet.experiment.http;
 
 import lombok.NonNull;
 import lombok.Value;
+import ml.comet.experiment.constants.QueryParamName;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.utils.JsonUtils;
 import org.asynchttpclient.AsyncCompletionHandler;
@@ -83,7 +84,7 @@ public class Connection implements Closeable {
      * @param params   the map with request parameters.
      * @return the Optional response body.
      */
-    public Optional<String> sendGet(@NonNull String endpoint, @NonNull Map<String, String> params) {
+    public Optional<String> sendGet(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params) {
         return executeRequestWithAuth(
                 ConnectionUtils.createGetRequest(this.buildCometUrl(endpoint), params), false);
     }
@@ -147,7 +148,7 @@ public class Connection implements Closeable {
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull File file, @NonNull String endpoint,
-                                                    @NonNull Map<String, String> params) {
+                                                    @NonNull Map<QueryParamName, String> params) {
         return executeRequestWithAuthAsync(
                 ConnectionUtils.createPostFileRequest(file, this.buildCometUrl(endpoint), params));
     }
@@ -162,7 +163,7 @@ public class Connection implements Closeable {
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(byte[] bytes, @NonNull String endpoint,
-                                                    @NonNull Map<String, String> params) {
+                                                    @NonNull Map<QueryParamName, String> params) {
         String url = this.buildCometUrl(endpoint);
         if (logger.isDebugEnabled()) {
             logger.debug("sending POST bytearray with length {} to {}", bytes.length, url);

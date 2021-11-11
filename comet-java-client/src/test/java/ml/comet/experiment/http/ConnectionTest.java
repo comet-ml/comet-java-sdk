@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import lombok.NonNull;
+import ml.comet.experiment.constants.QueryParamName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static ml.comet.experiment.constants.QueryParamName.EXPERIMENT_KEY;
+import static ml.comet.experiment.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.http.Connection.COMET_SDK_API_HEADER;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,9 +40,9 @@ public class ConnectionTest {
     public void testSendGet(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test data
         //
-        Map<String, String> params = new HashMap<String, String>() {{
-            put("someParam", "someValue");
-            put("anotherParam", Boolean.toString(true));
+        HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
+            put(EXPERIMENT_KEY, "someValue");
+            put(OVERWRITE, Boolean.toString(true));
         }};
         Map<String, StringValuePattern> queryParams = this.createQueryParams(params);
 
@@ -99,9 +102,9 @@ public class ConnectionTest {
                 .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
     }
 
-    private Map<String, StringValuePattern> createQueryParams(@NonNull Map<String, String> params) {
+    private Map<String, StringValuePattern> createQueryParams(@NonNull Map<QueryParamName, String> params) {
         Map<String, StringValuePattern> queryParams = new HashMap<>();
-        params.forEach((k, v) -> queryParams.put(k, equalTo(v)));
+        params.forEach((k, v) -> queryParams.put(k.paramName(), equalTo(v)));
         return queryParams;
     }
 }

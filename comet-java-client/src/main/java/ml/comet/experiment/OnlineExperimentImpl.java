@@ -38,7 +38,7 @@ import static ml.comet.experiment.config.CometConfig.COMET_PROJECT_NAME;
 import static ml.comet.experiment.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
 import static ml.comet.experiment.config.CometConfig.COMET_WORKSPACE_NAME;
 import static ml.comet.experiment.constants.ApiEndpoints.ADD_OUTPUT;
-import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
+import static ml.comet.experiment.constants.QueryParamName.EXPERIMENT_KEY;
 
 /**
  * The implementation of the OnlineExperiment.

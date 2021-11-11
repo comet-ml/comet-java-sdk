@@ -4,6 +4,7 @@ import lombok.NonNull;
 import ml.comet.experiment.builder.BaseCometBuilder;
 import ml.comet.experiment.builder.CometApiBuilder;
 import ml.comet.experiment.config.CometConfig;
+import ml.comet.experiment.constants.QueryParamName;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -29,6 +30,8 @@ import static ml.comet.experiment.config.CometConfig.COMET_MAX_AUTH_RETRIES;
 import static ml.comet.experiment.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.constants.ApiEndpoints.PROJECTS;
 import static ml.comet.experiment.constants.ApiEndpoints.WORKSPACES;
+import static ml.comet.experiment.constants.QueryParamName.PROJECT_ID;
+import static ml.comet.experiment.constants.QueryParamName.WORKSPACE_NAME;
 
 /**
  * The implementation of the {@link  CometApi}.
@@ -59,7 +62,7 @@ public final class CometApiImpl implements CometApi {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllProjects invoked");
         }
-        Map<String, String> params = Collections.singletonMap("workspaceName", workspaceName);
+        Map<QueryParamName, String> params = Collections.singletonMap(WORKSPACE_NAME, workspaceName);
         GetProjectsResponse response = getObject(PROJECTS, params, GetProjectsResponse.class);
         return response.getProjects();
     }
@@ -69,7 +72,7 @@ public final class CometApiImpl implements CometApi {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllExperiments invoked");
         }
-        Map<String, String> params = Collections.singletonMap("projectId", projectId);
+        Map<QueryParamName, String> params = Collections.singletonMap(PROJECT_ID, projectId);
         GetExperimentsResponse response = getObject(EXPERIMENTS, params, GetExperimentsResponse.class);
         return response.getExperiments();
     }
@@ -96,7 +99,7 @@ public final class CometApiImpl implements CometApi {
         return new CometApiBuilderImpl();
     }
 
-    private <T> T getObject(@NonNull String endpoint, @NonNull Map<String, String> params, @NonNull Class<T> clazz) {
+    private <T> T getObject(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params, @NonNull Class<T> clazz) {
         return connection.sendGet(endpoint, params)
                 .map(body -> JsonUtils.fromJson(body, clazz))
                 .orElseThrow(() -> new IllegalArgumentException("Failed to parse endpoint response " + endpoint));

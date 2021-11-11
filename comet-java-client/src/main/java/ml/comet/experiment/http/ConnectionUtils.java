@@ -2,6 +2,7 @@ package ml.comet.experiment.http;
 
 import lombok.NonNull;
 import lombok.Value;
+import ml.comet.experiment.constants.QueryParamName;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.RequestBuilder;
 import org.asynchttpclient.Response;
@@ -30,7 +31,7 @@ public class ConnectionUtils {
      * @param params the request parameters.
      * @return the GET request.
      */
-    static Request createGetRequest(@NonNull String url, Map<String, String> params) {
+    static Request createGetRequest(@NonNull String url, Map<QueryParamName, String> params) {
         return createRequestBuilder(HttpConstants.Methods.GET, params)
                 .setUrl(url)
                 .build();
@@ -44,7 +45,7 @@ public class ConnectionUtils {
      * @param params the query parameters of the request.
      * @return the POST request with specified file.
      */
-    static Request createPostFileRequest(@NonNull File file, @NonNull String url, Map<String, String> params) {
+    static Request createPostFileRequest(@NonNull File file, @NonNull String url, Map<QueryParamName, String> params) {
         return createRequestBuilder(HttpConstants.Methods.POST, params)
                 .setUrl(url)
                 .setHeader("Content-Type", FORM_MIME_TYPE)
@@ -60,7 +61,7 @@ public class ConnectionUtils {
      * @param params the query parameters of the request.
      * @return the POST request with specified byte array as body part.
      */
-    static Request createPostByteArrayRequest(byte[] bytes, @NonNull String url, Map<String, String> params) {
+    static Request createPostByteArrayRequest(byte[] bytes, @NonNull String url, Map<QueryParamName, String> params) {
         return createRequestBuilder(HttpConstants.Methods.POST, params)
                 .setUrl(url)
                 .setHeader("Content-Type", FORM_MIME_TYPE)
@@ -95,10 +96,10 @@ public class ConnectionUtils {
      * @param params     the query parameters to be added to the request builder.
      * @return the pre-configured request builder.
      */
-    static RequestBuilder createRequestBuilder(@NonNull String httpMethod, Map<String, String> params) {
+    static RequestBuilder createRequestBuilder(@NonNull String httpMethod, Map<QueryParamName, String> params) {
         RequestBuilder builder = new RequestBuilder(httpMethod);
         if (params != null) {
-            params.forEach(builder::addQueryParam);
+            params.forEach((k, v) -> builder.addQueryParam(k.paramName(), v));
         }
         return builder;
     }
