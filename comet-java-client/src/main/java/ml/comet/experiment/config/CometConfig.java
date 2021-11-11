@@ -59,7 +59,7 @@ public final class CometConfig {
      * The Comet's servers base URL.
      */
     public static final ConfigItem COMET_BASE_URL =
-            new ConfigItem("url", "COMET_BASE_URL", instance);
+            new ConfigItem("baseUrl", "COMET_BASE_URL", instance);
     /**
      * The maximal number of authentication retries against Comet.
      */
