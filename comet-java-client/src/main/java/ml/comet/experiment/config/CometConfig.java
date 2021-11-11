@@ -116,6 +116,7 @@ public final class CometConfig {
     static void loadDefaultConfig() {
         try {
             instance.defaultConfig = ConfigFactory.load().getConfig("comet");
+            instance.config = instance.defaultConfig;
         } catch (com.typesafe.config.ConfigException e) {
             e.printStackTrace();
         }

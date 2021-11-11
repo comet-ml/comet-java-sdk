@@ -28,14 +28,13 @@ public class CometConfigTest {
 
     @BeforeEach
     public void init() {
-        CometConfig.loadDefaultConfig();
-        CometConfig.clearConfigOverride();
         mockedEnvironmentConfig = Mockito.mockStatic(EnvironmentConfig.class);
     }
 
     @AfterEach
     public void close() {
         mockedEnvironmentConfig.close();
+        CometConfig.clearConfigOverride();
     }
 
     @Test
