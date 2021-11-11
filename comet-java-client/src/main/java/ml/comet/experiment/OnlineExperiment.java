@@ -12,12 +12,14 @@ public interface OnlineExperiment extends Experiment {
     /**
      * Turn on intercept of stdout and stderr and the logging of both in Comet.
      *
-     * @throws IOException if I/O exception occurs.
+     * @throws IOException if an I/O exception occurs.
      */
     void setInterceptStdout() throws IOException;
 
     /**
      * Turn off intercept of stdout and stderr and turns off their logging in Comet.
+     *
+     * @throws IOException if an I/O exception occurs.
      */
     void stopInterceptStdout() throws IOException;
 

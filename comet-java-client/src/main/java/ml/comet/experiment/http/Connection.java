@@ -191,6 +191,7 @@ public class Connection implements Closeable {
      * @param timeout the maximum duration to wait before closing connection.
      * @throws IOException          if an I/O error occurs.
      * @throws InterruptedException if current thread was interrupted during wait.
+     * @throws TimeoutException     if cleaning timeout exceeded.
      */
     public void waitAndClose(Duration timeout) throws IOException, InterruptedException, TimeoutException {
         long nanosTimeout = timeout.toNanos();

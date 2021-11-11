@@ -19,14 +19,13 @@ import java.util.Optional;
  * using {@link #applyConfigOverride(java.io.File)}. Furthermore, all configuration options defined via
  * <i>system properties</i> or <i>environment variables</i> precedes all previous configuration sources.</p>
  *
- * <p>The configuration search order as following (first-listed are higher priority):
+ * <p>The configuration search order as following (first-listed are higher priority):</p>
  * <ul>
  *     <li>system properties or environment variables</li>
  *     <li>configuration file set by call to {@link #applyConfigOverride(java.io.File)}</li>
  *     <li>{@code application.conf} (all resources on classpath with this name)</li>
  *     <li>{@code reference.conf} (all resources on classpath with this name)</li>
  * </ul>
- * </p>
  *
  * <p>To get specific configuration value you should use any static field with name starting with
  * {@code COMET_}, e.g. {@link #COMET_API_KEY}.</p>
