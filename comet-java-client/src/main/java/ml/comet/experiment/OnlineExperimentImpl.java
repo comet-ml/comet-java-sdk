@@ -3,7 +3,9 @@ package ml.comet.experiment;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
-import ml.comet.experiment.constants.Constants;
+import ml.comet.experiment.config.CometConfig;
+import ml.comet.experiment.config.ConfigException;
+import ml.comet.experiment.constants.ApiEndpoints;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
@@ -13,7 +15,6 @@ import ml.comet.experiment.model.CreateExperimentResponse;
 import ml.comet.experiment.model.OutputLine;
 import ml.comet.experiment.model.OutputUpdate;
 import ml.comet.experiment.utils.CometUtils;
-import ml.comet.experiment.utils.ConfigUtils;
 import ml.comet.experiment.utils.JsonUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -29,7 +31,13 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static ml.comet.experiment.constants.Constants.ADD_OUTPUT;
+import static ml.comet.experiment.config.CometConfig.COMET_API_KEY;
+import static ml.comet.experiment.config.CometConfig.COMET_BASE_URL;
+import static ml.comet.experiment.config.CometConfig.COMET_MAX_AUTH_RETRIES;
+import static ml.comet.experiment.config.CometConfig.COMET_PROJECT_NAME;
+import static ml.comet.experiment.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
+import static ml.comet.experiment.config.CometConfig.COMET_WORKSPACE_NAME;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
 
 /**
@@ -47,7 +55,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private final String workspaceName;
     private final String apiKey;
     private final String baseUrl;
-    private final int maxAuthRetries;
+    private final Duration cleaningTimeout;
 
     private Logger logger = LoggerFactory.getLogger(OnlineExperimentImpl.class);
     private Connection connection;
@@ -59,8 +67,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private boolean interceptStdout;
     private ScheduledFuture<?> heartbeatSendFuture;
 
-    private long step = 0;
-    private long epoch = 0;
+    private long step;
+    private long epoch;
     private String context = "";
 
     // The flag to indicate if experiment end() was called and experiment shutdown initialized
@@ -75,7 +83,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
             Logger logger,
             boolean interceptStdout,
             String baseUrl,
-            int maxAuthRetries) {
+            int maxAuthRetries,
+            Duration cleaningTimeout) {
         this.projectName = projectName;
         this.workspaceName = workspaceName;
         this.apiKey = apiKey;
@@ -86,21 +95,24 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
             this.logger = logger;
         }
         this.baseUrl = baseUrl;
-        this.maxAuthRetries = maxAuthRetries;
-        this.initializeExperiment();
+        this.cleaningTimeout = cleaningTimeout;
+        this.initializeExperiment(maxAuthRetries);
     }
 
     /**
      * Default constructor which reads all configuration parameters of the experiment either from configuration file
-     * or environment variables.
+     * or from environment variables.
+     *
+     * @throws ConfigException If the Comet API key, project name, and workspace are missing from the configuration
+     *                         source or wrong types of the values defined.
      */
-    public OnlineExperimentImpl() {
-        this.projectName = ConfigUtils.getProjectNameOrThrow();
-        this.workspaceName = ConfigUtils.getWorkspaceNameOrThrow();
-        this.apiKey = ConfigUtils.getApiKeyOrThrow();
-        this.baseUrl = ConfigUtils.getBaseUrlOrDefault();
-        this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
-        this.initializeExperiment();
+    public OnlineExperimentImpl() throws ConfigException {
+        this.apiKey = COMET_API_KEY.getString();
+        this.projectName = COMET_PROJECT_NAME.getString();
+        this.workspaceName = COMET_WORKSPACE_NAME.getString();
+        this.baseUrl = COMET_BASE_URL.getString();
+        this.cleaningTimeout = COMET_TIMEOUT_CLEANING_SECONDS.getDuration();
+        this.initializeExperiment(COMET_MAX_AUTH_RETRIES.getInt());
     }
 
     public String getExperimentName() {
@@ -114,110 +126,6 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
      */
     public static OnlineExperimentBuilderImpl builder() {
         return new OnlineExperimentBuilderImpl();
-    }
-
-    /**
-     * The builder to create properly configured instance of the OnlineExperimentImpl.
-     */
-    public static final class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
-        private String projectName;
-        private String workspace;
-        private String apiKey;
-        private String baseUrl;
-        private int maxAuthRetries = -1;
-        private String experimentName;
-        private String experimentKey;
-        private Logger logger;
-        private boolean interceptStdout = false;
-
-        /**
-         * Default constructor to avoid direct initialization from the outside.
-         */
-        private OnlineExperimentBuilderImpl() {
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withProjectName(@NonNull String projectName) {
-            this.projectName = projectName;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withWorkspace(@NonNull String workspace) {
-            this.workspace = workspace;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withApiKey(@NonNull String apiKey) {
-            this.apiKey = apiKey;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withMaxAuthRetries(int maxAuthRetries) {
-            this.maxAuthRetries = maxAuthRetries;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withUrlOverride(@NonNull String urlOverride) {
-            this.baseUrl = urlOverride;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withExperimentName(@NonNull String experimentName) {
-            this.experimentName = experimentName;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withExistingExperimentKey(@NonNull String experimentKey) {
-            this.experimentKey = experimentKey;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withLogger(@NonNull Logger logger) {
-            this.logger = logger;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withConfig(@NonNull File overrideConfig) {
-            ConfigUtils.setOverrideConfig(overrideConfig);
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl interceptStdout() {
-            this.interceptStdout = true;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentImpl build() {
-
-            if (StringUtils.isEmpty(apiKey)) {
-                this.apiKey = ConfigUtils.getApiKey().orElse(null);
-            }
-            if (StringUtils.isEmpty(projectName)) {
-                projectName = ConfigUtils.getProjectName().orElse(null);
-            }
-            if (StringUtils.isEmpty(workspace)) {
-                workspace = ConfigUtils.getWorkspaceName().orElse(null);
-            }
-            if (StringUtils.isEmpty(baseUrl)) {
-                baseUrl = ConfigUtils.getBaseUrlOrDefault();
-            }
-            if (maxAuthRetries == -1) {
-                maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
-            }
-
-            return new OnlineExperimentImpl(apiKey, projectName, workspace, experimentName, experimentKey,
-                    logger, interceptStdout, baseUrl, maxAuthRetries);
-        }
     }
 
     @Override
@@ -264,8 +172,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
             }
         }
 
-        // invoke end of the superclass for common cleanup routines
-        super.end();
+        // invoke end of the superclass for common cleanup routines with given timeout
+        super.end(this.cleaningTimeout);
     }
 
     @Override
@@ -406,11 +314,11 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         super.uploadAsset(asset, fileName, overwrite, this.step, this.epoch);
     }
 
-    private void initializeExperiment() {
+    private void initializeExperiment(int maxAuthRetries) {
         CometUtils.printCometSdkVersion();
+
         validateInitialParams();
-        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl,
-                this.maxAuthRetries, this.logger);
+        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, maxAuthRetries, this.logger);
         setupStdOutIntercept();
         registerExperiment();
     }
@@ -440,21 +348,26 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         }
     }
 
+    /**
+     * Registers experiment at the Comet server.
+     */
     private void registerExperiment() {
         if (experimentKey != null) {
-            logger.debug("Not registering a new experiment.  Using experiment key {}", experimentKey);
+            logger.debug("Not registering a new experiment. Using previous experiment key {}", experimentKey);
             return;
         }
 
         CreateExperimentRequest request = new CreateExperimentRequest(workspaceName, projectName, experimentName);
         String body = JsonUtils.toJson(request);
 
-        connection.sendPost(body, Constants.NEW_EXPERIMENT, true)
+        connection.sendPost(body, ApiEndpoints.NEW_EXPERIMENT, true)
                 .ifPresent(response -> {
                     CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
                     this.experimentKey = result.getExperimentKey();
                     this.experimentLink = result.getLink();
+
                     this.logger.info("Experiment is live on comet.ml " + getExperimentUrl());
+
                     this.heartbeatSendFuture = this.scheduledExecutorService.scheduleAtFixedRate(
                             new HeartbeatPing(this), 1, 3, TimeUnit.SECONDS);
                 });
@@ -479,7 +392,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
             return;
         }
         logger.debug("sendHeartbeat");
-        connection.sendGet(Constants.EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
+        connection.sendGet(ApiEndpoints.EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
     }
 
     private OutputUpdate getLogLineRequest(@NonNull String line, long offset, boolean stderr) {
@@ -512,5 +425,109 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         }
     }
 
+    /**
+     * The builder to create properly configured instance of the OnlineExperimentImpl.
+     */
+    public static final class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
+        private String projectName;
+        private String workspace;
+        private String apiKey;
+        private String baseUrl;
+        private int maxAuthRetries = -1;
+        private String experimentName;
+        private String experimentKey;
+        private Logger logger;
+        private boolean interceptStdout = false;
 
+        /**
+         * Default constructor to avoid direct initialization from the outside.
+         */
+        private OnlineExperimentBuilderImpl() {
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withProjectName(@NonNull String projectName) {
+            this.projectName = projectName;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withWorkspace(@NonNull String workspace) {
+            this.workspace = workspace;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withApiKey(@NonNull String apiKey) {
+            this.apiKey = apiKey;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withMaxAuthRetries(int maxAuthRetries) {
+            this.maxAuthRetries = maxAuthRetries;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withUrlOverride(@NonNull String urlOverride) {
+            this.baseUrl = urlOverride;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withExperimentName(@NonNull String experimentName) {
+            this.experimentName = experimentName;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withExistingExperimentKey(@NonNull String experimentKey) {
+            this.experimentKey = experimentKey;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withLogger(@NonNull Logger logger) {
+            this.logger = logger;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl withConfigOverride(@NonNull File overrideConfig) {
+            CometConfig.applyConfigOverride(overrideConfig);
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentBuilderImpl interceptStdout() {
+            this.interceptStdout = true;
+            return this;
+        }
+
+        @Override
+        public OnlineExperimentImpl build() {
+
+            if (StringUtils.isEmpty(this.apiKey)) {
+                this.apiKey = COMET_API_KEY.getString();
+            }
+            if (StringUtils.isEmpty(this.projectName)) {
+                this.projectName = COMET_PROJECT_NAME.getOptionalString().orElse(null);
+            }
+            if (StringUtils.isEmpty(this.workspace)) {
+                this.workspace = COMET_WORKSPACE_NAME.getOptionalString().orElse(null);
+            }
+            if (StringUtils.isEmpty(this.baseUrl)) {
+                this.baseUrl = COMET_BASE_URL.getString();
+            }
+            if (this.maxAuthRetries == -1) {
+                this.maxAuthRetries = COMET_MAX_AUTH_RETRIES.getInt();
+            }
+            Duration cleaningTimeout = COMET_TIMEOUT_CLEANING_SECONDS.getDuration();
+
+            return new OnlineExperimentImpl(
+                    this.apiKey, this.projectName, this.workspace, this.experimentName, this.experimentKey,
+                    this.logger, this.interceptStdout, this.baseUrl, this.maxAuthRetries, cleaningTimeout);
+        }
+    }
 }

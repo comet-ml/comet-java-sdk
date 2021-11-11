@@ -1,46 +1,35 @@
 package ml.comet.experiment;
 
-import com.typesafe.config.Config;
 import lombok.NonNull;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
+import ml.comet.experiment.config.CometConfig;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
 import ml.comet.experiment.utils.CometUtils;
-import ml.comet.experiment.utils.ConfigUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.net.URI;
+import java.time.Duration;
 import java.util.Optional;
 
-import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
-import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
-import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
+import static ml.comet.experiment.config.CometConfig.COMET_API_KEY;
+import static ml.comet.experiment.config.CometConfig.COMET_BASE_URL;
+import static ml.comet.experiment.config.CometConfig.COMET_MAX_AUTH_RETRIES;
+import static ml.comet.experiment.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
 
 /**
- * Implementation of the Experiment which provides methods to access meta-data of particular
- * experiment through the REST API exposed by the Comet.ml server.
+ * <p>Implementation of the {@link Experiment} that allows to read/update existing experiment.</p>
  *
- * <p>The ApiExperiment should be used to directly read experiment data from the Comet.ml server.
+ * <p>The ApiExperiment should be used to directly read/update data of the
+ * existing experiment from the Comet server.</p>
  */
 public final class ApiExperiment extends BaseExperiment {
-    /**
-     * The base URL of the experiment.
-     */
     private final String baseUrl;
-    /**
-     * The unique key of the experiment.
-     */
     private final String experimentKey;
-    /**
-     * The connection to the Comet server.
-     */
+    private final Duration cleaningTimeout;
     private final Connection connection;
-    /**
-     * The logger instance.
-     */
     private Logger logger = LoggerFactory.getLogger(ApiExperiment.class);
 
     private ApiExperiment(
@@ -48,14 +37,17 @@ public final class ApiExperiment extends BaseExperiment {
             final String anExperimentKey,
             final Logger logger,
             final String baseUrl,
-            final int maxAuthRetries) {
+            final int maxAuthRetries,
+            Duration cleaningTimeout) {
         this.experimentKey = anExperimentKey;
+        this.baseUrl = baseUrl;
+        this.cleaningTimeout = cleaningTimeout;
         if (logger != null) {
             this.logger = logger;
         }
-        this.baseUrl = baseUrl;
         this.connection = ConnectionInitializer.initConnection(
                 apiKey, this.baseUrl, maxAuthRetries, this.logger);
+
         CometUtils.printCometSdkVersion();
     }
 
@@ -67,65 +59,6 @@ public final class ApiExperiment extends BaseExperiment {
      */
     public static ApiExperiment.ApiExperimentBuilderImpl builder(@NonNull final String experimentKey) {
         return new ApiExperiment.ApiExperimentBuilderImpl(experimentKey);
-    }
-
-    /**
-     * The builder to create properly configured ApiExperiment instance.
-     */
-    public static final class ApiExperimentBuilderImpl implements ApiExperimentBuilder {
-        /**
-         * The unique key of the experiment.
-         */
-        private final String experimentKey;
-        /**
-         * The Comet API key to get access to the server.
-         */
-        private String apiKey;
-        /**
-         * The logger instance.
-         */
-        private Logger logger;
-        /**
-         * The base URL of the experiment.
-         */
-        private String baseUrl;
-        /**
-         * The maximal number of authentication retries against Comet server.
-         */
-        private int maxAuthRetries;
-
-        private ApiExperimentBuilderImpl(final String anExperimentKey) {
-            this.experimentKey = anExperimentKey;
-            this.apiKey = ConfigUtils.getApiKey().orElse(null);
-            this.baseUrl = ConfigUtils.getBaseUrlOrDefault();
-            this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
-        }
-
-        @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withApiKey(@NonNull final String anApiKey) {
-            this.apiKey = anApiKey;
-            return this;
-        }
-
-        @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withLogger(@NonNull final Logger logger) {
-            this.logger = logger;
-            return this;
-        }
-
-        @Override
-        public ApiExperiment.ApiExperimentBuilderImpl withConfig(@NonNull final File overrideConfig) {
-            Config config = ConfigUtils.getConfigFromFile(overrideConfig);
-            this.apiKey = config.getString(COMET_API_KEY);
-            this.baseUrl = config.getString(BASE_URL_PLACEHOLDER);
-            this.maxAuthRetries = config.getInt(MAX_AUTH_RETRIES_PLACEHOLDER);
-            return this;
-        }
-
-        @Override
-        public ApiExperiment build() {
-            return new ApiExperiment(apiKey, experimentKey, logger, baseUrl, maxAuthRetries);
-        }
     }
 
     @Override
@@ -159,6 +92,12 @@ public final class ApiExperiment extends BaseExperiment {
     }
 
     @Override
+    public void end() {
+        // invoke end of the superclass for common cleanup routines with given timeout
+        super.end(this.cleaningTimeout);
+    }
+
+    @Override
     public String getExperimentKey() {
         return this.experimentKey;
     }
@@ -168,15 +107,55 @@ public final class ApiExperiment extends BaseExperiment {
         if (StringUtils.isEmpty(experimentKey)) {
             return Optional.empty();
         }
-        String url = String.format("%s/%s/%s/%s",
-                baseUrl, getWorkspaceName(), getProjectName(), experimentKey);
         try {
-            // check URI syntax and return
-            URI uri = URI.create(url);
-            return Optional.of(uri.toString());
+            return Optional.of(CometUtils.createExperimentLink(
+                    baseUrl, getWorkspaceName(), getProjectName(), experimentKey));
         } catch (Exception ex) {
             this.logger.error("failed to build experiment link", ex);
             return Optional.empty();
+        }
+    }
+
+    /**
+     * The builder to create properly configured ApiExperiment instance.
+     */
+    public static final class ApiExperimentBuilderImpl implements ApiExperimentBuilder {
+        private final String experimentKey;
+        private String apiKey;
+        private Logger logger;
+
+        private ApiExperimentBuilderImpl(final String anExperimentKey) {
+            this.experimentKey = anExperimentKey;
+        }
+
+        @Override
+        public ApiExperiment.ApiExperimentBuilderImpl withApiKey(@NonNull final String anApiKey) {
+            this.apiKey = anApiKey;
+            return this;
+        }
+
+        @Override
+        public ApiExperiment.ApiExperimentBuilderImpl withLogger(@NonNull final Logger logger) {
+            this.logger = logger;
+            return this;
+        }
+
+        @Override
+        public ApiExperiment.ApiExperimentBuilderImpl withConfigOverride(@NonNull final File overrideConfig) {
+            CometConfig.applyConfigOverride(overrideConfig);
+            return this;
+        }
+
+        @Override
+        public ApiExperiment build() {
+            if (StringUtils.isEmpty(this.apiKey)) {
+                this.apiKey = COMET_API_KEY.getString();
+            }
+            return new ApiExperiment(
+                    this.apiKey, this.experimentKey, this.logger,
+                    COMET_BASE_URL.getString(),
+                    COMET_MAX_AUTH_RETRIES.getInt(),
+                    COMET_TIMEOUT_CLEANING_SECONDS.getDuration());
         }
     }
 }

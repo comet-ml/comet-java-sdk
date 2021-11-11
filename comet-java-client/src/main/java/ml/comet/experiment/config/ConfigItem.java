@@ -1,6 +1,7 @@
 package ml.comet.experiment.config;
 
 import lombok.Value;
+import lombok.experimental.PackagePrivate;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -22,6 +23,7 @@ public class ConfigItem {
     /**
      * The underlying configuration data holder.
      */
+    @PackagePrivate
     CometConfig config;
 
     /**

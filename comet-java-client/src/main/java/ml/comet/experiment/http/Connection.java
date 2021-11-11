@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -187,13 +188,12 @@ public class Connection implements Closeable {
     /**
      * Allows to properly close this connection after all scheduled posts request are executed or if timeout expired.
      *
-     * @param timeout the maximum time to wait.
-     * @param unit    the time unit of the timeout argument.
+     * @param timeout the maximum duration to wait before closing connection.
      * @throws IOException          if an I/O error occurs.
      * @throws InterruptedException if current thread was interrupted during wait.
      */
-    public void waitAndClose(long timeout, TimeUnit unit) throws IOException, InterruptedException, TimeoutException {
-        long nanosTimeout = unit.toNanos(timeout);
+    public void waitAndClose(Duration timeout) throws IOException, InterruptedException, TimeoutException {
+        long nanosTimeout = timeout.toNanos();
         final long deadline = System.nanoTime() + nanosTimeout;
         // block until all requests in inventory are processed or timeout exceeded
         while (this.requestsInventory.get() > 0) {

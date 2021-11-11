@@ -1,5 +1,6 @@
 package ml.comet.experiment.http;
 
+import ml.comet.experiment.constants.ApiEndpoints;
 import ml.comet.experiment.model.HtmlRest;
 import ml.comet.experiment.utils.JsonUtils;
 import ml.comet.experiment.utils.TestUtils;
@@ -15,7 +16,6 @@ import java.io.File;
 import java.net.URI;
 import java.util.HashMap;
 
-import static ml.comet.experiment.constants.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ConnectionUtilsTest {
@@ -36,7 +36,7 @@ public class ConnectionUtilsTest {
 
     @Test
     public void testCreatePostFileRequest() {
-        String url = "http://test.com" + ADD_ASSET;
+        String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
         HashMap<String, String> params = new HashMap<String, String>() {{
             put("someParam", "someValue");
             put("anotherParam", Boolean.toString(true));
@@ -57,7 +57,7 @@ public class ConnectionUtilsTest {
 
     @Test
     public void testCreatePostByteArrayRequest() {
-        String url = "http://test.com" + ADD_ASSET;
+        String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
         HashMap<String, String> params = new HashMap<String, String>() {{
             put("someParam", "someValue");
             put("anotherParam", Boolean.toString(true));
@@ -77,7 +77,7 @@ public class ConnectionUtilsTest {
 
     @Test
     public void testCreatePostJsonRequest() {
-        String url = "http://test.com" + ADD_ASSET;
+        String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
         HtmlRest html = new HtmlRest("<html><body></body></html", "test_key",
                 false, System.currentTimeMillis());
         String json = JsonUtils.toJson(html);

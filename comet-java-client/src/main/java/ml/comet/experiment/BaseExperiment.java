@@ -21,40 +21,39 @@ import ml.comet.experiment.model.MinMaxResponse;
 import ml.comet.experiment.model.ParameterRest;
 import ml.comet.experiment.model.TagsResponse;
 import ml.comet.experiment.model.ValueMinMaxDto;
-import ml.comet.experiment.utils.ConfigUtils;
 import ml.comet.experiment.utils.JsonUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
-import static ml.comet.experiment.constants.Constants.ADD_ASSET;
-import static ml.comet.experiment.constants.Constants.ADD_GIT_METADATA;
-import static ml.comet.experiment.constants.Constants.ADD_GRAPH;
-import static ml.comet.experiment.constants.Constants.ADD_HTML;
-import static ml.comet.experiment.constants.Constants.ADD_LOG_OTHER;
-import static ml.comet.experiment.constants.Constants.ADD_METRIC;
-import static ml.comet.experiment.constants.Constants.ADD_PARAMETER;
-import static ml.comet.experiment.constants.Constants.ADD_START_END_TIME;
-import static ml.comet.experiment.constants.Constants.ADD_TAG;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_ASSET;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_GIT_METADATA;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_GRAPH;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_HTML;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_LOG_OTHER;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_METRIC;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_PARAMETER;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_START_END_TIME;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_TAG;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_ASSET_INFO;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_GIT_METADATA;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_GRAPH;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_HTML;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_LOG_OTHER;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_METADATA;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_METRICS;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_OUTPUT;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_PARAMETERS;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_TAGS;
 import static ml.comet.experiment.constants.Constants.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
-import static ml.comet.experiment.constants.Constants.GET_ASSET_INFO;
-import static ml.comet.experiment.constants.Constants.GET_GIT_METADATA;
-import static ml.comet.experiment.constants.Constants.GET_GRAPH;
-import static ml.comet.experiment.constants.Constants.GET_HTML;
-import static ml.comet.experiment.constants.Constants.GET_LOG_OTHER;
-import static ml.comet.experiment.constants.Constants.GET_METADATA;
-import static ml.comet.experiment.constants.Constants.GET_METRICS;
-import static ml.comet.experiment.constants.Constants.GET_OUTPUT;
-import static ml.comet.experiment.constants.Constants.GET_PARAMETERS;
-import static ml.comet.experiment.constants.Constants.GET_TAGS;
 
 
 /**
@@ -363,16 +362,15 @@ public abstract class BaseExperiment implements Experiment {
         return response.getTags();
     }
 
-    @Override
-    public void end() {
+    void end(Duration cleaningTimeout) {
         getLogger().info("Waiting for all scheduled uploads to complete. It can take up to {} seconds.",
-                ConfigUtils.getConnectionCloseTimeoutSec());
+                cleaningTimeout.getSeconds());
 
         // close connection
         Connection connection = this.getConnection();
         if (connection != null) {
             try {
-                connection.waitAndClose(ConfigUtils.getConnectionCloseTimeoutSec(), TimeUnit.SECONDS);
+                connection.waitAndClose(cleaningTimeout);
             } catch (Exception e) {
                 getLogger().error("failed to close connection", e);
             }
