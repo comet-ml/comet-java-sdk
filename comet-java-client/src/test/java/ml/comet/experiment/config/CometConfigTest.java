@@ -9,6 +9,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -89,9 +90,18 @@ public class CometConfigTest {
     }
 
     @Test
-    public void testApplyConfigOverride() {
+    public void testApplyConfigOverrideFromFile() {
         // testing that default value was overridden explicitly from another config file (full-comet-config.conf)
         CometConfig.applyConfigOverride(fullCometConfig);
+        Duration timeout = CometConfig.COMET_TIMEOUT_CLEANING_SECONDS.getDuration();
+        assertNotNull(timeout);
+        assertEquals(timeout.getSeconds(), 60);
+    }
+
+    @Test
+    public void testApplyConfigOverrideFromUrl() throws MalformedURLException {
+        // testing that default value was overridden explicitly from another config file by URL (full-comet-config.conf)
+        CometConfig.applyConfigOverride(fullCometConfig.toURI().toURL());
         Duration timeout = CometConfig.COMET_TIMEOUT_CLEANING_SECONDS.getDuration();
         assertNotNull(timeout);
         assertEquals(timeout.getSeconds(), 60);

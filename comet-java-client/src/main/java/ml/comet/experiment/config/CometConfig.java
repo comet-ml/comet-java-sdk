@@ -5,6 +5,7 @@ import com.typesafe.config.ConfigFactory;
 import lombok.NonNull;
 
 import java.io.File;
+import java.net.URL;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -85,6 +86,18 @@ public final class CometConfig {
      */
     public static void applyConfigOverride(@NonNull File configFile) {
         Config overrideConfig = ConfigFactory.parseFile(configFile).getConfig("comet");
+        overrideConfig.withFallback(instance.defaultConfig);
+        instance.config = overrideConfig;
+    }
+
+    /**
+     * Allows overriding default configuration tree with values parsed from provided {@link java.net.URL} pointing
+     * to the configuration file.
+     *
+     * @param configFileUrl the {@link java.net.URL} of the configuration file to get overrides from.
+     */
+    public static void applyConfigOverride(@NonNull URL configFileUrl) {
+        Config overrideConfig = ConfigFactory.parseURL(configFileUrl).getConfig("comet");
         overrideConfig.withFallback(instance.defaultConfig);
         instance.config = overrideConfig;
     }
