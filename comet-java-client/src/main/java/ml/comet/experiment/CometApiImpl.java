@@ -31,7 +31,7 @@ import static ml.comet.experiment.constants.ApiEndpoints.PROJECTS;
 import static ml.comet.experiment.constants.ApiEndpoints.WORKSPACES;
 
 /**
- * The CometApi implementation.
+ * The implementation of the {@link  CometApi}.
  */
 public final class CometApiImpl implements CometApi {
     private Logger logger = LoggerFactory.getLogger(CometApiImpl.class);

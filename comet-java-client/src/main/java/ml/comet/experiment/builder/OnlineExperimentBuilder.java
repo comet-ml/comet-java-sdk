@@ -1,9 +1,6 @@
 package ml.comet.experiment.builder;
 
 import ml.comet.experiment.OnlineExperiment;
-import org.slf4j.Logger;
-
-import java.io.File;
 
 /**
  * Defines the public contract of the {@link OnlineExperiment} builder. This factory is preferred method to create
