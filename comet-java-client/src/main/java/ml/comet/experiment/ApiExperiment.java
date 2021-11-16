@@ -11,7 +11,7 @@ import ml.comet.experiment.impl.ApiExperimentImpl;
  */
 public final class ApiExperiment {
     /**
-     * Returns builder to create ApiExperiment instance.
+     * Returns builder to create {@link Experiment} instance.
      *
      * @param experimentKey the unique identifier of the existing experiment.
      * @return the initialized ApiExperiment instance.

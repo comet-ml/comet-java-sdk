@@ -7,9 +7,9 @@ package ml.comet.experiment;
  */
 public final class OnlineExperimentImpl {
     /**
-     * Returns builder to be used to create properly configured instance of this class.
+     * Returns builder to be used to create properly configured instance of {@link OnlineExperiment}.
      *
-     * @return the builder to be used to create properly configured instance of this class.
+     * @return the builder to be used to create properly configured instance of {@link OnlineExperiment}.
      */
     public static ml.comet.experiment.builder.OnlineExperimentBuilder builder() {
         return ml.comet.experiment.impl.OnlineExperimentImpl.builder();

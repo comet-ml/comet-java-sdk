@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
@@ -21,11 +22,9 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES
 import static ml.comet.experiment.impl.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
 
 /**
- * <p>Implementation of the {@link Experiment} that allows to read/update existing experiment.</p>
- *
- * <p>The ApiExperiment should be used to directly read/update data of the
- * existing experiment from the Comet server.</p>
+ * <p>Implementation of the {@link Experiment} that allows to read/update existing experiment synchronously.</p>
  */
+@Getter
 public final class ApiExperimentImpl extends BaseExperiment {
     private final String baseUrl;
     private final String experimentKey;
@@ -63,16 +62,6 @@ public final class ApiExperimentImpl extends BaseExperiment {
     }
 
     @Override
-    protected Connection getConnection() {
-        return this.connection;
-    }
-
-    @Override
-    protected Logger getLogger() {
-        return this.logger;
-    }
-
-    @Override
     public String getContext() {
         return StringUtils.EMPTY;
     }
@@ -96,11 +85,6 @@ public final class ApiExperimentImpl extends BaseExperiment {
     public void end() {
         // invoke end of the superclass for common cleanup routines with given timeout
         super.end(this.cleaningTimeout);
-    }
-
-    @Override
-    public String getExperimentKey() {
-        return this.experimentKey;
     }
 
     @Override

@@ -2,6 +2,7 @@ package ml.comet.experiment.impl;
 
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
 import ml.comet.experiment.exception.CometGeneralException;
@@ -42,7 +43,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 
 /**
- * The implementation of the OnlineExperiment.
+ * The implementation of the {@link OnlineExperiment} to work with Comet API asynchronously.
  */
 @Getter
 public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
@@ -68,9 +69,9 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private boolean interceptStdout;
     private ScheduledFuture<?> heartbeatSendFuture;
 
-    private long step;
-    private long epoch;
-    private String context = "";
+    private @Setter long step;
+    private @Setter long epoch;
+    private @Setter String context = "";
 
     // The flag to indicate if experiment end() was called and experiment shutdown initialized
     private final AtomicBoolean atShutdown = new AtomicBoolean();
@@ -116,10 +117,6 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         this.initializeExperiment(COMET_MAX_AUTH_RETRIES.getInt());
     }
 
-    public String getExperimentName() {
-        return experimentName;
-    }
-
     /**
      * Returns builder to be used to create properly configured instance of this class.
      *
@@ -127,16 +124,6 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
      */
     public static OnlineExperimentBuilderImpl builder() {
         return new OnlineExperimentBuilderImpl();
-    }
-
-    @Override
-    protected Connection getConnection() {
-        return this.connection;
-    }
-
-    @Override
-    protected Logger getLogger() {
-        return this.logger;
     }
 
     @Override
@@ -223,48 +210,13 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     }
 
     @Override
-    public void setStep(long step) {
-        this.step = step;
-    }
-
-    @Override
     public void nextStep() {
         this.step++;
     }
 
     @Override
-    public long getStep() {
-        return this.step;
-    }
-
-    @Override
-    public void setEpoch(long epoch) {
-        this.epoch = epoch;
-    }
-
-    @Override
     public void nextEpoch() {
         this.epoch++;
-    }
-
-    @Override
-    public long getEpoch() {
-        return this.epoch;
-    }
-
-    @Override
-    public void setContext(String context) {
-        this.context = context;
-    }
-
-    @Override
-    public String getContext() {
-        return this.context;
-    }
-
-    @Override
-    public String getExperimentKey() {
-        return this.experimentKey;
     }
 
     @Override
