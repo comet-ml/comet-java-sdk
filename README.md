@@ -12,7 +12,7 @@
         <dependency>
             <groupId>ml.comet</groupId>
             <artifactId>comet-java-client</artifactId>
-            <version>1.1.3</version>
+            <version>1.1.4</version>
         </dependency>
     </dependencies>
 ```
