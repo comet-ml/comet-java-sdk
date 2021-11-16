@@ -3,7 +3,7 @@ package ml.comet.examples.mnist;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import ml.comet.experiment.OnlineExperiment;
-import ml.comet.experiment.OnlineExperimentImpl;
+import ml.comet.experiment.impl.OnlineExperimentImpl;
 import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator;
 import org.deeplearning4j.nn.api.Model;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;

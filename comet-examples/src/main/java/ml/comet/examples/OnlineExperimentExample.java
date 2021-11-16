@@ -1,7 +1,7 @@
 package ml.comet.examples;
 
 import ml.comet.experiment.OnlineExperiment;
-import ml.comet.experiment.OnlineExperimentImpl;
+import ml.comet.experiment.impl.OnlineExperimentImpl;
 
 import java.io.IOException;
 
