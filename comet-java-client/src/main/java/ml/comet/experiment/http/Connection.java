@@ -2,6 +2,7 @@ package ml.comet.experiment.http;
 
 import lombok.NonNull;
 import lombok.Value;
+import ml.comet.experiment.constants.QueryParamName;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.utils.JsonUtils;
 import org.asynchttpclient.AsyncCompletionHandler;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -82,7 +84,7 @@ public class Connection implements Closeable {
      * @param params   the map with request parameters.
      * @return the Optional response body.
      */
-    public Optional<String> sendGet(@NonNull String endpoint, @NonNull Map<String, String> params) {
+    public Optional<String> sendGet(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params) {
         return executeRequestWithAuth(
                 ConnectionUtils.createGetRequest(this.buildCometUrl(endpoint), params), false);
     }
@@ -146,7 +148,7 @@ public class Connection implements Closeable {
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull File file, @NonNull String endpoint,
-                                                    @NonNull Map<String, String> params) {
+                                                    @NonNull Map<QueryParamName, String> params) {
         return executeRequestWithAuthAsync(
                 ConnectionUtils.createPostFileRequest(file, this.buildCometUrl(endpoint), params));
     }
@@ -161,7 +163,7 @@ public class Connection implements Closeable {
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(byte[] bytes, @NonNull String endpoint,
-                                                    @NonNull Map<String, String> params) {
+                                                    @NonNull Map<QueryParamName, String> params) {
         String url = this.buildCometUrl(endpoint);
         if (logger.isDebugEnabled()) {
             logger.debug("sending POST bytearray with length {} to {}", bytes.length, url);
@@ -187,13 +189,13 @@ public class Connection implements Closeable {
     /**
      * Allows to properly close this connection after all scheduled posts request are executed or if timeout expired.
      *
-     * @param timeout the maximum time to wait.
-     * @param unit    the time unit of the timeout argument.
+     * @param timeout the maximum duration to wait before closing connection.
      * @throws IOException          if an I/O error occurs.
      * @throws InterruptedException if current thread was interrupted during wait.
+     * @throws TimeoutException     if cleaning timeout exceeded.
      */
-    public void waitAndClose(long timeout, TimeUnit unit) throws IOException, InterruptedException, TimeoutException {
-        long nanosTimeout = unit.toNanos(timeout);
+    public void waitAndClose(Duration timeout) throws IOException, InterruptedException, TimeoutException {
+        long nanosTimeout = timeout.toNanos();
         final long deadline = System.nanoTime() + nanosTimeout;
         // block until all requests in inventory are processed or timeout exceeded
         while (this.requestsInventory.get() > 0) {

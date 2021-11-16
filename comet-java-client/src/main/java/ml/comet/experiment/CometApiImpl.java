@@ -1,7 +1,10 @@
 package ml.comet.experiment;
 
-import com.typesafe.config.Config;
 import lombok.NonNull;
+import ml.comet.experiment.builder.BaseCometBuilder;
+import ml.comet.experiment.builder.CometApiBuilder;
+import ml.comet.experiment.config.CometConfig;
+import ml.comet.experiment.constants.QueryParamName;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.http.ConnectionInitializer;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -9,8 +12,9 @@ import ml.comet.experiment.model.GetExperimentsResponse;
 import ml.comet.experiment.model.GetProjectsResponse;
 import ml.comet.experiment.model.GetWorkspacesResponse;
 import ml.comet.experiment.model.RestProject;
-import ml.comet.experiment.utils.ConfigUtils;
+import ml.comet.experiment.utils.CometUtils;
 import ml.comet.experiment.utils.JsonUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,54 +24,57 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static ml.comet.experiment.constants.Constants.BASE_URL_PLACEHOLDER;
-import static ml.comet.experiment.constants.Constants.COMET_API_KEY;
-import static ml.comet.experiment.constants.Constants.EXPERIMENTS;
-import static ml.comet.experiment.constants.Constants.MAX_AUTH_RETRIES_PLACEHOLDER;
-import static ml.comet.experiment.constants.Constants.PROJECTS;
-import static ml.comet.experiment.constants.Constants.WORKSPACES;
+import static ml.comet.experiment.config.CometConfig.COMET_API_KEY;
+import static ml.comet.experiment.config.CometConfig.COMET_BASE_URL;
+import static ml.comet.experiment.config.CometConfig.COMET_MAX_AUTH_RETRIES;
+import static ml.comet.experiment.constants.ApiEndpoints.EXPERIMENTS;
+import static ml.comet.experiment.constants.ApiEndpoints.PROJECTS;
+import static ml.comet.experiment.constants.ApiEndpoints.WORKSPACES;
+import static ml.comet.experiment.constants.QueryParamName.PROJECT_ID;
+import static ml.comet.experiment.constants.QueryParamName.WORKSPACE_NAME;
 
 /**
- * The CometApi implementation.
+ * The implementation of the {@link  CometApi}.
  */
 public final class CometApiImpl implements CometApi {
+    private Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
     private final Connection connection;
 
-    public CometApiImpl(@NonNull String apiKey, @NonNull String baseUrl, int maxAuthRetries) {
-        Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
-        this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, logger);
+    CometApiImpl(@NonNull String apiKey, @NonNull String baseUrl, int maxAuthRetries, Logger logger) {
+        if (logger != null) {
+            this.logger = logger;
+        }
+        this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, this.logger);
+        CometUtils.printCometSdkVersion();
     }
 
+    @SuppressWarnings("checkstyle:MissingJavadocMethod")
     public List<String> getAllWorkspaces() {
+        if (this.logger.isDebugEnabled()) {
+            this.logger.debug("getAllWorkspaces invoked");
+        }
         GetWorkspacesResponse response = getObject(WORKSPACES, Collections.emptyMap(), GetWorkspacesResponse.class);
         return response.getWorkspaceNames();
     }
 
+    @SuppressWarnings("checkstyle:MissingJavadocMethod")
     public List<RestProject> getAllProjects(@NonNull String workspaceName) {
-        Map<String, String> params = Collections.singletonMap("workspaceName", workspaceName);
+        if (this.logger.isDebugEnabled()) {
+            this.logger.debug("getAllProjects invoked");
+        }
+        Map<QueryParamName, String> params = Collections.singletonMap(WORKSPACE_NAME, workspaceName);
         GetProjectsResponse response = getObject(PROJECTS, params, GetProjectsResponse.class);
         return response.getProjects();
     }
 
+    @SuppressWarnings("checkstyle:MissingJavadocMethod")
     public List<ExperimentMetadataRest> getAllExperiments(@NonNull String projectId) {
-        Map<String, String> params = Collections.singletonMap("projectId", projectId);
+        if (this.logger.isDebugEnabled()) {
+            this.logger.debug("getAllExperiments invoked");
+        }
+        Map<QueryParamName, String> params = Collections.singletonMap(PROJECT_ID, projectId);
         GetExperimentsResponse response = getObject(EXPERIMENTS, params, GetExperimentsResponse.class);
         return response.getExperiments();
-    }
-
-    private <T> T getObject(@NonNull String endpoint, @NonNull Map<String, String> params, @NonNull Class<T> clazz) {
-        return connection.sendGet(endpoint, params)
-                .map(body -> JsonUtils.fromJson(body, clazz))
-                .orElseThrow(() -> new IllegalArgumentException("Failed to parse endpoint response " + endpoint));
-    }
-
-    /**
-     * Returns builder to be used to properly create instance of this class.
-     *
-     * @return the builder to be used to properly create instance of this class.
-     */
-    public static CometApiBuilder builder() {
-        return new CometApiBuilder();
     }
 
     /**
@@ -84,46 +91,54 @@ public final class CometApiImpl implements CometApi {
     }
 
     /**
+     * Returns builder to be used to properly create instance of this class.
+     *
+     * @return the builder to be used to properly create instance of this class.
+     */
+    public static CometApiBuilder builder() {
+        return new CometApiBuilderImpl();
+    }
+
+    private <T> T getObject(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params, @NonNull Class<T> clazz) {
+        return connection.sendGet(endpoint, params)
+                .map(body -> JsonUtils.fromJson(body, clazz))
+                .orElseThrow(() -> new IllegalArgumentException("Failed to parse endpoint response " + endpoint));
+    }
+
+    /**
      * The builder to create properly configured instance of the CometApiImpl.
      */
-    public static final class CometApiBuilder {
+    static final class CometApiBuilderImpl implements CometApiBuilder {
         private String apiKey;
-        private String baseUrl;
-        private int maxAuthRetries;
+        private Logger logger;
 
-        CometApiBuilder() {
-            this.apiKey = ConfigUtils.getApiKey().orElse(null);
-            this.baseUrl = ConfigUtils.getBaseUrlOrDefault();
-            this.maxAuthRetries = ConfigUtils.getMaxAuthRetriesOrDefault();
-        }
-
-        /**
-         * Provides file with configuration parameters to override default configuration options.
-         *
-         * @param overrideConfig the file with configuration parameters.
-         * @return this builder with override configuration parameters.
-         */
-        public CometApiBuilder withConfig(@NonNull File overrideConfig) {
-            Config config = ConfigUtils.getConfigFromFile(overrideConfig);
-            this.apiKey = config.getString(COMET_API_KEY);
-            this.baseUrl = config.getString(BASE_URL_PLACEHOLDER);
-            this.maxAuthRetries = config.getInt(MAX_AUTH_RETRIES_PLACEHOLDER);
+        public CometApiBuilder withConfigOverride(@NonNull File overrideConfig) {
+            CometConfig.applyConfigOverride(overrideConfig);
             return this;
         }
 
-        /**
-         * Supplies builder with Comet API key to.
-         *
-         * @param apiKey the Comet API key to get access to the server.
-         * @return this builder with Comet API key configured.
-         */
+        @Override
+        public BaseCometBuilder<CometApi> withLogger(@NonNull Logger logger) {
+            this.logger = logger;
+            return this;
+        }
+
         public CometApiBuilder withApiKey(@NonNull String apiKey) {
             this.apiKey = apiKey;
             return this;
         }
 
-        public CometApiImpl build() {
-            return new CometApiImpl(apiKey, baseUrl, maxAuthRetries);
+        /**
+         * Factory method to build fully initialized instance of the CometApiImpl.
+         *
+         * @return the fully initialized instance of the CometApiImpl.
+         */
+        public CometApi build() {
+            if (StringUtils.isEmpty(this.apiKey)) {
+                this.apiKey = COMET_API_KEY.getString();
+            }
+            return new CometApiImpl(
+                    this.apiKey, COMET_BASE_URL.getString(), COMET_MAX_AUTH_RETRIES.getInt(), this.logger);
         }
     }
 }

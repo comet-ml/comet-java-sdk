@@ -78,14 +78,6 @@ public class OnlineExperimentExample {
 
         System.out.println("===== Experiment completed ====");
 
-        // Flush thread and wait for a while to make sure everything is flushed
-        System.out.flush();
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         // will close connection, if not called connection will close on jvm exit
         experiment.end();
     }

@@ -1,5 +1,7 @@
 package ml.comet.experiment.http;
 
+import ml.comet.experiment.constants.ApiEndpoints;
+import ml.comet.experiment.constants.QueryParamName;
 import ml.comet.experiment.model.HtmlRest;
 import ml.comet.experiment.utils.JsonUtils;
 import ml.comet.experiment.utils.TestUtils;
@@ -15,7 +17,8 @@ import java.io.File;
 import java.net.URI;
 import java.util.HashMap;
 
-import static ml.comet.experiment.constants.Constants.*;
+import static ml.comet.experiment.constants.QueryParamName.EXPERIMENT_KEY;
+import static ml.comet.experiment.constants.QueryParamName.OVERWRITE;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ConnectionUtilsTest {
@@ -25,9 +28,9 @@ public class ConnectionUtilsTest {
     @Test
     public void testCreateGetRequest() {
         String url = "http://test.com/get";
-        HashMap<String, String> params = new HashMap<String, String>() {{
-            put("someParam", "someValue");
-            put("anotherParam", Boolean.toString(true));
+        HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
+            put(EXPERIMENT_KEY, "someValue");
+            put(OVERWRITE, Boolean.toString(true));
         }};
         Request r = ConnectionUtils.createGetRequest(url, params);
 
@@ -36,10 +39,10 @@ public class ConnectionUtilsTest {
 
     @Test
     public void testCreatePostFileRequest() {
-        String url = "http://test.com" + ADD_ASSET;
-        HashMap<String, String> params = new HashMap<String, String>() {{
-            put("someParam", "someValue");
-            put("anotherParam", Boolean.toString(true));
+        String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
+        HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
+            put(EXPERIMENT_KEY, "someValue");
+            put(OVERWRITE, Boolean.toString(true));
         }};
         File file = TestUtils.getFile(SOME_TEXT_FILE_NAME);
         assertNotNull(file, "test file not found");
@@ -57,10 +60,10 @@ public class ConnectionUtilsTest {
 
     @Test
     public void testCreatePostByteArrayRequest() {
-        String url = "http://test.com" + ADD_ASSET;
-        HashMap<String, String> params = new HashMap<String, String>() {{
-            put("someParam", "someValue");
-            put("anotherParam", Boolean.toString(true));
+        String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
+        HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
+            put(EXPERIMENT_KEY, "someValue");
+            put(OVERWRITE, Boolean.toString(true));
         }};
         byte[] data = "The test byte data".getBytes();
 
@@ -77,7 +80,7 @@ public class ConnectionUtilsTest {
 
     @Test
     public void testCreatePostJsonRequest() {
-        String url = "http://test.com" + ADD_ASSET;
+        String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
         HtmlRest html = new HtmlRest("<html><body></body></html", "test_key",
                 false, System.currentTimeMillis());
         String json = JsonUtils.toJson(html);
@@ -100,12 +103,12 @@ public class ConnectionUtilsTest {
         assertFalse(ConnectionUtils.isResponseSuccessful(statusCode));
     }
 
-    private void validateRequest(Request r, String url, HashMap<String, String> params,
+    private void validateRequest(Request r, String url, HashMap<QueryParamName, String> params,
                                  String method, String contentType) {
         StringBuilder buf = new StringBuilder(url);
         if (params != null) {
             buf.append("?");
-            params.forEach((k, v) -> buf.append(k).append("=").append(v).append("&"));
+            params.forEach((k, v) -> buf.append(k.paramName()).append("=").append(v).append("&"));
             buf.deleteCharAt(buf.length() - 1); // remove last ampersand
         }
 

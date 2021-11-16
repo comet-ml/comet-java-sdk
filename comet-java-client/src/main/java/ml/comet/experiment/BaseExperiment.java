@@ -2,6 +2,8 @@ package ml.comet.experiment;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import ml.comet.experiment.constants.AssetType;
+import ml.comet.experiment.constants.QueryParamName;
 import ml.comet.experiment.http.Connection;
 import ml.comet.experiment.model.AddGraphRest;
 import ml.comet.experiment.model.AddTagsToExperimentRest;
@@ -21,40 +23,45 @@ import ml.comet.experiment.model.MinMaxResponse;
 import ml.comet.experiment.model.ParameterRest;
 import ml.comet.experiment.model.TagsResponse;
 import ml.comet.experiment.model.ValueMinMaxDto;
-import ml.comet.experiment.utils.ConfigUtils;
 import ml.comet.experiment.utils.JsonUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
-import static ml.comet.experiment.constants.Constants.ADD_ASSET;
-import static ml.comet.experiment.constants.Constants.ADD_GIT_METADATA;
-import static ml.comet.experiment.constants.Constants.ADD_GRAPH;
-import static ml.comet.experiment.constants.Constants.ADD_HTML;
-import static ml.comet.experiment.constants.Constants.ADD_LOG_OTHER;
-import static ml.comet.experiment.constants.Constants.ADD_METRIC;
-import static ml.comet.experiment.constants.Constants.ADD_PARAMETER;
-import static ml.comet.experiment.constants.Constants.ADD_START_END_TIME;
-import static ml.comet.experiment.constants.Constants.ADD_TAG;
-import static ml.comet.experiment.constants.Constants.ASSET_TYPE_SOURCE_CODE;
-import static ml.comet.experiment.constants.Constants.EXPERIMENT_KEY;
-import static ml.comet.experiment.constants.Constants.GET_ASSET_INFO;
-import static ml.comet.experiment.constants.Constants.GET_GIT_METADATA;
-import static ml.comet.experiment.constants.Constants.GET_GRAPH;
-import static ml.comet.experiment.constants.Constants.GET_HTML;
-import static ml.comet.experiment.constants.Constants.GET_LOG_OTHER;
-import static ml.comet.experiment.constants.Constants.GET_METADATA;
-import static ml.comet.experiment.constants.Constants.GET_METRICS;
-import static ml.comet.experiment.constants.Constants.GET_OUTPUT;
-import static ml.comet.experiment.constants.Constants.GET_PARAMETERS;
-import static ml.comet.experiment.constants.Constants.GET_TAGS;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_ASSET;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_GIT_METADATA;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_GRAPH;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_HTML;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_LOG_OTHER;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_METRIC;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_PARAMETER;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_START_END_TIME;
+import static ml.comet.experiment.constants.ApiEndpoints.ADD_TAG;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_ASSET_INFO;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_GIT_METADATA;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_GRAPH;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_HTML;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_LOG_OTHER;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_METADATA;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_METRICS;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_OUTPUT;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_PARAMETERS;
+import static ml.comet.experiment.constants.ApiEndpoints.GET_TAGS;
+import static ml.comet.experiment.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
+import static ml.comet.experiment.constants.QueryParamName.CONTEXT;
+import static ml.comet.experiment.constants.QueryParamName.EPOCH;
+import static ml.comet.experiment.constants.QueryParamName.EXPERIMENT_KEY;
+import static ml.comet.experiment.constants.QueryParamName.FILE_NAME;
+import static ml.comet.experiment.constants.QueryParamName.OVERWRITE;
+import static ml.comet.experiment.constants.QueryParamName.STEP;
+import static ml.comet.experiment.constants.QueryParamName.TYPE;
 
 
 /**
@@ -133,12 +140,12 @@ public abstract class BaseExperiment implements Experiment {
 
         validateExperimentKeyPresent();
 
-        Map<String, String> params = new HashMap<String, String>() {{
+        Map<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
             put(EXPERIMENT_KEY, getExperimentKey());
-            put("fileName", fileName);
-            put("context", getContext());
-            put("type", ASSET_TYPE_SOURCE_CODE);
-            put("overwrite", Boolean.toString(false));
+            put(FILE_NAME, fileName);
+            put(CONTEXT, getContext());
+            put(TYPE, ASSET_TYPE_SOURCE_CODE.type());
+            put(OVERWRITE, Boolean.toString(false));
         }};
 
         getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
@@ -156,12 +163,12 @@ public abstract class BaseExperiment implements Experiment {
         }
         validateExperimentKeyPresent();
 
-        Map<String, String> params = new HashMap<String, String>() {{
+        Map<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
             put(EXPERIMENT_KEY, getExperimentKey());
-            put("fileName", asset.getName());
-            put("context", getContext());
-            put("type", ASSET_TYPE_SOURCE_CODE);
-            put("overwrite", Boolean.toString(false));
+            put(FILE_NAME, asset.getName());
+            put(CONTEXT, getContext());
+            put(TYPE, ASSET_TYPE_SOURCE_CODE.type());
+            put(OVERWRITE, Boolean.toString(false));
         }};
 
         getConnection().sendPostAsync(asset, ADD_ASSET, params)
@@ -236,13 +243,13 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         getConnection()
-                .sendPostAsync(asset, ADD_ASSET, new HashMap<String, String>() {{
+                .sendPostAsync(asset, ADD_ASSET, new HashMap<QueryParamName, String>() {{
                     put(EXPERIMENT_KEY, getExperimentKey());
-                    put("fileName", fileName);
-                    put("step", Long.toString(step));
-                    put("epoch", Long.toString(epoch));
-                    put("context", getContext());
-                    put("overwrite", Boolean.toString(overwrite));
+                    put(FILE_NAME, fileName);
+                    put(STEP, Long.toString(step));
+                    put(EPOCH, Long.toString(epoch));
+                    put(CONTEXT, getContext());
+                    put(OVERWRITE, Boolean.toString(overwrite));
                 }})
                 .toCompletableFuture()
                 .exceptionally(t -> {
@@ -363,16 +370,15 @@ public abstract class BaseExperiment implements Experiment {
         return response.getTags();
     }
 
-    @Override
-    public void end() {
-        getLogger().info("Waiting for all uploads to complete. It can take up to {} seconds",
-                ConfigUtils.getConnectionCloseTimeoutSec());
+    void end(Duration cleaningTimeout) {
+        getLogger().info("Waiting for all scheduled uploads to complete. It can take up to {} seconds.",
+                cleaningTimeout.getSeconds());
 
         // close connection
         Connection connection = this.getConnection();
         if (connection != null) {
             try {
-                connection.waitAndClose(ConfigUtils.getConnectionCloseTimeoutSec(), TimeUnit.SECONDS);
+                connection.waitAndClose(cleaningTimeout);
             } catch (Exception e) {
                 getLogger().error("failed to close connection", e);
             }
@@ -380,15 +386,15 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<ExperimentAssetLink> getAssetList(@NonNull String type) {
+    public List<ExperimentAssetLink> getAssetList(@NonNull AssetType type) {
         String experimentKey = validateAndGetExperimentKey();
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get assets with type {} for experiment {}", type, experimentKey);
         }
 
-        HashMap<String, String> params = new HashMap<String, String>() {{
-            put("experimentKey", experimentKey);
-            put("type", type);
+        HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
+            put(EXPERIMENT_KEY, experimentKey);
+            put(TYPE, type.type());
         }};
         ExperimentAssetListResponse response = getForExperiment(GET_ASSET_INFO, params,
                 ExperimentAssetListResponse.class);
@@ -396,10 +402,10 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     private <T> T getForExperimentByKey(@NonNull String endpoint, Class<T> clazz) {
-        return getForExperiment(endpoint, Collections.singletonMap("experimentKey", getExperimentKey()), clazz);
+        return getForExperiment(endpoint, Collections.singletonMap(EXPERIMENT_KEY, getExperimentKey()), clazz);
     }
 
-    private <T> T getForExperiment(@NonNull String endpoint, @NonNull Map<String, String> params, Class<T> clazz) {
+    private <T> T getForExperiment(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params, Class<T> clazz) {
         return getConnection().sendGet(endpoint, params)
                 .map(body -> JsonUtils.fromJson(body, clazz))
                 .orElseThrow(() -> new IllegalArgumentException(

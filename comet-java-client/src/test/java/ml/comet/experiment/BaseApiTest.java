@@ -1,6 +1,8 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.utils.ConfigUtils;
+import static ml.comet.experiment.config.CometConfig.COMET_API_KEY;
+import static ml.comet.experiment.config.CometConfig.COMET_PROJECT_NAME;
+import static ml.comet.experiment.config.CometConfig.COMET_WORKSPACE_NAME;
 
 public class BaseApiTest {
     protected static String API_KEY;
@@ -8,9 +10,9 @@ public class BaseApiTest {
     protected static String WORKSPACE_NAME;
 
     static {
-        API_KEY = ConfigUtils.getApiKeyOrThrow();
-        PROJECT_NAME = ConfigUtils.getProjectNameOrThrow();
-        WORKSPACE_NAME = ConfigUtils.getWorkspaceNameOrThrow();
+        API_KEY = COMET_API_KEY.getString();
+        PROJECT_NAME = COMET_PROJECT_NAME.getString();
+        WORKSPACE_NAME = COMET_WORKSPACE_NAME.getString();
     }
 
     public static OnlineExperiment createOnlineExperiment() {
