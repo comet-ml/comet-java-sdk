@@ -5,7 +5,6 @@ import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
 import ml.comet.experiment.impl.config.CometConfig;
-import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.utils.CometUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -29,7 +28,7 @@ public final class ApiExperimentImpl extends BaseExperiment {
     private final String baseUrl;
     private final String experimentKey;
     private final Duration cleaningTimeout;
-    private final Connection connection;
+    private final RestApiClient restApiClient;
     private Logger logger = LoggerFactory.getLogger(ApiExperimentImpl.class);
 
     private ApiExperimentImpl(
@@ -45,8 +44,8 @@ public final class ApiExperimentImpl extends BaseExperiment {
         if (logger != null) {
             this.logger = logger;
         }
-        this.connection = ConnectionInitializer.initConnection(
-                apiKey, this.baseUrl, maxAuthRetries, this.logger);
+        this.restApiClient = new RestApiClient(
+                ConnectionInitializer.initConnection(apiKey, this.baseUrl, maxAuthRetries, this.logger));
 
         CometUtils.printCometSdkVersion();
     }

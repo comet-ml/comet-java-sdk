@@ -9,7 +9,6 @@ import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.exception.ConfigException;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.constants.ApiEndpoints;
-import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.log.StdOutLogger;
 import ml.comet.experiment.impl.utils.CometUtils;
@@ -60,7 +59,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private final Duration cleaningTimeout;
 
     private Logger logger = LoggerFactory.getLogger(OnlineExperimentImpl.class);
-    private Connection connection;
+    private RestApiClient restApiClient;
     private String experimentKey;
     private String experimentLink;
     private String experimentName;
@@ -69,9 +68,12 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
     private boolean interceptStdout;
     private ScheduledFuture<?> heartbeatSendFuture;
 
-    private @Setter long step;
-    private @Setter long epoch;
-    private @Setter String context = "";
+    private @Setter
+    long step;
+    private @Setter
+    long epoch;
+    private @Setter
+    String context = "";
 
     // The flag to indicate if experiment end() was called and experiment shutdown initialized
     private final AtomicBoolean atShutdown = new AtomicBoolean();
@@ -206,7 +208,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
             return;
         }
         OutputUpdate outputUpdate = getLogLineRequest(line, offset, stderr);
-        getConnection().sendPostAsync(outputUpdate, ADD_OUTPUT);
+        restApiClient.getConnection().sendPostAsync(outputUpdate, ADD_OUTPUT);
     }
 
     @Override
@@ -271,7 +273,9 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         CometUtils.printCometSdkVersion();
 
         validateInitialParams();
-        this.connection = ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, maxAuthRetries, this.logger);
+        this.restApiClient = new RestApiClient(
+                ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, maxAuthRetries, this.logger)
+        );
         setupStdOutIntercept();
         registerExperiment();
     }
@@ -313,7 +317,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         CreateExperimentRequest request = new CreateExperimentRequest(workspaceName, projectName, experimentName);
         String body = JsonUtils.toJson(request);
 
-        connection.sendPost(body, ApiEndpoints.NEW_EXPERIMENT, true)
+        restApiClient.getConnection().sendPost(body, ApiEndpoints.NEW_EXPERIMENT, true)
                 .ifPresent(response -> {
                     CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
                     this.experimentKey = result.getExperimentKey();
@@ -345,7 +349,8 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
             return;
         }
         logger.debug("sendHeartbeat");
-        connection.sendGet(ApiEndpoints.EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
+        restApiClient.getConnection().sendGet(
+                ApiEndpoints.EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
     }
 
     private OutputUpdate getLogLineRequest(@NonNull String line, long offset, boolean stderr) {

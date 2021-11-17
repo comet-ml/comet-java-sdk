@@ -64,14 +64,6 @@ public abstract class BaseExperiment implements Experiment {
     protected abstract String getContext();
 
     /**
-     * Returns connection associated with particular experiment. The subclasses must override this method to provide
-     * relevant connection instance.
-     *
-     * @return the initialized connection associated with particular experiment.
-     */
-    protected abstract Connection getConnection();
-
-    /**
      * Returns Comet REST API client. The subclasses must override this method to provide relevant connection instance.
      *
      * @return the initialized instance of the {@link RestApiClient}
@@ -99,7 +91,7 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         MetricRest request = getLogMetricRequest(metricName, metricValue, step, epoch);
-        getConnection().sendPostAsync(request, ADD_METRIC);
+        getRestApiClient().getConnection().sendPostAsync(request, ADD_METRIC);
     }
 
     @Override
@@ -110,7 +102,7 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         ParameterRest request = getLogParameterRequest(parameterName, paramValue, step);
-        getConnection().sendPostAsync(request, ADD_PARAMETER);
+        getRestApiClient().getConnection().sendPostAsync(request, ADD_PARAMETER);
     }
 
     @Override
@@ -121,7 +113,7 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         HtmlRest request = getLogHtmlRequest(html, override);
-        getConnection().sendPostAsync(request, ADD_HTML);
+        getRestApiClient().getConnection().sendPostAsync(request, ADD_HTML);
     }
 
     @Override
@@ -140,7 +132,7 @@ public abstract class BaseExperiment implements Experiment {
             put(OVERWRITE, Boolean.toString(false));
         }};
 
-        getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
+        getRestApiClient().getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to log raw source code with file name {}", fileName, t);
@@ -163,7 +155,7 @@ public abstract class BaseExperiment implements Experiment {
             put(OVERWRITE, Boolean.toString(false));
         }};
 
-        getConnection().sendPostAsync(asset, ADD_ASSET, params)
+        getRestApiClient().getConnection().sendPostAsync(asset, ADD_ASSET, params)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to log source code from file {}", asset, t);
@@ -179,7 +171,7 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         LogOtherRest request = getLogOtherRequest(key, value);
-        getConnection().sendPostAsync(request, ADD_LOG_OTHER);
+        getRestApiClient().getConnection().sendPostAsync(request, ADD_LOG_OTHER);
     }
 
     @Override
@@ -190,7 +182,7 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         AddTagsToExperimentRest request = getTagRequest(tag);
-        getConnection().sendPostAsync(request, ADD_TAG);
+        getRestApiClient().getConnection().sendPostAsync(request, ADD_TAG);
     }
 
     @Override
@@ -201,7 +193,7 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         AddGraphRest request = getGraphRequest(graph);
-        getConnection().sendPostAsync(request, ADD_GRAPH);
+        getRestApiClient().getConnection().sendPostAsync(request, ADD_GRAPH);
     }
 
     @Override
@@ -212,7 +204,7 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         ExperimentTimeRequest request = getLogStartTimeRequest(startTimeMillis);
-        getConnection().sendPostAsync(request, ADD_START_END_TIME);
+        getRestApiClient().getConnection().sendPostAsync(request, ADD_START_END_TIME);
     }
 
     @Override
@@ -223,7 +215,7 @@ public abstract class BaseExperiment implements Experiment {
         validateExperimentKeyPresent();
 
         ExperimentTimeRequest request = getLogEndTimeRequest(endTimeMillis);
-        getConnection().sendPostAsync(request, ADD_START_END_TIME);
+        getRestApiClient().getConnection().sendPostAsync(request, ADD_START_END_TIME);
     }
 
     @Override
@@ -234,7 +226,7 @@ public abstract class BaseExperiment implements Experiment {
         }
         validateExperimentKeyPresent();
 
-        getConnection()
+        getRestApiClient().getConnection()
                 .sendPostAsync(asset, ADD_ASSET, new HashMap<QueryParamName, String>() {{
                     put(EXPERIMENT_KEY, getExperimentKey());
                     put(FILE_NAME, fileName);
@@ -262,7 +254,7 @@ public abstract class BaseExperiment implements Experiment {
         }
         validateExperimentKeyPresent();
 
-        getConnection().sendPostAsync(gitMetadata, ADD_GIT_METADATA);
+        getRestApiClient().getConnection().sendPostAsync(gitMetadata, ADD_GIT_METADATA);
     }
 
     @Override
@@ -440,8 +432,11 @@ public abstract class BaseExperiment implements Experiment {
         getLogger().info("Waiting for all scheduled uploads to complete. It can take up to {} seconds.",
                 cleaningTimeout.getSeconds());
 
+        // close REST API
+        getRestApiClient().dispose();
+
         // close connection
-        Connection connection = this.getConnection();
+        Connection connection = getRestApiClient().getConnection();
         if (connection != null) {
             try {
                 connection.waitAndClose(cleaningTimeout);
