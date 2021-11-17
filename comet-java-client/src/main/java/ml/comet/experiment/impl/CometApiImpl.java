@@ -4,16 +4,12 @@ import lombok.NonNull;
 import ml.comet.experiment.CometApi;
 import ml.comet.experiment.builder.BaseCometBuilder;
 import ml.comet.experiment.builder.CometApiBuilder;
+import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.config.CometConfig;
-import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.utils.CometUtils;
-import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.GetExperimentsResponse;
-import ml.comet.experiment.model.GetProjectsResponse;
-import ml.comet.experiment.model.GetWorkspacesResponse;
 import ml.comet.experiment.model.RestProject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -23,16 +19,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.NoSuchElementException;
 
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
-import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
-import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 
 /**
  * The implementation of the {@link  CometApi}.
@@ -40,12 +31,14 @@ import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 public final class CometApiImpl implements CometApi {
     private Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
     private final Connection connection;
+    private final RestApiClient restApiClient;
 
     CometApiImpl(@NonNull String apiKey, @NonNull String baseUrl, int maxAuthRetries, Logger logger) {
         if (logger != null) {
             this.logger = logger;
         }
         this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, this.logger);
+        this.restApiClient = new RestApiClient(this.connection);
         CometUtils.printCometSdkVersion();
     }
 
@@ -54,8 +47,19 @@ public final class CometApiImpl implements CometApi {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllWorkspaces invoked");
         }
-        GetWorkspacesResponse response = getObject(WORKSPACES, Collections.emptyMap(), GetWorkspacesResponse.class);
-        return response.getWorkspaceNames();
+
+        try {
+            return this.restApiClient
+                    .getAllWorkspaces()
+                    .blockingSingle()
+                    .getWorkspaceNames();
+        } catch (NoSuchElementException ignore) {
+            this.logger.error("No workspaces found for the current user");
+        } catch (Exception ex) {
+            this.logger.error("Failed to read workspaces for the current user", ex);
+            throw ex;
+        }
+        return Collections.emptyList();
     }
 
     @SuppressWarnings("checkstyle:MissingJavadocMethod")
@@ -63,9 +67,18 @@ public final class CometApiImpl implements CometApi {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllProjects invoked");
         }
-        Map<QueryParamName, String> params = Collections.singletonMap(WORKSPACE_NAME, workspaceName);
-        GetProjectsResponse response = getObject(PROJECTS, params, GetProjectsResponse.class);
-        return response.getProjects();
+        try {
+            return this.restApiClient
+                    .getAllProjects(workspaceName)
+                    .blockingSingle()
+                    .getProjects();
+        } catch (NoSuchElementException ignore) {
+            this.logger.error("No projects found in the workspace {}", workspaceName);
+        } catch (Exception ex) {
+            this.logger.error("Failed to read projects in the workspace {}", workspaceName, ex);
+            throw ex;
+        }
+        return Collections.emptyList();
     }
 
     @SuppressWarnings("checkstyle:MissingJavadocMethod")
@@ -73,9 +86,18 @@ public final class CometApiImpl implements CometApi {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllExperiments invoked");
         }
-        Map<QueryParamName, String> params = Collections.singletonMap(PROJECT_ID, projectId);
-        GetExperimentsResponse response = getObject(EXPERIMENTS, params, GetExperimentsResponse.class);
-        return response.getExperiments();
+        try {
+            return this.restApiClient
+                    .getAllExperiments(projectId)
+                    .blockingSingle()
+                    .getExperiments();
+        } catch (NoSuchElementException ignore) {
+            this.logger.error("No experiments found in the project {}", projectId);
+        } catch (Exception ex) {
+            this.logger.error("Failed to read experiments found in the project {}", projectId, ex);
+            throw ex;
+        }
+        return Collections.emptyList();
     }
 
     /**
@@ -98,12 +120,6 @@ public final class CometApiImpl implements CometApi {
      */
     public static CometApiBuilder builder() {
         return new CometApiBuilderImpl();
-    }
-
-    private <T> T getObject(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params, @NonNull Class<T> clazz) {
-        return connection.sendGet(endpoint, params)
-                .map(body -> JsonUtils.fromJson(body, clazz))
-                .orElseThrow(() -> new IllegalArgumentException("Failed to parse endpoint response " + endpoint));
     }
 
     /**

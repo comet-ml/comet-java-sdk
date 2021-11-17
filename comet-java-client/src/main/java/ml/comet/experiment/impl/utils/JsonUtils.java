@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
+/**
+ * Collection of utilities to process JSON-to-object mappings.
+ */
 @UtilityClass
-public class JsonUtils {
+public final class JsonUtils {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
