@@ -4,7 +4,6 @@ import lombok.NonNull;
 import ml.comet.experiment.CometApi;
 import ml.comet.experiment.builder.BaseCometBuilder;
 import ml.comet.experiment.builder.CometApiBuilder;
-import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
@@ -30,15 +29,14 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES
  */
 public final class CometApiImpl implements CometApi {
     private Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
-    private final Connection connection;
     private final RestApiClient restApiClient;
 
     CometApiImpl(@NonNull String apiKey, @NonNull String baseUrl, int maxAuthRetries, Logger logger) {
         if (logger != null) {
             this.logger = logger;
         }
-        this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, this.logger);
-        this.restApiClient = new RestApiClient(this.connection);
+        Connection connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, this.logger);
+        this.restApiClient = new RestApiClient(connection);
         CometUtils.printCometSdkVersion();
     }
 
@@ -107,10 +105,9 @@ public final class CometApiImpl implements CometApi {
      */
     @Override
     public void close() throws IOException {
-        if (this.connection != null) {
-            // no need to wait for asynchronous requests to proceed because this class use only synchronous requests
-            this.connection.close();
-        }
+        this.restApiClient.dispose();
+        // no need to wait for asynchronous requests to proceed because this class use only synchronous requests
+        this.restApiClient.getConnection().close();
     }
 
     /**
