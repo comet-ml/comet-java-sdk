@@ -2,19 +2,12 @@ package ml.comet.experiment.impl;
 
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
-import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.exception.ConfigException;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.constants.ApiEndpoints;
-import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.log.StdOutLogger;
-import ml.comet.experiment.impl.utils.CometUtils;
-import ml.comet.experiment.impl.utils.JsonUtils;
-import ml.comet.experiment.model.CreateExperimentRequest;
-import ml.comet.experiment.model.CreateExperimentResponse;
 import ml.comet.experiment.model.OutputLine;
 import ml.comet.experiment.model.OutputUpdate;
 import org.apache.commons.lang3.StringUtils;
@@ -44,39 +37,42 @@ import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 /**
  * The implementation of the {@link OnlineExperiment} to work with Comet API asynchronously.
  */
-@Getter
-public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
+public final class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
     private static final int SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC = 60;
     private static final int STD_OUT_LOGGER_FLUSH_WAIT_DELAY_MS = 2000;
 
     private final ScheduledExecutorService scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor();
 
-    private final String projectName;
-    private final String workspaceName;
-    private final String apiKey;
-    private final String baseUrl;
-    private final Duration cleaningTimeout;
-
+    @Getter
     private Logger logger = LoggerFactory.getLogger(OnlineExperimentImpl.class);
-    private RestApiClient restApiClient;
-    private String experimentKey;
-    private String experimentLink;
-    private String experimentName;
+
     private StdOutLogger stdOutLogger;
     private StdOutLogger stdErrLogger;
     private boolean interceptStdout;
     private ScheduledFuture<?> heartbeatSendFuture;
 
-    private @Setter
-    long step;
-    private @Setter
-    long epoch;
-    private @Setter
-    String context = "";
-
     // The flag to indicate if experiment end() was called and experiment shutdown initialized
     private final AtomicBoolean atShutdown = new AtomicBoolean();
+
+    /**
+     * Default constructor which reads all configuration parameters of the experiment either from configuration file
+     * or from environment variables.
+     *
+     * @throws ConfigException If the Comet API key, project name, and workspace are missing from the configuration
+     *                         source or wrong types of the values defined.
+     */
+    public OnlineExperimentImpl() throws ConfigException {
+        super(COMET_API_KEY.getString(),
+                COMET_BASE_URL.getString(),
+                COMET_MAX_AUTH_RETRIES.getInt(),
+                StringUtils.EMPTY,
+                COMET_TIMEOUT_CLEANING_SECONDS.getDuration(),
+                COMET_PROJECT_NAME.getString(),
+                COMET_WORKSPACE_NAME.getString()
+        );
+        this.init();
+    }
 
     private OnlineExperimentImpl(
             String apiKey,
@@ -89,34 +85,14 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
             String baseUrl,
             int maxAuthRetries,
             Duration cleaningTimeout) {
-        this.projectName = projectName;
-        this.workspaceName = workspaceName;
-        this.apiKey = apiKey;
+        super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, projectName, workspaceName);
+
         this.experimentName = experimentName;
-        this.experimentKey = experimentKey;
         this.interceptStdout = interceptStdout;
         if (logger != null) {
             this.logger = logger;
         }
-        this.baseUrl = baseUrl;
-        this.cleaningTimeout = cleaningTimeout;
-        this.initializeExperiment(maxAuthRetries);
-    }
-
-    /**
-     * Default constructor which reads all configuration parameters of the experiment either from configuration file
-     * or from environment variables.
-     *
-     * @throws ConfigException If the Comet API key, project name, and workspace are missing from the configuration
-     *                         source or wrong types of the values defined.
-     */
-    public OnlineExperimentImpl() throws ConfigException {
-        this.apiKey = COMET_API_KEY.getString();
-        this.projectName = COMET_PROJECT_NAME.getString();
-        this.workspaceName = COMET_WORKSPACE_NAME.getString();
-        this.baseUrl = COMET_BASE_URL.getString();
-        this.cleaningTimeout = COMET_TIMEOUT_CLEANING_SECONDS.getDuration();
-        this.initializeExperiment(COMET_MAX_AUTH_RETRIES.getInt());
+        this.init();
     }
 
     /**
@@ -163,7 +139,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         }
 
         // invoke end of the superclass for common cleanup routines with given timeout
-        super.end(this.cleaningTimeout);
+        super.end();
     }
 
     @Override
@@ -185,21 +161,6 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
             this.stopStdOutLogger(this.stdErrLogger, 0);
             this.stdErrLogger = null;
         }
-    }
-
-    private void stopStdOutLogger(@NonNull StdOutLogger stdOutLogger, long delay) throws IOException {
-        // flush first
-        stdOutLogger.flush();
-
-        // wait a bit for changes to propagate
-        try {
-            Thread.sleep(delay);
-        } catch (InterruptedException e) {
-            this.logger.warn("interrupted while waiting for stdlogger to flush", e);
-        }
-
-        // close after that
-        stdOutLogger.close();
     }
 
     @Override
@@ -269,30 +230,15 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         super.uploadAsset(asset, fileName, overwrite, this.step, this.epoch);
     }
 
-    private void initializeExperiment(int maxAuthRetries) {
-        CometUtils.printCometSdkVersion();
+    @Override
+    void init() {
+        super.init();
 
-        validateInitialParams();
-        this.restApiClient = new RestApiClient(
-                ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, maxAuthRetries, this.logger)
-        );
         setupStdOutIntercept();
         registerExperiment();
-    }
 
-    private void validateInitialParams() {
-        if (StringUtils.isEmpty(apiKey)) {
-            throw new IllegalArgumentException("Apikey is not specified!");
-        }
-        if (StringUtils.isNotEmpty(experimentKey)) {
-            return;
-        }
-        if (StringUtils.isEmpty(projectName)) {
-            throw new IllegalArgumentException("ProjectName is not specified!");
-        }
-        if (StringUtils.isEmpty(workspaceName)) {
-            throw new IllegalArgumentException("Workspace name is not specified!");
-        }
+        this.heartbeatSendFuture = this.scheduledExecutorService.scheduleAtFixedRate(
+                new OnlineExperimentImpl.HeartbeatPing(this), 1, 3, TimeUnit.SECONDS);
     }
 
     private void setupStdOutIntercept() {
@@ -305,37 +251,19 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         }
     }
 
-    /**
-     * Registers experiment at the Comet server.
-     */
-    private void registerExperiment() {
-        if (experimentKey != null) {
-            logger.debug("Not registering a new experiment. Using previous experiment key {}", experimentKey);
-            return;
+    private void stopStdOutLogger(@NonNull StdOutLogger stdOutLogger, long delay) throws IOException {
+        // flush first
+        stdOutLogger.flush();
+
+        // wait a bit for changes to propagate
+        try {
+            Thread.sleep(delay);
+        } catch (InterruptedException e) {
+            this.logger.warn("interrupted while waiting for StdLogger to flush", e);
         }
 
-        CreateExperimentRequest request = new CreateExperimentRequest(workspaceName, projectName, experimentName);
-        String body = JsonUtils.toJson(request);
-
-        restApiClient.getConnection().sendPost(body, ApiEndpoints.NEW_EXPERIMENT, true)
-                .ifPresent(response -> {
-                    CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
-                    this.experimentKey = result.getExperimentKey();
-                    this.experimentLink = result.getLink();
-
-                    this.logger.info("Experiment is live on comet.ml " + getExperimentUrl());
-
-                    this.heartbeatSendFuture = this.scheduledExecutorService.scheduleAtFixedRate(
-                            new HeartbeatPing(this), 1, 3, TimeUnit.SECONDS);
-                });
-
-        if (this.experimentKey == null) {
-            throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
-        }
-    }
-
-    private String getExperimentUrl() {
-        return experimentLink != null ? experimentLink : StringUtils.EMPTY;
+        // close after that
+        stdOutLogger.close();
     }
 
     // Internal OnlineExperiment Logic Methods
@@ -344,7 +272,7 @@ public class OnlineExperimentImpl extends BaseExperiment implements OnlineExperi
         stdErrLogger = StdOutLogger.createStderrLogger(this);
     }
 
-    protected void sendHeartbeat() {
+    private void sendHeartbeat() {
         if (experimentKey == null || this.atShutdown.get()) {
             return;
         }

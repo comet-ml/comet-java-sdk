@@ -1,14 +1,22 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Single;
+import lombok.Getter;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import ml.comet.experiment.Experiment;
+import ml.comet.experiment.exception.CometGeneralException;
+import ml.comet.experiment.impl.constants.ApiEndpoints;
 import ml.comet.experiment.impl.constants.AssetType;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
+import ml.comet.experiment.impl.http.ConnectionInitializer;
+import ml.comet.experiment.impl.utils.CometUtils;
+import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.model.AddGraphRest;
 import ml.comet.experiment.model.AddTagsToExperimentRest;
+import ml.comet.experiment.model.CreateExperimentRequest;
+import ml.comet.experiment.model.CreateExperimentResponse;
 import ml.comet.experiment.model.CreateGitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -19,6 +27,7 @@ import ml.comet.experiment.model.LogOtherRest;
 import ml.comet.experiment.model.MetricRest;
 import ml.comet.experiment.model.ParameterRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -48,27 +57,32 @@ import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 
-
 /**
  * The base class for all experiment implementations providing implementation of common routines.
  */
-@RequiredArgsConstructor
 public abstract class BaseExperiment implements Experiment {
+    final String apiKey;
+    final String baseUrl;
+    final int maxAuthRetries;
+    final Duration cleaningTimeout;
+    RestApiClient restApiClient;
 
-    /**
-     * Gets the current context as recorded in the Experiment object locally.
-     *
-     * @return the current context which associated with log records of this experiment.
-     * TODO: 03.11.2021 this can be made Optional
-     */
-    protected abstract String getContext();
+    final String projectName;
+    final String workspaceName;
+    String experimentKey;
+    String experimentLink;
+    String experimentName;
+    boolean initialized;
 
-    /**
-     * Returns Comet REST API client. The subclasses must override this method to provide relevant connection instance.
-     *
-     * @return the initialized instance of the {@link RestApiClient}
-     */
-    protected abstract RestApiClient getRestApiClient();
+    @Getter
+    @Setter
+    String context = StringUtils.EMPTY;
+    @Setter
+    @Getter
+    long step;
+    @Setter
+    @Getter
+    long epoch;
 
     /**
      * Returns logger instance associated with particular experiment. The subclasses should override this method to
@@ -78,9 +92,108 @@ public abstract class BaseExperiment implements Experiment {
      */
     protected abstract Logger getLogger();
 
+    BaseExperiment(final String apiKey,
+                   final String baseUrl,
+                   int maxAuthRetries,
+                   final String experimentKey,
+                   final Duration cleaningTimeout) {
+        this(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, StringUtils.EMPTY, StringUtils.EMPTY);
+    }
+
+    BaseExperiment(final String apiKey,
+                   final String baseUrl,
+                   int maxAuthRetries,
+                   final String experimentKey,
+                   final Duration cleaningTimeout,
+                   final String projectName,
+                   final String workspaceName) {
+        this.apiKey = apiKey;
+        this.baseUrl = baseUrl;
+        this.maxAuthRetries = maxAuthRetries;
+        this.experimentKey = experimentKey;
+        this.cleaningTimeout = cleaningTimeout;
+        this.projectName = projectName;
+        this.workspaceName = workspaceName;
+    }
+
+    /**
+     * Invoked to validate and initialize common fields used by all subclasses.
+     */
+    void init() {
+        CometUtils.printCometSdkVersion();
+        validateInitialParams();
+        this.restApiClient = new RestApiClient(
+                ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, this.maxAuthRetries, this.getLogger())
+        );
+        // mark as initialized
+        this.initialized = true;
+    }
+
+    private void validateInitialParams() {
+        if (StringUtils.isEmpty(apiKey)) {
+            throw new IllegalArgumentException("API key is not specified!");
+        }
+        if (StringUtils.isNotEmpty(experimentKey)) {
+            return;
+        }
+        if (StringUtils.isEmpty(projectName)) {
+            throw new IllegalArgumentException("ProjectName is not specified!");
+        }
+        if (StringUtils.isEmpty(workspaceName)) {
+            throw new IllegalArgumentException("Workspace name is not specified!");
+        }
+    }
+
+    /**
+     * Registers experiment at the Comet server.
+     */
+    void registerExperiment() {
+        if (experimentKey != null) {
+            getLogger().debug("Not registering a new experiment. Using previous experiment key {}", experimentKey);
+            return;
+        }
+
+        CreateExperimentRequest request = new CreateExperimentRequest(workspaceName, projectName, getExperimentName());
+        String body = JsonUtils.toJson(request);
+
+        restApiClient.getConnection().sendPost(body, ApiEndpoints.NEW_EXPERIMENT, true)
+                .ifPresent(response -> {
+                    CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
+                    this.experimentKey = result.getExperimentKey();
+                    this.experimentLink = result.getLink();
+
+                    getLogger().info("Experiment is live on comet.ml " + this.experimentLink);
+                });
+
+        if (this.experimentKey == null) {
+            throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
+        }
+    }
+
+    @Override
+    public String getExperimentKey() {
+        return this.experimentKey;
+    }
+
+    @Override
+    public String getProjectName() {
+        return this.projectName;
+    }
+
+    @Override
+    public String getWorkspaceName() {
+        return this.workspaceName;
+    }
+
+    @Override
+    public String getExperimentName() {
+        return this.experimentName;
+    }
+
     @Override
     public void setExperimentName(@NonNull String experimentName) {
         logOther("Name", experimentName);
+        this.experimentName = experimentName;
     }
 
     @Override
@@ -88,10 +201,10 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logMetric {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
         }
-        validateExperimentKeyPresent();
+        validate();
 
         MetricRest request = getLogMetricRequest(metricName, metricValue, step, epoch);
-        getRestApiClient().getConnection().sendPostAsync(request, ADD_METRIC);
+        restApiClient.getConnection().sendPostAsync(request, ADD_METRIC);
     }
 
     @Override
@@ -99,10 +212,10 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logParameter {} = {}, step: {}", parameterName, paramValue, step);
         }
-        validateExperimentKeyPresent();
+        validate();
 
         ParameterRest request = getLogParameterRequest(parameterName, paramValue, step);
-        getRestApiClient().getConnection().sendPostAsync(request, ADD_PARAMETER);
+        restApiClient.getConnection().sendPostAsync(request, ADD_PARAMETER);
     }
 
     @Override
@@ -110,10 +223,10 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logHtml {}, override: {}", html, override);
         }
-        validateExperimentKeyPresent();
+        validate();
 
         HtmlRest request = getLogHtmlRequest(html, override);
-        getRestApiClient().getConnection().sendPostAsync(request, ADD_HTML);
+        restApiClient.getConnection().sendPostAsync(request, ADD_HTML);
     }
 
     @Override
@@ -122,7 +235,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("log raw source code, file name: {}", fileName);
         }
 
-        validateExperimentKeyPresent();
+        validate();
 
         Map<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
             put(EXPERIMENT_KEY, getExperimentKey());
@@ -132,7 +245,7 @@ public abstract class BaseExperiment implements Experiment {
             put(OVERWRITE, Boolean.toString(false));
         }};
 
-        getRestApiClient().getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
+        restApiClient.getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to log raw source code with file name {}", fileName, t);
@@ -145,7 +258,7 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("log source code from file {}", asset.getName());
         }
-        validateExperimentKeyPresent();
+        validate();
 
         Map<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
             put(EXPERIMENT_KEY, getExperimentKey());
@@ -155,7 +268,7 @@ public abstract class BaseExperiment implements Experiment {
             put(OVERWRITE, Boolean.toString(false));
         }};
 
-        getRestApiClient().getConnection().sendPostAsync(asset, ADD_ASSET, params)
+        restApiClient.getConnection().sendPostAsync(asset, ADD_ASSET, params)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to log source code from file {}", asset, t);
@@ -168,10 +281,10 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logOther {} {}", key, value);
         }
-        validateExperimentKeyPresent();
+        validate();
 
         LogOtherRest request = getLogOtherRequest(key, value);
-        getRestApiClient().getConnection().sendPostAsync(request, ADD_LOG_OTHER);
+        restApiClient.getConnection().sendPostAsync(request, ADD_LOG_OTHER);
     }
 
     @Override
@@ -179,10 +292,10 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logTag {}", tag);
         }
-        validateExperimentKeyPresent();
+        validate();
 
         AddTagsToExperimentRest request = getTagRequest(tag);
-        getRestApiClient().getConnection().sendPostAsync(request, ADD_TAG);
+        restApiClient.getConnection().sendPostAsync(request, ADD_TAG);
     }
 
     @Override
@@ -190,10 +303,10 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logOther {}", graph);
         }
-        validateExperimentKeyPresent();
+        validate();
 
         AddGraphRest request = getGraphRequest(graph);
-        getRestApiClient().getConnection().sendPostAsync(request, ADD_GRAPH);
+        restApiClient.getConnection().sendPostAsync(request, ADD_GRAPH);
     }
 
     @Override
@@ -201,10 +314,10 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logStartTime {}", startTimeMillis);
         }
-        validateExperimentKeyPresent();
+        validate();
 
         ExperimentTimeRequest request = getLogStartTimeRequest(startTimeMillis);
-        getRestApiClient().getConnection().sendPostAsync(request, ADD_START_END_TIME);
+        restApiClient.getConnection().sendPostAsync(request, ADD_START_END_TIME);
     }
 
     @Override
@@ -212,10 +325,10 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logEndTime {}", endTimeMillis);
         }
-        validateExperimentKeyPresent();
+        validate();
 
         ExperimentTimeRequest request = getLogEndTimeRequest(endTimeMillis);
-        getRestApiClient().getConnection().sendPostAsync(request, ADD_START_END_TIME);
+        restApiClient.getConnection().sendPostAsync(request, ADD_START_END_TIME);
     }
 
     @Override
@@ -224,9 +337,9 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("uploadAsset from file {}, name {}, override {}, step {}, epoch {}",
                     asset.getName(), fileName, overwrite, step, epoch);
         }
-        validateExperimentKeyPresent();
+        validate();
 
-        getRestApiClient().getConnection()
+        restApiClient.getConnection()
                 .sendPostAsync(asset, ADD_ASSET, new HashMap<QueryParamName, String>() {{
                     put(EXPERIMENT_KEY, getExperimentKey());
                     put(FILE_NAME, fileName);
@@ -252,9 +365,9 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("gitMetadata {}", gitMetadata);
         }
-        validateExperimentKeyPresent();
+        validate();
 
-        getRestApiClient().getConnection().sendPostAsync(gitMetadata, ADD_GIT_METADATA);
+        restApiClient.getConnection().sendPostAsync(gitMetadata, ADD_GIT_METADATA);
     }
 
     @Override
@@ -264,7 +377,7 @@ public abstract class BaseExperiment implements Experiment {
         }
         try {
             return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> getRestApiClient().getMetadata(experimentKey))
+                    .concatMap(experimentKey -> restApiClient.getMetadata(experimentKey))
                     .blockingGet();
         } catch (Exception ex) {
             getLogger().error("Failed to read experiment's metadata, experiment key: {}", getExperimentKey(), ex);
@@ -280,7 +393,7 @@ public abstract class BaseExperiment implements Experiment {
 
         try {
             return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> getRestApiClient().getGitMetadata(experimentKey))
+                    .concatMap(experimentKey -> restApiClient.getGitMetadata(experimentKey))
                     .blockingGet();
         } catch (Exception ex) {
             getLogger().error("Failed to read experiment's Git metadata, experiment key: {}", getExperimentKey(), ex);
@@ -296,7 +409,7 @@ public abstract class BaseExperiment implements Experiment {
         try {
             return Optional.ofNullable(
                     validateAndGetExperimentKey()
-                            .concatMap(experimentKey -> getRestApiClient().getHtml(experimentKey))
+                            .concatMap(experimentKey -> restApiClient.getHtml(experimentKey))
                             .blockingGet()
                             .getHtml());
         } catch (Exception ex) {
@@ -314,7 +427,7 @@ public abstract class BaseExperiment implements Experiment {
         try {
             return Optional.ofNullable(
                     validateAndGetExperimentKey()
-                            .concatMap(experimentKey -> getRestApiClient().getOutput(experimentKey))
+                            .concatMap(experimentKey -> restApiClient.getOutput(experimentKey))
                             .blockingGet()
                             .getOutput());
         } catch (Exception ex) {
@@ -332,7 +445,7 @@ public abstract class BaseExperiment implements Experiment {
         try {
             return Optional.ofNullable(
                     validateAndGetExperimentKey()
-                            .concatMap(experimentKey -> getRestApiClient().getGraph(experimentKey))
+                            .concatMap(experimentKey -> restApiClient.getGraph(experimentKey))
                             .blockingGet()
                             .getGraph());
         } catch (Exception ex) {
@@ -349,7 +462,7 @@ public abstract class BaseExperiment implements Experiment {
 
         try {
             return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> getRestApiClient().getParameters(experimentKey))
+                    .concatMap(experimentKey -> restApiClient.getParameters(experimentKey))
                     .blockingGet()
                     .getValues();
         } catch (Exception ex) {
@@ -367,7 +480,7 @@ public abstract class BaseExperiment implements Experiment {
 
         try {
             return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> getRestApiClient().getMetrics(experimentKey))
+                    .concatMap(experimentKey -> restApiClient.getMetrics(experimentKey))
                     .blockingGet()
                     .getValues();
         } catch (Exception ex) {
@@ -384,7 +497,7 @@ public abstract class BaseExperiment implements Experiment {
 
         try {
             return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> getRestApiClient().getLogOther(experimentKey))
+                    .concatMap(experimentKey -> restApiClient.getLogOther(experimentKey))
                     .blockingGet()
                     .getValues();
         } catch (Exception ex) {
@@ -402,7 +515,7 @@ public abstract class BaseExperiment implements Experiment {
 
         try {
             return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> getRestApiClient().getTags(experimentKey))
+                    .concatMap(experimentKey -> restApiClient.getTags(experimentKey))
                     .blockingGet()
                     .getTags();
         } catch (Exception ex) {
@@ -419,7 +532,7 @@ public abstract class BaseExperiment implements Experiment {
 
         try {
             return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> getRestApiClient().getAssetList(experimentKey, type))
+                    .concatMap(experimentKey -> restApiClient.getAssetList(experimentKey, type))
                     .blockingGet()
                     .getAssets();
         } catch (Exception ex) {
@@ -428,18 +541,19 @@ public abstract class BaseExperiment implements Experiment {
         }
     }
 
-    void end(Duration cleaningTimeout) {
+    @Override
+    public void end() {
         getLogger().info("Waiting for all scheduled uploads to complete. It can take up to {} seconds.",
                 cleaningTimeout.getSeconds());
 
         // close REST API
-        getRestApiClient().dispose();
+        restApiClient.dispose();
 
         // close connection
-        Connection connection = getRestApiClient().getConnection();
+        Connection connection = restApiClient.getConnection();
         if (connection != null) {
             try {
-                connection.waitAndClose(cleaningTimeout);
+                connection.waitAndClose(this.cleaningTimeout);
             } catch (Exception e) {
                 getLogger().error("failed to close connection", e);
             }
@@ -450,15 +564,21 @@ public abstract class BaseExperiment implements Experiment {
         return val.toString();
     }
 
-    private void validateExperimentKeyPresent() {
+    private void validate() {
         if (getExperimentKey() == null) {
             throw new IllegalStateException("Experiment key must be present!");
+        }
+        if (!this.initialized) {
+            throw new IllegalStateException("Experiment was not initialized. You need to call init().");
         }
     }
 
     private Single<String> validateAndGetExperimentKey() {
         if (getExperimentKey() == null) {
             return Single.error(new IllegalStateException("Experiment key must be present!"));
+        }
+        if (!this.initialized) {
+            return Single.error(new IllegalStateException("Experiment was not initialized. You need to call init()."));
         }
         return Single.just(getExperimentKey());
     }

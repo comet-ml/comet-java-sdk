@@ -5,7 +5,6 @@ import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
 import ml.comet.experiment.impl.config.CometConfig;
-import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.utils.CometUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -21,33 +20,31 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES
 import static ml.comet.experiment.impl.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
 
 /**
- * <p>Implementation of the {@link Experiment} that allows to read/update existing experiment synchronously.</p>
+ * Implementation of the {@link Experiment} that allows to read/update existing experiment synchronously.
  */
-@Getter
 public final class ApiExperimentImpl extends BaseExperiment {
-    private final String baseUrl;
-    private final String experimentKey;
-    private final Duration cleaningTimeout;
-    private final RestApiClient restApiClient;
+    @Getter
     private Logger logger = LoggerFactory.getLogger(ApiExperimentImpl.class);
 
     private ApiExperimentImpl(
             final String apiKey,
-            final String anExperimentKey,
+            final String experimentKey,
             final Logger logger,
             final String baseUrl,
-            final int maxAuthRetries,
-            Duration cleaningTimeout) {
-        this.experimentKey = anExperimentKey;
-        this.baseUrl = baseUrl;
-        this.cleaningTimeout = cleaningTimeout;
+            int maxAuthRetries,
+            final Duration cleaningTimeout) {
+        super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout);
         if (logger != null) {
             this.logger = logger;
         }
-        this.restApiClient = new RestApiClient(
-                ConnectionInitializer.initConnection(apiKey, this.baseUrl, maxAuthRetries, this.logger));
 
-        CometUtils.printCometSdkVersion();
+        // initialize this experiment
+        this.init();
+    }
+
+    @Override
+    void init() {
+        super.init();
     }
 
     /**
@@ -58,11 +55,6 @@ public final class ApiExperimentImpl extends BaseExperiment {
      */
     public static ApiExperimentImpl.ApiExperimentBuilderImpl builder(@NonNull final String experimentKey) {
         return new ApiExperimentImpl.ApiExperimentBuilderImpl(experimentKey);
-    }
-
-    @Override
-    public String getContext() {
-        return StringUtils.EMPTY;
     }
 
     @Override
@@ -78,12 +70,6 @@ public final class ApiExperimentImpl extends BaseExperiment {
     @Override
     public String getExperimentName() {
         return getMetadata().getExperimentName();
-    }
-
-    @Override
-    public void end() {
-        // invoke end of the superclass for common cleanup routines with given timeout
-        super.end(this.cleaningTimeout);
     }
 
     @Override
