@@ -16,9 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
@@ -47,18 +45,10 @@ public final class CometApiImpl implements CometApi {
             this.logger.debug("getAllWorkspaces invoked");
         }
 
-        try {
-            return this.restApiClient
-                    .getAllWorkspaces()
-                    .blockingSingle()
-                    .getWorkspaceNames();
-        } catch (NoSuchElementException ignore) {
-            this.logger.error("No workspaces found for the current user");
-        } catch (Exception ex) {
-            this.logger.error("Failed to read workspaces for the current user", ex);
-            throw ex;
-        }
-        return Collections.emptyList();
+        return restApiClient.getAllWorkspaces()
+                .doOnError(ex -> this.logger.error("Failed to read workspaces for the current user", ex))
+                .blockingGet()
+                .getWorkspaceNames();
     }
 
     @SuppressWarnings("checkstyle:MissingJavadocMethod")
@@ -66,18 +56,11 @@ public final class CometApiImpl implements CometApi {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllProjects invoked");
         }
-        try {
-            return this.restApiClient
-                    .getAllProjects(workspaceName)
-                    .blockingSingle()
-                    .getProjects();
-        } catch (NoSuchElementException ignore) {
-            this.logger.error("No projects found in the workspace {}", workspaceName);
-        } catch (Exception ex) {
-            this.logger.error("Failed to read projects in the workspace {}", workspaceName, ex);
-            throw ex;
-        }
-        return Collections.emptyList();
+
+        return restApiClient.getAllProjects(workspaceName)
+                .doOnError(ex -> this.logger.error("Failed to read projects in the workspace {}", workspaceName, ex))
+                .blockingGet()
+                .getProjects();
     }
 
     @SuppressWarnings("checkstyle:MissingJavadocMethod")
@@ -85,18 +68,11 @@ public final class CometApiImpl implements CometApi {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllExperiments invoked");
         }
-        try {
-            return this.restApiClient
-                    .getAllExperiments(projectId)
-                    .blockingSingle()
-                    .getExperiments();
-        } catch (NoSuchElementException ignore) {
-            this.logger.error("No experiments found in the project {}", projectId);
-        } catch (Exception ex) {
-            this.logger.error("Failed to read experiments found in the project {}", projectId, ex);
-            throw ex;
-        }
-        return Collections.emptyList();
+
+        return restApiClient.getAllExperiments(projectId)
+                .doOnError(ex -> this.logger.error("Failed to read experiments found in the project {}", projectId, ex))
+                .blockingGet()
+                .getExperiments();
     }
 
     /**

@@ -1,6 +1,5 @@
 package ml.comet.experiment.impl;
 
-import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
@@ -10,6 +9,7 @@ import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.model.ExperimentAssetListResponse;
 import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.GetExperimentsResponse;
 import ml.comet.experiment.model.GetGraphResponse;
 import ml.comet.experiment.model.GetHtmlResponse;
@@ -18,7 +18,6 @@ import ml.comet.experiment.model.GetProjectsResponse;
 import ml.comet.experiment.model.GetWorkspacesResponse;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.MinMaxResponse;
-import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.TagsResponse;
 
 import java.util.Collections;
@@ -56,17 +55,17 @@ final class RestApiClient implements Disposable {
         this.connection = connection;
     }
 
-    Observable<GetWorkspacesResponse> getAllWorkspaces() {
-        return fromOptionalGetResponse(WORKSPACES, Collections.emptyMap(), GetWorkspacesResponse.class);
+    Single<GetWorkspacesResponse> getAllWorkspaces() {
+        return singleGetResponse(WORKSPACES, Collections.emptyMap(), GetWorkspacesResponse.class);
     }
 
-    Observable<GetProjectsResponse> getAllProjects(String workspaceName) {
-        return fromOptionalGetResponse(
+    Single<GetProjectsResponse> getAllProjects(String workspaceName) {
+        return singleGetResponse(
                 PROJECTS, Collections.singletonMap(WORKSPACE_NAME, workspaceName), GetProjectsResponse.class);
     }
 
-    Observable<GetExperimentsResponse> getAllExperiments(String projectId) {
-        return fromOptionalGetResponse(
+    Single<GetExperimentsResponse> getAllExperiments(String projectId) {
+        return singleGetResponse(
                 EXPERIMENTS, Collections.singletonMap(PROJECT_ID, projectId), GetExperimentsResponse.class);
     }
 
@@ -134,16 +133,6 @@ final class RestApiClient implements Disposable {
                 .map(Single::just)
                 .orElse(Single.error(new IllegalStateException(
                         String.format("No response was returned by endpoint %s", endpoint))));
-    }
-
-
-    private <T> Observable<T> fromOptionalGetResponse(@NonNull String endpoint,
-                                                      @NonNull Map<QueryParamName, String> params,
-                                                      @NonNull Class<T> clazz) {
-        if (isDisposed()) {
-            return Observable.empty();
-        }
-        return Observable.fromOptional(optionalGetRestObject(endpoint, params, clazz));
     }
 
     private <T> Optional<T> optionalGetRestObject(@NonNull String endpoint,
