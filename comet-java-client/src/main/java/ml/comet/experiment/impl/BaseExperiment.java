@@ -25,6 +25,8 @@ import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.HtmlRest;
 import ml.comet.experiment.model.LogOtherRest;
 import ml.comet.experiment.model.MetricRest;
+import ml.comet.experiment.model.OutputLine;
+import ml.comet.experiment.model.OutputUpdate;
 import ml.comet.experiment.model.ParameterRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
 import org.apache.commons.lang3.StringUtils;
@@ -45,6 +47,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_HTML;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
@@ -66,11 +69,11 @@ public abstract class BaseExperiment implements Experiment {
     final int maxAuthRetries;
     final Duration cleaningTimeout;
 
-    RestApiClient restApiClient;
+    private RestApiClient restApiClient;
     private Connection connection;
 
-    final String projectName;
-    final String workspaceName;
+    String projectName;
+    String workspaceName;
     String experimentKey;
     String experimentLink;
     String experimentName;
@@ -78,7 +81,7 @@ public abstract class BaseExperiment implements Experiment {
 
     @Getter
     @Setter
-    String context = StringUtils.EMPTY;
+    private String context = StringUtils.EMPTY;
     @Setter
     @Getter
     long step;
@@ -225,6 +228,14 @@ public abstract class BaseExperiment implements Experiment {
 
         ParameterRest request = getLogParameterRequest(parameterName, paramValue, step);
         this.connection.sendPostAsync(request, ADD_PARAMETER);
+    }
+
+    @Override
+    public void logLine(String line, long offset, boolean stderr) {
+        validate();
+
+        OutputUpdate outputUpdate = getLogLineRequest(line, offset, stderr);
+        this.connection.sendPostAsync(outputUpdate, ADD_OUTPUT);
     }
 
     @Override
@@ -382,14 +393,14 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public ExperimentMetadataRest getMetadata() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get metadata for experiment {}", getExperimentKey());
+            getLogger().debug("get metadata for experiment {}", this.experimentKey);
         }
         try {
             return validateAndGetExperimentKey()
                     .concatMap(experimentKey -> restApiClient.getMetadata(experimentKey))
                     .blockingGet();
         } catch (Exception ex) {
-            getLogger().error("Failed to read experiment's metadata, experiment key: {}", getExperimentKey(), ex);
+            getLogger().error("Failed to read experiment's metadata, experiment key: {}", this.experimentKey, ex);
             throw ex;
         }
     }
@@ -397,157 +408,126 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public GitMetadataRest getGitMetadata() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get git metadata for experiment {}", getExperimentKey());
+            getLogger().debug("get git metadata for experiment {}", this.experimentKey);
         }
 
-        try {
-            return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> restApiClient.getGitMetadata(experimentKey))
-                    .blockingGet();
-        } catch (Exception ex) {
-            getLogger().error("Failed to read experiment's Git metadata, experiment key: {}", getExperimentKey(), ex);
-            throw ex;
-        }
+        return validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getGitMetadata(experimentKey))
+                .doOnError(ex -> getLogger().error("Failed to read experiment's Git metadata, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet();
     }
 
     @Override
     public Optional<String> getHtml() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get html for experiment {}", getExperimentKey());
+            getLogger().debug("get html for experiment {}", this.experimentKey);
         }
-        try {
-            return Optional.ofNullable(
-                    validateAndGetExperimentKey()
-                            .concatMap(experimentKey -> restApiClient.getHtml(experimentKey))
-                            .blockingGet()
-                            .getHtml());
-        } catch (Exception ex) {
-            getLogger().error("Failed to read HTML for the experiment, experiment key: {}", getExperimentKey(), ex);
-            throw ex;
-        }
+        return Optional.ofNullable(validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getHtml(experimentKey))
+                .doOnError(ex -> getLogger().error("Failed to read HTML for the experiment, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet()
+                .getHtml());
     }
 
     @Override
     public Optional<String> getOutput() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get output for experiment {}", getExperimentKey());
+            getLogger().debug("get output for experiment {}", this.experimentKey);
         }
 
-        try {
-            return Optional.ofNullable(
-                    validateAndGetExperimentKey()
-                            .concatMap(experimentKey -> restApiClient.getOutput(experimentKey))
-                            .blockingGet()
-                            .getOutput());
-        } catch (Exception ex) {
-            getLogger().error("Failed to read StdOut for the experiment, experiment key: {}", getExperimentKey(), ex);
-            throw ex;
-        }
+        return Optional.ofNullable(validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getOutput(experimentKey))
+                .doOnError(ex -> getLogger().error("Failed to read StdOut for the experiment, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet()
+                .getOutput());
     }
 
     @Override
     public Optional<String> getGraph() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get graph for experiment {}", getExperimentKey());
+            getLogger().debug("get graph for experiment {}", this.experimentKey);
         }
 
-        try {
-            return Optional.ofNullable(
-                    validateAndGetExperimentKey()
-                            .concatMap(experimentKey -> restApiClient.getGraph(experimentKey))
-                            .blockingGet()
-                            .getGraph());
-        } catch (Exception ex) {
-            getLogger().error("Failed to read Graph for the experiment, experiment key: {}", getExperimentKey(), ex);
-            throw ex;
-        }
+        return Optional.ofNullable(validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getGraph(experimentKey))
+                .doOnError(ex -> getLogger().error("Failed to read Graph for the experiment, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet()
+                .getGraph());
     }
 
     @Override
     public List<ValueMinMaxDto> getParameters() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get params for experiment {}", getExperimentKey());
+            getLogger().debug("get params for experiment {}", this.experimentKey);
         }
 
-        try {
-            return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> restApiClient.getParameters(experimentKey))
-                    .blockingGet()
-                    .getValues();
-        } catch (Exception ex) {
-            getLogger().error("Failed to read parameters for the experiment, experiment key: {}",
-                    getExperimentKey(), ex);
-            throw ex;
-        }
+        return validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getParameters(experimentKey))
+                .doOnError(ex -> getLogger().error("Failed to read parameters for the experiment, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet()
+                .getValues();
     }
 
     @Override
     public List<ValueMinMaxDto> getMetrics() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get metrics summary for experiment {}", getExperimentKey());
+            getLogger().debug("get metrics summary for experiment {}", this.experimentKey);
         }
 
-        try {
-            return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> restApiClient.getMetrics(experimentKey))
-                    .blockingGet()
-                    .getValues();
-        } catch (Exception ex) {
-            getLogger().error("Failed to read metrics for the experiment, experiment key: {}", getExperimentKey(), ex);
-            throw ex;
-        }
+        return validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getMetrics(experimentKey))
+                .doOnError(ex -> getLogger().error("Failed to read metrics for the experiment, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet()
+                .getValues();
     }
 
     @Override
     public List<ValueMinMaxDto> getLogOther() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get log other for experiment {}", getExperimentKey());
+            getLogger().debug("get log other for experiment {}", this.experimentKey);
         }
 
-        try {
-            return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> restApiClient.getLogOther(experimentKey))
-                    .blockingGet()
-                    .getValues();
-        } catch (Exception ex) {
-            getLogger().error("Failed to read other parameters for the experiment, experiment key: {}",
-                    getExperimentKey(), ex);
-            throw ex;
-        }
+        return validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getLogOther(experimentKey))
+                .doOnError(ex -> getLogger().error(
+                        "Failed to read other parameters for the experiment, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet()
+                .getValues();
     }
 
     @Override
     public List<String> getTags() {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get tags for experiment {}", getExperimentKey());
+            getLogger().debug("get tags for experiment {}", this.experimentKey);
         }
 
-        try {
-            return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> restApiClient.getTags(experimentKey))
-                    .blockingGet()
-                    .getTags();
-        } catch (Exception ex) {
-            getLogger().error("Failed to read TAGs for the experiment, experiment key: {}", getExperimentKey(), ex);
-            throw ex;
-        }
+        return validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getTags(experimentKey))
+                .doOnError(ex -> getLogger().error("Failed to read TAGs for the experiment, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet()
+                .getTags();
     }
 
     @Override
     public List<ExperimentAssetLink> getAssetList(@NonNull AssetType type) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("get assets with type {} for experiment {}", type, getExperimentKey());
+            getLogger().debug("get assets with type {} for experiment {}", type, this.experimentKey);
         }
 
-        try {
-            return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> restApiClient.getAssetList(experimentKey, type))
-                    .blockingGet()
-                    .getAssets();
-        } catch (Exception ex) {
-            getLogger().error("Failed to read ASSETS for the experiment, experiment key: {}", getExperimentKey(), ex);
-            throw ex;
-        }
+        return validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.getAssetList(experimentKey, type))
+                .doOnError(ex -> getLogger().error("Failed to read ASSETS for the experiment, experiment key: {}",
+                        this.experimentKey, ex))
+                .blockingGet()
+                .getAssets();
     }
 
     @Override
@@ -575,12 +555,18 @@ public abstract class BaseExperiment implements Experiment {
         this.initialized = false;
     }
 
+    void sendExperimentStatus() {
+        Optional<String> response = this.connection.sendGet(
+                ApiEndpoints.SET_EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
+        getLogger().info("Set status response {}", response);
+    }
+
     private String getObjectValue(Object val) {
         return val.toString();
     }
 
     private void validate() {
-        if (getExperimentKey() == null) {
+        if (StringUtils.isEmpty(this.experimentKey)) {
             throw new IllegalStateException("Experiment key must be present!");
         }
         if (!this.initialized) {
@@ -589,7 +575,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     private Single<String> validateAndGetExperimentKey() {
-        if (getExperimentKey() == null) {
+        if (StringUtils.isEmpty(this.experimentKey)) {
             return Single.error(new IllegalStateException("Experiment key must be present!"));
         }
         if (!this.initialized) {
@@ -664,5 +650,19 @@ public abstract class BaseExperiment implements Experiment {
         request.setExperimentKey(getExperimentKey());
         request.setEndTimeMillis(endTimeMillis);
         return request;
+    }
+
+    private OutputUpdate getLogLineRequest(@NonNull String line, long offset, boolean stderr) {
+        OutputLine outputLine = new OutputLine();
+        outputLine.setOutput(line);
+        outputLine.setStderr(stderr);
+        outputLine.setLocalTimestamp(System.currentTimeMillis());
+        outputLine.setOffset(offset);
+
+        OutputUpdate outputUpdate = new OutputUpdate();
+        outputUpdate.setExperimentKey(getExperimentKey());
+        outputUpdate.setRunContext(this.context);
+        outputUpdate.setOutputLines(Collections.singletonList(outputLine));
+        return outputUpdate;
     }
 }
