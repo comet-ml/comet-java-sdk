@@ -194,7 +194,7 @@ public class Connection implements Closeable {
      * @throws InterruptedException if current thread was interrupted during wait.
      * @throws TimeoutException     if cleaning timeout exceeded.
      */
-    public void waitAndClose(Duration timeout) throws IOException, InterruptedException, TimeoutException {
+    public void waitAndClose(@NonNull Duration timeout) throws IOException, InterruptedException, TimeoutException {
         long nanosTimeout = timeout.toNanos();
         final long deadline = System.nanoTime() + nanosTimeout;
         // block until all requests in inventory are processed or timeout exceeded

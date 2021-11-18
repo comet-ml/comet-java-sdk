@@ -65,7 +65,9 @@ public abstract class BaseExperiment implements Experiment {
     final String baseUrl;
     final int maxAuthRetries;
     final Duration cleaningTimeout;
+
     RestApiClient restApiClient;
+    private Connection connection;
 
     final String projectName;
     final String workspaceName;
@@ -92,21 +94,21 @@ public abstract class BaseExperiment implements Experiment {
      */
     protected abstract Logger getLogger();
 
-    BaseExperiment(final String apiKey,
-                   final String baseUrl,
+    BaseExperiment(@NonNull final String apiKey,
+                   @NonNull final String baseUrl,
                    int maxAuthRetries,
-                   final String experimentKey,
-                   final Duration cleaningTimeout) {
+                   @NonNull final String experimentKey,
+                   @NonNull final Duration cleaningTimeout) {
         this(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, StringUtils.EMPTY, StringUtils.EMPTY);
     }
 
-    BaseExperiment(final String apiKey,
-                   final String baseUrl,
+    BaseExperiment(@NonNull final String apiKey,
+                   @NonNull final String baseUrl,
                    int maxAuthRetries,
-                   final String experimentKey,
-                   final Duration cleaningTimeout,
-                   final String projectName,
-                   final String workspaceName) {
+                   @NonNull final String experimentKey,
+                   @NonNull final Duration cleaningTimeout,
+                   @NonNull final String projectName,
+                   @NonNull final String workspaceName) {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
         this.maxAuthRetries = maxAuthRetries;
@@ -122,14 +124,19 @@ public abstract class BaseExperiment implements Experiment {
     void init() {
         CometUtils.printCometSdkVersion();
         validateInitialParams();
-        this.restApiClient = new RestApiClient(
-                ConnectionInitializer.initConnection(this.apiKey, this.baseUrl, this.maxAuthRetries, this.getLogger())
-        );
+        this.connection = ConnectionInitializer.initConnection(
+                this.apiKey, this.baseUrl, this.maxAuthRetries, this.getLogger());
+        this.restApiClient = new RestApiClient(this.connection);
         // mark as initialized
         this.initialized = true;
     }
 
-    private void validateInitialParams() {
+    /**
+     * Validates initial parameters and throws exception if validation failed.
+     *
+     * @throws IllegalArgumentException if validation failed.
+     */
+    private void validateInitialParams() throws IllegalArgumentException {
         if (StringUtils.isEmpty(apiKey)) {
             throw new IllegalArgumentException("API key is not specified!");
         }
@@ -146,8 +153,10 @@ public abstract class BaseExperiment implements Experiment {
 
     /**
      * Registers experiment at the Comet server.
+     *
+     * @throws CometGeneralException if failed to register experiment.
      */
-    void registerExperiment() {
+    void registerExperiment() throws CometGeneralException {
         if (experimentKey != null) {
             getLogger().debug("Not registering a new experiment. Using previous experiment key {}", experimentKey);
             return;
@@ -156,7 +165,7 @@ public abstract class BaseExperiment implements Experiment {
         CreateExperimentRequest request = new CreateExperimentRequest(workspaceName, projectName, getExperimentName());
         String body = JsonUtils.toJson(request);
 
-        restApiClient.getConnection().sendPost(body, ApiEndpoints.NEW_EXPERIMENT, true)
+        this.connection.sendPost(body, ApiEndpoints.NEW_EXPERIMENT, true)
                 .ifPresent(response -> {
                     CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
                     this.experimentKey = result.getExperimentKey();
@@ -204,7 +213,7 @@ public abstract class BaseExperiment implements Experiment {
         validate();
 
         MetricRest request = getLogMetricRequest(metricName, metricValue, step, epoch);
-        restApiClient.getConnection().sendPostAsync(request, ADD_METRIC);
+        this.connection.sendPostAsync(request, ADD_METRIC);
     }
 
     @Override
@@ -215,7 +224,7 @@ public abstract class BaseExperiment implements Experiment {
         validate();
 
         ParameterRest request = getLogParameterRequest(parameterName, paramValue, step);
-        restApiClient.getConnection().sendPostAsync(request, ADD_PARAMETER);
+        this.connection.sendPostAsync(request, ADD_PARAMETER);
     }
 
     @Override
@@ -226,7 +235,7 @@ public abstract class BaseExperiment implements Experiment {
         validate();
 
         HtmlRest request = getLogHtmlRequest(html, override);
-        restApiClient.getConnection().sendPostAsync(request, ADD_HTML);
+        this.connection.sendPostAsync(request, ADD_HTML);
     }
 
     @Override
@@ -245,7 +254,7 @@ public abstract class BaseExperiment implements Experiment {
             put(OVERWRITE, Boolean.toString(false));
         }};
 
-        restApiClient.getConnection().sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
+        this.connection.sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to log raw source code with file name {}", fileName, t);
@@ -268,7 +277,7 @@ public abstract class BaseExperiment implements Experiment {
             put(OVERWRITE, Boolean.toString(false));
         }};
 
-        restApiClient.getConnection().sendPostAsync(asset, ADD_ASSET, params)
+        this.connection.sendPostAsync(asset, ADD_ASSET, params)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to log source code from file {}", asset, t);
@@ -284,7 +293,7 @@ public abstract class BaseExperiment implements Experiment {
         validate();
 
         LogOtherRest request = getLogOtherRequest(key, value);
-        restApiClient.getConnection().sendPostAsync(request, ADD_LOG_OTHER);
+        this.connection.sendPostAsync(request, ADD_LOG_OTHER);
     }
 
     @Override
@@ -295,7 +304,7 @@ public abstract class BaseExperiment implements Experiment {
         validate();
 
         AddTagsToExperimentRest request = getTagRequest(tag);
-        restApiClient.getConnection().sendPostAsync(request, ADD_TAG);
+        this.connection.sendPostAsync(request, ADD_TAG);
     }
 
     @Override
@@ -306,7 +315,7 @@ public abstract class BaseExperiment implements Experiment {
         validate();
 
         AddGraphRest request = getGraphRequest(graph);
-        restApiClient.getConnection().sendPostAsync(request, ADD_GRAPH);
+        this.connection.sendPostAsync(request, ADD_GRAPH);
     }
 
     @Override
@@ -317,7 +326,7 @@ public abstract class BaseExperiment implements Experiment {
         validate();
 
         ExperimentTimeRequest request = getLogStartTimeRequest(startTimeMillis);
-        restApiClient.getConnection().sendPostAsync(request, ADD_START_END_TIME);
+        this.connection.sendPostAsync(request, ADD_START_END_TIME);
     }
 
     @Override
@@ -328,7 +337,7 @@ public abstract class BaseExperiment implements Experiment {
         validate();
 
         ExperimentTimeRequest request = getLogEndTimeRequest(endTimeMillis);
-        restApiClient.getConnection().sendPostAsync(request, ADD_START_END_TIME);
+        this.connection.sendPostAsync(request, ADD_START_END_TIME);
     }
 
     @Override
@@ -339,7 +348,7 @@ public abstract class BaseExperiment implements Experiment {
         }
         validate();
 
-        restApiClient.getConnection()
+        this.connection
                 .sendPostAsync(asset, ADD_ASSET, new HashMap<QueryParamName, String>() {{
                     put(EXPERIMENT_KEY, getExperimentKey());
                     put(FILE_NAME, fileName);
@@ -367,7 +376,7 @@ public abstract class BaseExperiment implements Experiment {
         }
         validate();
 
-        restApiClient.getConnection().sendPostAsync(gitMetadata, ADD_GIT_METADATA);
+        this.connection.sendPostAsync(gitMetadata, ADD_GIT_METADATA);
     }
 
     @Override
@@ -543,21 +552,27 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void end() {
+        if (!this.initialized) {
+            return;
+        }
         getLogger().info("Waiting for all scheduled uploads to complete. It can take up to {} seconds.",
                 cleaningTimeout.getSeconds());
 
         // close REST API
-        restApiClient.dispose();
+        this.restApiClient.dispose();
 
         // close connection
-        Connection connection = restApiClient.getConnection();
-        if (connection != null) {
+        if (this.connection != null) {
             try {
-                connection.waitAndClose(this.cleaningTimeout);
+                this.connection.waitAndClose(this.cleaningTimeout);
+                this.connection = null;
             } catch (Exception e) {
                 getLogger().error("failed to close connection", e);
             }
         }
+
+        // mark as not initialized
+        this.initialized = false;
     }
 
     private String getObjectValue(Object val) {

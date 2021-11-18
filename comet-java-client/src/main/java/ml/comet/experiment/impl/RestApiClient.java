@@ -47,15 +47,11 @@ import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
  * Represents Comet REST API client providing access to all exposed REST endpoints.
  */
 final class RestApiClient implements Disposable {
-    private final Connection connection;
+    private Connection connection;
     private boolean disposed;
 
     RestApiClient(Connection connection) {
         this.connection = connection;
-    }
-
-    Connection getConnection() {
-        return this.connection;
     }
 
     Observable<GetWorkspacesResponse> getAllWorkspaces() {
@@ -154,6 +150,8 @@ final class RestApiClient implements Disposable {
     @Override
     public void dispose() {
         this.disposed = true;
+        // release reference to the connection
+        this.connection = null;
     }
 
     @Override
