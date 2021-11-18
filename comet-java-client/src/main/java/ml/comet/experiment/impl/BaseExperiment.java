@@ -100,7 +100,7 @@ public abstract class BaseExperiment implements Experiment {
     BaseExperiment(@NonNull final String apiKey,
                    @NonNull final String baseUrl,
                    int maxAuthRetries,
-                   @NonNull final String experimentKey,
+                   final String experimentKey,
                    @NonNull final Duration cleaningTimeout) {
         this(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, StringUtils.EMPTY, StringUtils.EMPTY);
     }
@@ -108,10 +108,10 @@ public abstract class BaseExperiment implements Experiment {
     BaseExperiment(@NonNull final String apiKey,
                    @NonNull final String baseUrl,
                    int maxAuthRetries,
-                   @NonNull final String experimentKey,
+                   final String experimentKey,
                    @NonNull final Duration cleaningTimeout,
-                   @NonNull final String projectName,
-                   @NonNull final String workspaceName) {
+                   final String projectName,
+                   final String workspaceName) {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
         this.maxAuthRetries = maxAuthRetries;

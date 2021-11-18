@@ -30,13 +30,14 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES
 public final class CometApiImpl implements CometApi {
     private Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
     private final RestApiClient restApiClient;
+    private final Connection connection;
 
     CometApiImpl(@NonNull String apiKey, @NonNull String baseUrl, int maxAuthRetries, Logger logger) {
         if (logger != null) {
             this.logger = logger;
         }
-        Connection connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, this.logger);
-        this.restApiClient = new RestApiClient(connection);
+        this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, this.logger);
+        this.restApiClient = new RestApiClient(this.connection);
         CometUtils.printCometSdkVersion();
     }
 
@@ -107,7 +108,7 @@ public final class CometApiImpl implements CometApi {
     public void close() throws IOException {
         this.restApiClient.dispose();
         // no need to wait for asynchronous requests to proceed because this class use only synchronous requests
-        this.restApiClient.getConnection().close();
+        this.connection.close();
     }
 
     /**
