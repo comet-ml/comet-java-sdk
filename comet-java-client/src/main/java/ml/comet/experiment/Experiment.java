@@ -131,6 +131,15 @@ public interface Experiment {
     void setExperimentName(String experimentName);
 
     /**
+     * Send logs to Comet.
+     *
+     * @param line   Text to be logged
+     * @param offset Offset describes the place for current text to be inserted
+     * @param stderr the flag to indicate if this is StdErr message.
+     */
+    void logLine(String line, long offset, boolean stderr);
+
+    /**
      * Logs a metric with Comet. For running experiment updates current step to one from param!
      * Metrics are generally values that change from step to step.
      *

@@ -24,15 +24,6 @@ public interface OnlineExperiment extends Experiment {
     void stopInterceptStdout() throws IOException;
 
     /**
-     * Send logs to Comet.
-     *
-     * @param line   Text to be logged
-     * @param offset Offset describes the place for current text to be inserted
-     * @param stderr the flag to indicate if this is StdErr message.
-     */
-    void logLine(String line, long offset, boolean stderr);
-
-    /**
      * Sets the current step for the experiment. This is used when logging metrics and params.
      *
      * @param step the current step of the experiment.
