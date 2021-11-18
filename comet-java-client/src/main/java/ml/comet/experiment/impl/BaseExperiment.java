@@ -1,10 +1,13 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import ml.comet.experiment.Experiment;
+import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.constants.ApiEndpoints;
 import ml.comet.experiment.impl.constants.AssetType;
@@ -24,6 +27,7 @@ import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.ExperimentTimeRequest;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.HtmlRest;
+import ml.comet.experiment.model.LogDataResponse;
 import ml.comet.experiment.model.LogOtherRest;
 import ml.comet.experiment.model.MetricRest;
 import ml.comet.experiment.model.OutputLine;
@@ -47,7 +51,6 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_HTML;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
@@ -89,6 +92,7 @@ public abstract class BaseExperiment implements Experiment {
 
     private RestApiClient restApiClient;
     private Connection connection;
+    private final CompositeDisposable disposables = new CompositeDisposable();
 
     /**
      * Returns logger instance associated with particular experiment. The subclasses should override this method to
@@ -209,15 +213,61 @@ public abstract class BaseExperiment implements Experiment {
         this.experimentName = experimentName;
     }
 
+    /**
+     * Synchronous version that waits for result of exception. Also, it checks the response status for failure.
+     *
+     * @param metricName  The name for the metric to be logged
+     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
+     * @param step        The current step for this metric, this will set the given step for this experiment
+     * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
+     * @throws CometApiException if received response with failure code.
+     */
     @Override
     public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logMetric {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
         }
-        validate();
+        LogDataResponse response = validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.logMetric(
+                        withLogMetricRequest(metricName, metricValue, step, epoch, experimentKey)))
+                .blockingGet();
 
-        MetricRest request = getLogMetricRequest(metricName, metricValue, step, epoch);
-        this.connection.sendPostAsync(request, ADD_METRIC);
+        if (response.hasFailed()) {
+            throw new CometApiException(String.format("Failed to save metric, reason: %s", response.getMsg()));
+        }
+    }
+
+    /**
+     * Asynchronous version that just logs any received exceptions or failures.
+     *
+     * @param metricName  The name for the metric to be logged
+     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
+     * @param step        The current step for this metric, this will set the given step for this experiment
+     * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
+     */
+    void logMetricAsync(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logMetric {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
+        }
+        validateAndGetExperimentKey()
+                .subscribeOn(Schedulers.io())
+                .concatMap(experimentKey -> restApiClient.logMetric(
+                        withLogMetricRequest(metricName, metricValue, step, epoch, experimentKey)))
+                .observeOn(Schedulers.single())
+                .subscribe(
+                        (logDataResponse) -> {
+                            if (logDataResponse.hasFailed()) {
+                                getLogger().error("failed to save logMetric {} = {}, step: {}, epoch: {}, reason: {}",
+                                        metricName, metricValue, step, epoch, logDataResponse.getMsg());
+                            } else if (getLogger().isDebugEnabled()) {
+                                getLogger().debug(logDataResponse.toString());
+                            }
+                        }, (throwable) -> {
+                            if (throwable != null) {
+                                getLogger().error("failed to save logMetric {} = {}, step: {}, epoch: {}",
+                                        metricName, metricValue, step, epoch, throwable);
+                            }
+                        }, disposables);
     }
 
     @Override
@@ -554,6 +604,12 @@ public abstract class BaseExperiment implements Experiment {
                 getLogger().error("failed to close connection", e);
             }
         }
+
+        // dispose all pending calls
+        if (disposables.size() > 0) {
+            getLogger().warn("{} calls still has not been processed, disposing", disposables.size());
+        }
+        this.disposables.dispose();
     }
 
     Optional<ExperimentStatusResponse> sendExperimentStatus() {
@@ -563,7 +619,7 @@ public abstract class BaseExperiment implements Experiment {
                 .blockingGet());
     }
 
-    private String getObjectValue(Object val) {
+    private static String getObjectValue(Object val) {
         return val.toString();
     }
 
@@ -586,10 +642,10 @@ public abstract class BaseExperiment implements Experiment {
         return Single.just(getExperimentKey());
     }
 
-    private MetricRest getLogMetricRequest(@NonNull String metricName, @NonNull Object metricValue,
-                                           long step, long epoch) {
+    private static MetricRest withLogMetricRequest(
+            @NonNull String metricName, @NonNull Object metricValue, long step, long epoch, String experimentKey) {
         MetricRest request = new MetricRest();
-        request.setExperimentKey(getExperimentKey());
+        request.setExperimentKey(experimentKey);
         request.setMetricName(metricName);
         request.setMetricValue(getObjectValue(metricValue));
         request.setStep(step);

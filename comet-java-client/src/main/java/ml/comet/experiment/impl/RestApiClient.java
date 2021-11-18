@@ -3,6 +3,7 @@ package ml.comet.experiment.impl;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
+import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.constants.AssetType;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
@@ -17,6 +18,8 @@ import ml.comet.experiment.model.GetOutputResponse;
 import ml.comet.experiment.model.GetProjectsResponse;
 import ml.comet.experiment.model.GetWorkspacesResponse;
 import ml.comet.experiment.model.GitMetadataRest;
+import ml.comet.experiment.model.LogDataResponse;
+import ml.comet.experiment.model.MetricRest;
 import ml.comet.experiment.model.MinMaxResponse;
 import ml.comet.experiment.model.TagsResponse;
 
@@ -25,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSET_INFO;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GIT_METADATA;
@@ -50,6 +54,8 @@ import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 final class RestApiClient implements Disposable {
     private Connection connection;
     private boolean disposed;
+
+    private static final IllegalStateException alreadyDisposed = new IllegalStateException("REST API client already disposed");
 
     RestApiClient(Connection connection) {
         this.connection = connection;
@@ -117,6 +123,20 @@ final class RestApiClient implements Disposable {
         return singleGetForExperiment(SET_EXPERIMENT_STATUS, experimentKey, ExperimentStatusResponse.class);
     }
 
+    Single<LogDataResponse> logMetric(MetricRest request) {
+        return singleFromPost(request, ADD_METRIC, LogDataResponse.class);
+    }
+
+    private <T> Single<T> singleFromPost(@NonNull Object payload, @NonNull String endpoint, @NonNull Class<T> clazz) {
+        if (isDisposed()) {
+            return Single.error(alreadyDisposed);
+        }
+
+        return Single.fromFuture(this.connection.sendPostAsync(JsonUtils.toJson(payload), endpoint))
+                .onTerminateDetach()
+                .map(response -> JsonUtils.fromJson(response.getResponseBody(), clazz));
+    }
+
     private <T> Single<T> singleGetForExperiment(@NonNull String endpoint,
                                                  @NonNull String experimentKey,
                                                  @NonNull Class<T> clazz) {
@@ -127,12 +147,12 @@ final class RestApiClient implements Disposable {
                                             @NonNull Map<QueryParamName, String> params,
                                             @NonNull Class<T> clazz) {
         if (isDisposed()) {
-            return Single.error(new IllegalStateException("REST API client already disposed"));
+            return Single.error(alreadyDisposed);
         }
         return optionalGetRestObject(endpoint, params, clazz)
                 .map(Single::just)
-                .orElse(Single.error(new IllegalStateException(
-                        String.format("No response was returned by endpoint %s", endpoint))));
+                .orElse(Single.error(new CometApiException(
+                        String.format("No response was returned by endpoint: %s", endpoint))));
     }
 
     private <T> Optional<T> optionalGetRestObject(@NonNull String endpoint,
