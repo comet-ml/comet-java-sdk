@@ -16,7 +16,7 @@ public final class ApiEndpoints {
     public static final String ADD_PARAMETER = UPDATE_API_URL + "/experiment/parameter";
     public static final String ADD_METRIC = UPDATE_API_URL + "/experiment/metric";
 
-    public static final String EXPERIMENT_STATUS = UPDATE_API_URL + "/experiment/set-status";
+    public static final String SET_EXPERIMENT_STATUS = UPDATE_API_URL + "/experiment/set-status";
     public static final String NEW_EXPERIMENT = UPDATE_API_URL + "/experiment/create";
     public static final String READ_API_URL = "/api/rest/v2";
     public static final String GET_ASSET_INFO = READ_API_URL + "/experiment/asset/list";

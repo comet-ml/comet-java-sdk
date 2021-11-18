@@ -6,10 +6,7 @@ import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
 import ml.comet.experiment.exception.ConfigException;
 import ml.comet.experiment.impl.config.CometConfig;
-import ml.comet.experiment.impl.constants.ApiEndpoints;
 import ml.comet.experiment.impl.log.StdOutLogger;
-import ml.comet.experiment.model.OutputLine;
-import ml.comet.experiment.model.OutputUpdate;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,8 +27,6 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES
 import static ml.comet.experiment.impl.config.CometConfig.COMET_PROJECT_NAME;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_WORKSPACE_NAME;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
-import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 
 /**
  * The implementation of the {@link OnlineExperiment} to work with Comet API asynchronously.
@@ -164,15 +158,6 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     }
 
     @Override
-    public void logLine(String line, long offset, boolean stderr) {
-        if (getExperimentKey() == null) {
-            return;
-        }
-        OutputUpdate outputUpdate = getLogLineRequest(line, offset, stderr);
-        restApiClient.getConnection().sendPostAsync(outputUpdate, ADD_OUTPUT);
-    }
-
-    @Override
     public void nextStep() {
         this.step++;
     }
@@ -273,26 +258,11 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     }
 
     private void sendHeartbeat() {
-        if (experimentKey == null || this.atShutdown.get()) {
+        if (!this.initialized || this.atShutdown.get()) {
             return;
         }
         logger.debug("sendHeartbeat");
-        restApiClient.getConnection().sendGet(
-                ApiEndpoints.EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
-    }
-
-    private OutputUpdate getLogLineRequest(@NonNull String line, long offset, boolean stderr) {
-        OutputLine outputLine = new OutputLine();
-        outputLine.setOutput(line);
-        outputLine.setStderr(stderr);
-        outputLine.setLocalTimestamp(System.currentTimeMillis());
-        outputLine.setOffset(offset);
-
-        OutputUpdate outputUpdate = new OutputUpdate();
-        outputUpdate.setExperimentKey(getExperimentKey());
-        outputUpdate.setRunContext(this.context);
-        outputUpdate.setOutputLines(Collections.singletonList(outputLine));
-        return outputUpdate;
+        this.sendExperimentStatus();
     }
 
     /**
