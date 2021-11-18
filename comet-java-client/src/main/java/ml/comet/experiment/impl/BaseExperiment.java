@@ -20,6 +20,7 @@ import ml.comet.experiment.model.CreateExperimentResponse;
 import ml.comet.experiment.model.CreateGitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.ExperimentTimeRequest;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.HtmlRest;
@@ -69,25 +70,25 @@ public abstract class BaseExperiment implements Experiment {
     final int maxAuthRetries;
     final Duration cleaningTimeout;
 
-    private RestApiClient restApiClient;
-    private Connection connection;
-
     String projectName;
     String workspaceName;
     String experimentKey;
     String experimentLink;
     String experimentName;
-    boolean initialized;
+    boolean alive;
 
-    @Getter
-    @Setter
-    private String context = StringUtils.EMPTY;
     @Setter
     @Getter
     long step;
     @Setter
     @Getter
     long epoch;
+    @Getter
+    @Setter
+    private String context = StringUtils.EMPTY;
+
+    private RestApiClient restApiClient;
+    private Connection connection;
 
     /**
      * Returns logger instance associated with particular experiment. The subclasses should override this method to
@@ -131,7 +132,7 @@ public abstract class BaseExperiment implements Experiment {
                 this.apiKey, this.baseUrl, this.maxAuthRetries, this.getLogger());
         this.restApiClient = new RestApiClient(this.connection);
         // mark as initialized
-        this.initialized = true;
+        this.alive = true;
     }
 
     /**
@@ -532,11 +533,14 @@ public abstract class BaseExperiment implements Experiment {
 
     @Override
     public void end() {
-        if (!this.initialized) {
+        if (!this.alive) {
             return;
         }
         getLogger().info("Waiting for all scheduled uploads to complete. It can take up to {} seconds.",
                 cleaningTimeout.getSeconds());
+
+        // mark as not alive
+        this.alive = false;
 
         // close REST API
         this.restApiClient.dispose();
@@ -550,15 +554,13 @@ public abstract class BaseExperiment implements Experiment {
                 getLogger().error("failed to close connection", e);
             }
         }
-
-        // mark as not initialized
-        this.initialized = false;
     }
 
-    void sendExperimentStatus() {
-        Optional<String> response = this.connection.sendGet(
-                ApiEndpoints.SET_EXPERIMENT_STATUS, Collections.singletonMap(EXPERIMENT_KEY, experimentKey));
-        getLogger().info("Set status response {}", response);
+    Optional<ExperimentStatusResponse> sendExperimentStatus() {
+        return Optional.ofNullable(validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.sendExperimentStatus(experimentKey))
+                .onErrorComplete()
+                .blockingGet());
     }
 
     private String getObjectValue(Object val) {
@@ -569,7 +571,7 @@ public abstract class BaseExperiment implements Experiment {
         if (StringUtils.isEmpty(this.experimentKey)) {
             throw new IllegalStateException("Experiment key must be present!");
         }
-        if (!this.initialized) {
+        if (!this.alive) {
             throw new IllegalStateException("Experiment was not initialized. You need to call init().");
         }
     }
@@ -578,8 +580,8 @@ public abstract class BaseExperiment implements Experiment {
         if (StringUtils.isEmpty(this.experimentKey)) {
             return Single.error(new IllegalStateException("Experiment key must be present!"));
         }
-        if (!this.initialized) {
-            return Single.error(new IllegalStateException("Experiment was not initialized. You need to call init()."));
+        if (!this.alive) {
+            return Single.error(new IllegalStateException("Experiment is not alive or already closed."));
         }
         return Single.just(getExperimentKey());
     }

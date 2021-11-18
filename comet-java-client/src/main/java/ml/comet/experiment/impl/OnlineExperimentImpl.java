@@ -7,6 +7,7 @@ import ml.comet.experiment.builder.OnlineExperimentBuilder;
 import ml.comet.experiment.exception.ConfigException;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.log.StdOutLogger;
+import ml.comet.experiment.model.ExperimentStatusResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -258,11 +259,18 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     }
 
     private void sendHeartbeat() {
-        if (!this.initialized || this.atShutdown.get()) {
+        if (!this.alive || this.atShutdown.get()) {
             return;
         }
         logger.debug("sendHeartbeat");
-        this.sendExperimentStatus();
+        Optional<ExperimentStatusResponse> status = this.sendExperimentStatus();
+        if (status.isPresent()) {
+            long interval = status.get().getIsAliveBeatDurationMillis();
+            if (logger.isDebugEnabled()) {
+                logger.debug("received heartbeat interval {}", interval);
+            }
+            // TODO: implement logic to change heartbeat interval
+        }
     }
 
     /**

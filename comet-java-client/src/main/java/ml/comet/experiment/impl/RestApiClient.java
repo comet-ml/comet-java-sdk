@@ -18,6 +18,7 @@ import ml.comet.experiment.model.GetProjectsResponse;
 import ml.comet.experiment.model.GetWorkspacesResponse;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.MinMaxResponse;
+import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.TagsResponse;
 
 import java.util.Collections;
@@ -37,6 +38,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_PARAMETERS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_TAGS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_EXPERIMENT_STATUS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
@@ -110,6 +112,10 @@ final class RestApiClient implements Disposable {
             put(TYPE, type.type());
         }};
         return singleGetResponse(GET_ASSET_INFO, params, ExperimentAssetListResponse.class);
+    }
+
+    Single<ExperimentStatusResponse> sendExperimentStatus(String experimentKey) {
+        return singleGetForExperiment(SET_EXPERIMENT_STATUS, experimentKey, ExperimentStatusResponse.class);
     }
 
     private <T> Single<T> singleGetForExperiment(@NonNull String endpoint,
