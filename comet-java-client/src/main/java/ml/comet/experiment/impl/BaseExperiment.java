@@ -257,14 +257,14 @@ public abstract class BaseExperiment implements Experiment {
                 .subscribe(
                         (logDataResponse) -> {
                             if (logDataResponse.hasFailed()) {
-                                getLogger().error("failed to save logMetric {} = {}, step: {}, epoch: {}, reason: {}",
+                                getLogger().error("failed to save metric {} = {}, step: {}, epoch: {}, reason: {}",
                                         metricName, metricValue, step, epoch, logDataResponse.getMsg());
                             } else if (getLogger().isDebugEnabled()) {
                                 getLogger().debug(logDataResponse.toString());
                             }
                         }, (throwable) -> {
                             if (throwable != null) {
-                                getLogger().error("failed to save logMetric {} = {}, step: {}, epoch: {}",
+                                getLogger().error("failed to save metric {} = {}, step: {}, epoch: {}",
                                         metricName, metricValue, step, epoch, throwable);
                             }
                         }, disposables);
