@@ -15,4 +15,15 @@ public class CometApiException extends CometGeneralException {
     public CometApiException(String message) {
         super(message);
     }
+
+    /**
+     * Constructs a new runtime exception with detail message that can be build using provided
+     * format string and arguments.
+     *
+     * @param format the format string, see {@link String#format(String, Object...)} for more details.
+     * @param args   the arguments.
+     */
+    public CometApiException(String format, Object... args) {
+        super(String.format(format, args));
+    }
 }

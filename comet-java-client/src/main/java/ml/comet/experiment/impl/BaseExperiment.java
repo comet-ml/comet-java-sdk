@@ -214,7 +214,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     /**
-     * Synchronous version that waits for result of exception. Also, it checks the response status for failure.
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
      *
      * @param metricName  The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
@@ -233,7 +233,7 @@ public abstract class BaseExperiment implements Experiment {
                 .blockingGet();
 
         if (response.hasFailed()) {
-            throw new CometApiException(String.format("Failed to save metric, reason: %s", response.getMsg()));
+            throw new CometApiException("Failed to save metric, reason: %s", response.getMsg());
         }
     }
 
