@@ -2,6 +2,7 @@ package ml.comet.experiment.impl.http;
 
 import lombok.NonNull;
 import lombok.Value;
+import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.utils.JsonUtils;
@@ -326,7 +327,13 @@ public class Connection implements Closeable {
 
         @Override
         public Response onCompleted(Response response) {
-            // decrease inventory
+            // check response status and throw exception if failed
+            if (!ConnectionUtils.isResponseSuccessful(response.getStatusCode())) {
+                throw new CometApiException("received error status code [%d] for request: %s, reason: %s",
+                        response.getStatusCode(), this.endpoint, response.getStatusText());
+            }
+            // decrease inventory only after check passed,
+            // if it was not passed it will be decreased in onThrowable()
             this.decreaseInventory();
             return response;
         }
