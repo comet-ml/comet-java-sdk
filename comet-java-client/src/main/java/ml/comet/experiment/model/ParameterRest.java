@@ -17,4 +17,5 @@ public class ParameterRest {
     private Long step;
     private String experimentKey;
     private Long timestamp;
+    private String context;
 }
