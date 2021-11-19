@@ -55,13 +55,7 @@ public class StdOutLogger implements Runnable, Closeable {
      * @throws IOException if I/O exception occurs.
      */
     public void close() throws IOException {
-        if (this.stdOut) {
-            System.setOut(original);
-        } else {
-            System.setErr(original);
-        }
-        // mark as not running
-        this.running = false;
+        this.restoreOriginalAndStop();
 
         // close output stream to release resources - this will cause logger thread to stop as well.
         this.outputStream.close();
@@ -89,6 +83,16 @@ public class StdOutLogger implements Runnable, Closeable {
         this.running = true;
     }
 
+    private void restoreOriginalAndStop() {
+        if (this.stdOut) {
+            System.setOut(original);
+        } else {
+            System.setErr(original);
+        }
+        // mark as not running
+        this.running = false;
+    }
+
     @Override
     public void run() {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(this.inputStream))) {
@@ -96,10 +100,12 @@ public class StdOutLogger implements Runnable, Closeable {
             while (this.running && (line = reader.readLine()) != null) {
                 experiment.logLine(line, offset.incrementAndGet(), !stdOut);
             }
-        } catch (IOException e) {
+        } catch (Throwable t) {
+            // restore original
+            this.restoreOriginalAndStop();
             // nothing to do except to inform
-            System.out.println("---- StdLogger error ---");
-            e.printStackTrace();
+            System.out.println(">>>> StdOutLogger error <<<<");
+            t.printStackTrace();
         }
 
         if (this.stdOut) {
