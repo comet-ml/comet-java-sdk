@@ -254,19 +254,12 @@ public abstract class BaseExperiment implements Experiment {
                         withLogMetricRequest(metricName, metricValue, step, epoch, experimentKey)))
                 .observeOn(Schedulers.single())
                 .subscribe(
-                        (logDataResponse) -> {
-                            if (logDataResponse.hasFailed()) {
-                                getLogger().error("failed to save metric {} = {}, step: {}, epoch: {}, reason: {}",
-                                        metricName, metricValue, step, epoch, logDataResponse.getMsg());
-                            } else if (getLogger().isDebugEnabled()) {
-                                getLogger().debug(logDataResponse.toString());
-                            }
-                        }, (throwable) -> {
-                            if (throwable != null) {
-                                getLogger().error("failed to save metric {} = {}, step: {}, epoch: {}",
-                                        metricName, metricValue, step, epoch, throwable);
-                            }
-                        }, disposables);
+                        (logDataResponse) -> DataResponseLogger.checkAndLog(
+                                logDataResponse, getLogger(), "failed to save metric {} = {}, step: {}, epoch: {}",
+                                metricName, metricValue, step, epoch),
+                        (throwable) -> getLogger().error("failed to save metric {} = {}, step: {}, epoch: {}",
+                                metricName, metricValue, step, epoch, throwable),
+                        disposables);
     }
 
     /**
@@ -308,19 +301,12 @@ public abstract class BaseExperiment implements Experiment {
                         withLogParamRequest(parameterName, paramValue, step, experimentKey)))
                 .observeOn(Schedulers.single())
                 .subscribe(
-                        (logDataResponse) -> {
-                            if (logDataResponse.hasFailed()) {
-                                getLogger().error("failed to save metric {} = {}, step: {}, reason: {}",
-                                        parameterName, paramValue, step, logDataResponse.getMsg());
-                            } else if (getLogger().isDebugEnabled()) {
-                                getLogger().debug(logDataResponse.toString());
-                            }
-                        }, (throwable) -> {
-                            if (throwable != null) {
-                                getLogger().error("failed to save metric {} = {}, step: {}",
-                                        parameterName, paramValue, step, throwable);
-                            }
-                        }, disposables);
+                        (logDataResponse) -> DataResponseLogger.checkAndLog(
+                                logDataResponse, getLogger(), "failed to save parameter {} = {}, step: {}",
+                                parameterName, paramValue, step),
+                        (throwable) -> getLogger().error("failed to save parameter {} = {}, step: {}",
+                                parameterName, paramValue, step, throwable),
+                        disposables);
     }
 
     @Override
@@ -767,5 +753,18 @@ public abstract class BaseExperiment implements Experiment {
         outputUpdate.setRunContext(this.context);
         outputUpdate.setOutputLines(Collections.singletonList(outputLine));
         return outputUpdate;
+    }
+
+    /**
+     * Utility class to log asynchronously received data responses.
+     */
+    static final class DataResponseLogger {
+        static void checkAndLog(LogDataResponse logDataResponse, Logger logger, String format, Object... args) {
+            if (logDataResponse.hasFailed()) {
+                logger.error("{}, reason: {}", String.format(format, args), logDataResponse.getMsg());
+            } else if (logger.isDebugEnabled()) {
+                logger.debug("success {}", logDataResponse);
+            }
+        }
     }
 }
