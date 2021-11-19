@@ -52,7 +52,6 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_HTML;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
@@ -238,7 +237,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     /**
-     * Asynchronous version that just logs any received exceptions or failures.
+     * Asynchronous version that only logs any received exceptions or failures.
      *
      * @param metricName  The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
@@ -247,7 +246,7 @@ public abstract class BaseExperiment implements Experiment {
      */
     void logMetricAsync(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logMetric {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
+            getLogger().debug("logMetricAsync {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
         }
         validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
@@ -270,15 +269,58 @@ public abstract class BaseExperiment implements Experiment {
                         }, disposables);
     }
 
+    /**
+     * Synchronous version that only logs any received exceptions or failures.
+     *
+     * @param parameterName The name of the param being logged
+     * @param paramValue    The value for the param being logged
+     * @param step          The current step for this metric, this will set the given step for this experiment
+     */
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logParameter {} = {}, step: {}", parameterName, paramValue, step);
         }
-        validate();
+        LogDataResponse response = validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.logParameter(
+                        withLogParamRequest(parameterName, paramValue, step, experimentKey)))
+                .blockingGet();
 
-        ParameterRest request = getLogParameterRequest(parameterName, paramValue, step);
-        this.connection.sendPostAsync(request, ADD_PARAMETER);
+        if (response.hasFailed()) {
+            throw new CometApiException("Failed to save parameter, reason: %s", response.getMsg());
+        }
+    }
+
+    /**
+     * Asynchronous version that waits for result or exception. Also, it checks the response status for failure.
+     *
+     * @param parameterName The name of the param being logged
+     * @param paramValue    The value for the param being logged
+     * @param step          The current step for this metric, this will set the given step for this experiment
+     */
+    void logParameterAsync(@NonNull String parameterName, @NonNull Object paramValue, long step) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logParameterAsync {} = {}, step: {}", parameterName, paramValue, step);
+        }
+        validateAndGetExperimentKey()
+                .subscribeOn(Schedulers.io())
+                .concatMap(experimentKey -> restApiClient.logParameter(
+                        withLogParamRequest(parameterName, paramValue, step, experimentKey)))
+                .observeOn(Schedulers.single())
+                .subscribe(
+                        (logDataResponse) -> {
+                            if (logDataResponse.hasFailed()) {
+                                getLogger().error("failed to save metric {} = {}, step: {}, reason: {}",
+                                        parameterName, paramValue, step, logDataResponse.getMsg());
+                            } else if (getLogger().isDebugEnabled()) {
+                                getLogger().debug(logDataResponse.toString());
+                            }
+                        }, (throwable) -> {
+                            if (throwable != null) {
+                                getLogger().error("failed to save metric {} = {}, step: {}",
+                                        parameterName, paramValue, step, throwable);
+                            }
+                        }, disposables);
     }
 
     @Override
@@ -642,8 +684,9 @@ public abstract class BaseExperiment implements Experiment {
         return Single.just(getExperimentKey());
     }
 
-    private static MetricRest withLogMetricRequest(
-            @NonNull String metricName, @NonNull Object metricValue, long step, long epoch, String experimentKey) {
+    static MetricRest withLogMetricRequest(
+            @NonNull String metricName, @NonNull Object metricValue,
+            long step, long epoch, @NonNull String experimentKey) {
         MetricRest request = new MetricRest();
         request.setExperimentKey(experimentKey);
         request.setMetricName(metricName);
@@ -654,9 +697,11 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private ParameterRest getLogParameterRequest(@NonNull String parameterName, @NonNull Object paramValue, long step) {
+    static ParameterRest withLogParamRequest(
+            @NonNull String parameterName, @NonNull Object paramValue,
+            long step, @NonNull String experimentKey) {
         ParameterRest request = new ParameterRest();
-        request.setExperimentKey(getExperimentKey());
+        request.setExperimentKey(experimentKey);
         request.setParameterName(parameterName);
         request.setParameterValue(getObjectValue(paramValue));
         request.setStep(step);

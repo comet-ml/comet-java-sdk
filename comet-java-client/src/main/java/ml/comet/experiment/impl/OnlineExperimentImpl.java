@@ -174,13 +174,13 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     }
 
     @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step) {
-        logMetric(metricName, metricValue, step, this.epoch);
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue) {
+        this.logMetric(metricName, metricValue, this.step, this.epoch);
     }
 
     @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue) {
-        logMetric(metricName, metricValue, this.step, this.epoch);
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step) {
+        this.logMetric(metricName, metricValue, step, this.epoch);
     }
 
     @Override
@@ -192,13 +192,13 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
-        logParameter(parameterName, paramValue, this.step);
+        this.logParameter(parameterName, paramValue, this.step);
     }
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
         this.setStep(step);
-        super.logParameter(parameterName, paramValue, step);
+        this.logParameterAsync(parameterName, paramValue, step);
     }
 
     @Override

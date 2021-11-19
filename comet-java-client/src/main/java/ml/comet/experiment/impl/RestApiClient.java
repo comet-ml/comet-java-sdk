@@ -21,6 +21,7 @@ import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.LogDataResponse;
 import ml.comet.experiment.model.MetricRest;
 import ml.comet.experiment.model.MinMaxResponse;
+import ml.comet.experiment.model.ParameterRest;
 import ml.comet.experiment.model.TagsResponse;
 
 import java.util.Collections;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSET_INFO;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GIT_METADATA;
@@ -55,7 +57,7 @@ final class RestApiClient implements Disposable {
     private Connection connection;
     private boolean disposed;
 
-    private static final IllegalStateException alreadyDisposed = new IllegalStateException("REST API client already disposed");
+    static final IllegalStateException ALREADY_DISPOSED = new IllegalStateException("REST API client already disposed");
 
     RestApiClient(Connection connection) {
         this.connection = connection;
@@ -127,9 +129,13 @@ final class RestApiClient implements Disposable {
         return singleFromPost(request, ADD_METRIC, LogDataResponse.class);
     }
 
+    Single<LogDataResponse> logParameter(ParameterRest request) {
+        return singleFromPost(request, ADD_PARAMETER, LogDataResponse.class);
+    }
+
     private <T> Single<T> singleFromPost(@NonNull Object payload, @NonNull String endpoint, @NonNull Class<T> clazz) {
         if (isDisposed()) {
-            return Single.error(alreadyDisposed);
+            return Single.error(ALREADY_DISPOSED);
         }
 
         return Single.fromFuture(this.connection.sendPostAsync(JsonUtils.toJson(payload), endpoint))
@@ -147,7 +153,7 @@ final class RestApiClient implements Disposable {
                                             @NonNull Map<QueryParamName, String> params,
                                             @NonNull Class<T> clazz) {
         if (isDisposed()) {
-            return Single.error(alreadyDisposed);
+            return Single.error(ALREADY_DISPOSED);
         }
         return optionalGetRestObject(endpoint, params, clazz)
                 .map(Single::just)
