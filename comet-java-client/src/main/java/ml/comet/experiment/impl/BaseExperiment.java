@@ -51,7 +51,6 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_HTML;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
@@ -226,13 +225,13 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logMetric {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
         }
+        MetricRest metric = createLogMetricRequest(metricName, metricValue, step, epoch, experimentKey, this.context);
         LogDataResponse response = validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.logMetric(
-                        withLogMetricRequest(metricName, metricValue, step, epoch, experimentKey)))
+                .concatMap(experimentKey -> restApiClient.logMetric(metric))
                 .blockingGet();
 
         if (response.hasFailed()) {
-            throw new CometApiException("Failed to save metric, reason: %s", response.getMsg());
+            throw new CometApiException("Failed to log metric, reason: %s", response.getMsg());
         }
     }
 
@@ -248,22 +247,19 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logMetricAsync {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
         }
+        MetricRest metric = createLogMetricRequest(metricName, metricValue, step, epoch, experimentKey, this.context);
         validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
-                .concatMap(experimentKey -> restApiClient.logMetric(
-                        withLogMetricRequest(metricName, metricValue, step, epoch, experimentKey)))
+                .concatMap(experimentKey -> restApiClient.logMetric(metric))
                 .observeOn(Schedulers.single())
                 .subscribe(
-                        (logDataResponse) -> DataResponseLogger.checkAndLog(
-                                logDataResponse, getLogger(), "failed to save metric {} = {}, step: {}, epoch: {}",
-                                metricName, metricValue, step, epoch),
-                        (throwable) -> getLogger().error("failed to save metric {} = {}, step: {}, epoch: {}",
-                                metricName, metricValue, step, epoch, throwable),
+                        (logDataResponse) -> DataResponseLogger.checkAndLog(logDataResponse, getLogger(), metric),
+                        (throwable) -> getLogger().error("failed to log metric {}", metric, throwable),
                         disposables);
     }
 
     /**
-     * Synchronous version that only logs any received exceptions or failures.
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
      *
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
@@ -274,18 +270,18 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logParameter {} = {}, step: {}", parameterName, paramValue, step);
         }
+        ParameterRest param = createLogParamRequest(parameterName, paramValue, step, experimentKey, this.context);
         LogDataResponse response = validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.logParameter(
-                        withLogParamRequest(parameterName, paramValue, step, experimentKey)))
+                .concatMap(experimentKey -> restApiClient.logParameter(param))
                 .blockingGet();
 
         if (response.hasFailed()) {
-            throw new CometApiException("Failed to save parameter, reason: %s", response.getMsg());
+            throw new CometApiException("Failed to log parameter, reason: %s", response.getMsg());
         }
     }
 
     /**
-     * Asynchronous version that waits for result or exception. Also, it checks the response status for failure.
+     * Asynchronous version that only logs any received exceptions or failures.
      *
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
@@ -295,26 +291,36 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logParameterAsync {} = {}, step: {}", parameterName, paramValue, step);
         }
+        ParameterRest param = createLogParamRequest(parameterName, paramValue, step, experimentKey, this.context);
         validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
-                .concatMap(experimentKey -> restApiClient.logParameter(
-                        withLogParamRequest(parameterName, paramValue, step, experimentKey)))
+                .concatMap(experimentKey -> restApiClient.logParameter(param))
                 .observeOn(Schedulers.single())
                 .subscribe(
-                        (logDataResponse) -> DataResponseLogger.checkAndLog(
-                                logDataResponse, getLogger(), "failed to save parameter {} = {}, step: {}",
-                                parameterName, paramValue, step),
-                        (throwable) -> getLogger().error("failed to save parameter {} = {}, step: {}",
-                                parameterName, paramValue, step, throwable),
+                        (logDataResponse) -> DataResponseLogger.checkAndLog(logDataResponse, getLogger(), param),
+                        (throwable) -> getLogger().error("failed to log parameter {}", param, throwable),
                         disposables);
     }
 
+    /**
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
+     *
+     * @param line   Text to be logged
+     * @param offset Offset describes the place for current text to be inserted
+     * @param stderr the flag to indicate if this is StdErr message.
+     */
     @Override
     public void logLine(String line, long offset, boolean stderr) {
         validate();
 
-        OutputUpdate outputUpdate = getLogLineRequest(line, offset, stderr);
-        this.connection.sendPostAsync(outputUpdate, ADD_OUTPUT);
+        OutputUpdate outputUpdate = createLogLineRequest(line, offset, stderr, this.experimentKey, this.context);
+        LogDataResponse response = validateAndGetExperimentKey()
+                .concatMap(experimentKey -> restApiClient.logOutputLine(outputUpdate))
+                .blockingGet();
+
+        if (response.hasFailed()) {
+            throw new CometApiException("Failed to log stdout/stderr output line, reason: %s", response.getMsg());
+        }
     }
 
     @Override
@@ -651,6 +657,9 @@ public abstract class BaseExperiment implements Experiment {
         return val.toString();
     }
 
+    /**
+     * Validates the state of the experiment.
+     */
     private void validate() {
         if (StringUtils.isEmpty(this.experimentKey)) {
             throw new IllegalStateException("Experiment key must be present!");
@@ -670,9 +679,9 @@ public abstract class BaseExperiment implements Experiment {
         return Single.just(getExperimentKey());
     }
 
-    static MetricRest withLogMetricRequest(
+    static MetricRest createLogMetricRequest(
             @NonNull String metricName, @NonNull Object metricValue,
-            long step, long epoch, @NonNull String experimentKey) {
+            long step, long epoch, @NonNull String experimentKey, String context) {
         MetricRest request = new MetricRest();
         request.setExperimentKey(experimentKey);
         request.setMetricName(metricName);
@@ -680,18 +689,20 @@ public abstract class BaseExperiment implements Experiment {
         request.setStep(step);
         request.setEpoch(epoch);
         request.setTimestamp(System.currentTimeMillis());
+        request.setContext(context);
         return request;
     }
 
-    static ParameterRest withLogParamRequest(
+    static ParameterRest createLogParamRequest(
             @NonNull String parameterName, @NonNull Object paramValue,
-            long step, @NonNull String experimentKey) {
+            long step, @NonNull String experimentKey, String context) {
         ParameterRest request = new ParameterRest();
         request.setExperimentKey(experimentKey);
         request.setParameterName(parameterName);
         request.setParameterValue(getObjectValue(paramValue));
         request.setStep(step);
         request.setTimestamp(System.currentTimeMillis());
+        request.setContext(context);
         return request;
     }
 
@@ -741,7 +752,8 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private OutputUpdate getLogLineRequest(@NonNull String line, long offset, boolean stderr) {
+    static OutputUpdate createLogLineRequest(@NonNull String line, long offset, boolean stderr,
+                                             @NonNull String experimentKey, String context) {
         OutputLine outputLine = new OutputLine();
         outputLine.setOutput(line);
         outputLine.setStderr(stderr);
@@ -749,8 +761,8 @@ public abstract class BaseExperiment implements Experiment {
         outputLine.setOffset(offset);
 
         OutputUpdate outputUpdate = new OutputUpdate();
-        outputUpdate.setExperimentKey(getExperimentKey());
-        outputUpdate.setRunContext(this.context);
+        outputUpdate.setExperimentKey(experimentKey);
+        outputUpdate.setRunContext(context);
         outputUpdate.setOutputLines(Collections.singletonList(outputLine));
         return outputUpdate;
     }
@@ -759,9 +771,9 @@ public abstract class BaseExperiment implements Experiment {
      * Utility class to log asynchronously received data responses.
      */
     static final class DataResponseLogger {
-        static void checkAndLog(LogDataResponse logDataResponse, Logger logger, String format, Object... args) {
+        static void checkAndLog(LogDataResponse logDataResponse, Logger logger, Object request) {
             if (logDataResponse.hasFailed()) {
-                logger.error("{}, reason: {}", String.format(format, args), logDataResponse.getMsg());
+                logger.error("failed to log {}, reason: {}", request, logDataResponse.getMsg());
             } else if (logger.isDebugEnabled()) {
                 logger.debug("success {}", logDataResponse);
             }

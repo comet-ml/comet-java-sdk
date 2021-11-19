@@ -21,6 +21,7 @@ import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.LogDataResponse;
 import ml.comet.experiment.model.MetricRest;
 import ml.comet.experiment.model.MinMaxResponse;
+import ml.comet.experiment.model.OutputUpdate;
 import ml.comet.experiment.model.ParameterRest;
 import ml.comet.experiment.model.TagsResponse;
 
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSET_INFO;
@@ -131,6 +133,10 @@ final class RestApiClient implements Disposable {
 
     Single<LogDataResponse> logParameter(ParameterRest request) {
         return singleFromPost(request, ADD_PARAMETER, LogDataResponse.class);
+    }
+
+    Single<LogDataResponse> logOutputLine(OutputUpdate request) {
+        return singleFromPost(request, ADD_OUTPUT, LogDataResponse.class);
     }
 
     private <T> Single<T> singleFromPost(@NonNull Object payload, @NonNull String endpoint, @NonNull Class<T> clazz) {
