@@ -10,6 +10,7 @@ import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.model.AddExperimentTagsRest;
 import ml.comet.experiment.model.AddGraphRest;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetListResponse;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.ExperimentStatusResponse;
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_HTML;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
@@ -175,6 +177,11 @@ final class RestApiClient implements Disposable {
     Single<LogDataResponse> logStartEndTime(final ExperimentTimeRequest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
         return singleFromPost(request, ADD_START_END_TIME, LogDataResponse.class);
+    }
+
+    Single<LogDataResponse>logGitMetadata(final GitMetadata request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
+        return singleFromPost(request, ADD_GIT_METADATA, LogDataResponse.class);
     }
 
     private <T> Single<T> singleFromPost(@NonNull Object payload, @NonNull String endpoint, @NonNull Class<T> clazz) {

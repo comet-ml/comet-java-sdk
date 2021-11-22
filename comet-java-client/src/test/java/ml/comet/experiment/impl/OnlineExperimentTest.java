@@ -4,7 +4,7 @@ import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.model.CreateGitMetadata;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.GitMetadataRest;
@@ -370,16 +370,25 @@ public class OnlineExperimentTest extends BaseApiTest {
     public void testLogAndGetGitMetadata() {
         OnlineExperiment experiment = createOnlineExperiment();
 
+        // Get GIT metadata and check that it is not set
+        //
         GitMetadataRest gitMetadata = experiment.getGitMetadata();
         assertNull(gitMetadata.getUser());
         assertNull(gitMetadata.getBranch());
         assertNull(gitMetadata.getOrigin());
 
-        CreateGitMetadata request = new CreateGitMetadata(experiment.getExperimentKey(),
+        // Create and update GIT metadata and wait for response
+        //
+        OnCompleteAction onComplete = new OnCompleteAction();
+        GitMetadata request = new GitMetadata(experiment.getExperimentKey(),
                 "user", "root", "branch", "parent", "origin");
-        experiment.logGitMetadata(request);
+        ((BaseExperiment)experiment).logGitMetadataAsync(request, onComplete);
+        awaitForCondition(onComplete, "onComplete timeout");
 
-        awaitForCondition(() -> request.getUser().equals(experiment.getGitMetadata().getUser()), "Git metadata user updated");
+        // Get GIT metadata and check results
+        //
+        awaitForCondition(() -> request.getUser().equals(experiment.getGitMetadata().getUser()),
+                "Git metadata user timeout");
 
         GitMetadataRest updatedMetadata = experiment.getGitMetadata();
         assertEquals(updatedMetadata.getOrigin(), request.getOrigin());

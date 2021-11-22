@@ -1,7 +1,7 @@
 package ml.comet.experiment;
 
 import ml.comet.experiment.impl.constants.AssetType;
-import ml.comet.experiment.model.CreateGitMetadata;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.GitMetadataRest;
@@ -241,7 +241,7 @@ public interface Experiment {
      *
      * @param gitMetadata The Git Metadata for the experiment
      */
-    void logGitMetadata(CreateGitMetadata gitMetadata);
+    void logGitMetadata(GitMetadata gitMetadata);
 
     /**
      * Tells Comet that the Experiment is complete and release all associated resources.

@@ -22,7 +22,7 @@ import ml.comet.experiment.model.AddExperimentTagsRest;
 import ml.comet.experiment.model.AddGraphRest;
 import ml.comet.experiment.model.CreateExperimentRequest;
 import ml.comet.experiment.model.CreateExperimentResponse;
-import ml.comet.experiment.model.CreateGitMetadata;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.ExperimentStatusResponse;
@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_ASSET;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
 import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
@@ -471,11 +470,40 @@ public abstract class BaseExperiment implements Experiment {
      * @param onComplete    The optional action to be invoked when this operation asynchronously completes.
      *                      Can be {@code null} if not interested in completion signal.
      */
-    public void logEndTimeAsync(long endTimeMillis, Action onComplete) {
+    void logEndTimeAsync(long endTimeMillis, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logEndTimeAsync {}", endTimeMillis);
         }
         sendAsynchronously(restApiClient::logStartEndTime, createLogEndTimeRequest(endTimeMillis), onComplete);
+    }
+
+    /**
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
+     *
+     * @param gitMetadata The Git Metadata for the experiment.
+     */
+    @Override
+    public void logGitMetadata(GitMetadata gitMetadata) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logGitMetadata {}", gitMetadata);
+        }
+
+        sendSynchronously(restApiClient::logGitMetadata, gitMetadata);
+    }
+
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
+     * @param gitMetadata The Git Metadata for the experiment.
+     * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
+     *                    Can be {@code null} if not interested in completion signal.
+     */
+    void logGitMetadataAsync(GitMetadata gitMetadata, Action onComplete) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logGitMetadata {}", gitMetadata);
+        }
+
+        sendAsynchronously(restApiClient::logGitMetadata, gitMetadata, onComplete);
     }
 
     @Override
@@ -552,16 +580,6 @@ public abstract class BaseExperiment implements Experiment {
     @Override
     public void uploadAsset(@NonNull File asset, boolean overwrite, long step, long epoch) {
         uploadAsset(asset, asset.getName(), overwrite, step, epoch);
-    }
-
-    @Override
-    public void logGitMetadata(CreateGitMetadata gitMetadata) {
-        if (getLogger().isDebugEnabled()) {
-            getLogger().debug("gitMetadata {}", gitMetadata);
-        }
-        validate();
-
-        this.connection.sendPostAsync(gitMetadata, ADD_GIT_METADATA);
     }
 
     @Override

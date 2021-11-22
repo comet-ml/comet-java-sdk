@@ -7,6 +7,7 @@ import ml.comet.experiment.builder.OnlineExperimentBuilder;
 import ml.comet.experiment.exception.ConfigException;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.log.StdOutLogger;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentStatusResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -229,6 +230,11 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     @Override
     public void logEndTime(long endTimeMillis) {
         this.logEndTimeAsync(endTimeMillis, null);
+    }
+
+    @Override
+    public void logGitMetadata(GitMetadata gitMetadata) {
+        this.logGitMetadataAsync(gitMetadata, null);
     }
 
     @Override
