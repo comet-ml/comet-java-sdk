@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.impl.utils.TestUtils;
@@ -56,9 +57,6 @@ public class OnlineExperimentTest extends BaseApiTest {
     private static final String LOGGED_LINE = "This should end up in Comet ML.";
     private static final String LOGGED_ERROR_LINE = "This error should also get to Comet ML.";
     private static final String NON_LOGGED_LINE = "This should not end up in Comet ML.";
-    public static final String MESSAGE_NAME_UPDATED = "Experiment name updated";
-    public static final String MESSAGE_HTML_UPDATED = "Experiment html updated";
-    public static final String MESSAGE_RUNNING_STATUS_UPDATED = "Experiment running status updated";
 
     @Test
     public void testExperimentCreatedAndShutDown() {
@@ -82,7 +80,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // use REST API to check experiment status
         ApiExperimentImpl apiExperiment = ApiExperimentImpl.builder(experimentKey).build();
         awaitForCondition(() -> !apiExperiment.getMetadata().isRunning(),
-                MESSAGE_RUNNING_STATUS_UPDATED, 60);
+                "Experiment running status updated", 60);
         assertFalse(apiExperiment.getMetadata().isRunning(), "Experiment must have status not running");
 
         apiExperiment.end();
@@ -102,7 +100,8 @@ public class OnlineExperimentTest extends BaseApiTest {
         updatedExperiment.setExperimentName(SOME_NAME);
 
         awaitForCondition(
-                () -> SOME_NAME.equals(updatedExperiment.getMetadata().getExperimentName()), MESSAGE_NAME_UPDATED);
+                () -> SOME_NAME.equals(updatedExperiment.getMetadata().getExperimentName()),
+                "Experiment name updated timeout");
         updatedExperiment.end();
     }
 
@@ -116,7 +115,8 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         experiment.setExperimentName(SOME_NAME);
 
-        awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()), MESSAGE_NAME_UPDATED);
+        awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()),
+                "Experiment name update timeout");
 
         ExperimentMetadataRest updatedMetadata = experiment.getMetadata();
         assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
@@ -138,7 +138,11 @@ public class OnlineExperimentTest extends BaseApiTest {
     public void testLogAndGetParameter() {
         OnlineExperiment experiment = createOnlineExperiment();
 
-        testLogParameters(experiment, Experiment::getParameters, experiment::logParameter);
+        testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
+            OnCompleteAction onCompleteAction = new OnCompleteAction();
+            ((BaseExperiment) experiment).logParameterAsync(key, value, 1, onCompleteAction);
+            awaitForCondition(onCompleteAction, "onComplete timeout");
+        });
 
         experiment.end();
     }
@@ -167,31 +171,48 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetHtml() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
 
         assertFalse(experiment.getHtml().isPresent());
 
-        experiment.logHtml(SOME_HTML, true);
+        // Create first HTML record
+        //
+        OnCompleteAction onComplete = new OnCompleteAction();
+        experiment.logHtmlAsync(SOME_HTML, true, onComplete);
+
+        // sleep to make sure the request was sent
+        awaitForCondition(onComplete, "onComplete timeout");
 
         awaitForCondition(() -> {
             Optional<String> html = experiment.getHtml();
             return html.isPresent() && SOME_HTML.equals(html.get());
-        }, MESSAGE_HTML_UPDATED);
+        }, "Experiment SOME_HTML update timeout");
 
-        experiment.logHtml(ANOTHER_HTML, true);
+        // Override first HTML record
+        //
+        onComplete = new OnCompleteAction();
+        experiment.logHtmlAsync(ANOTHER_HTML, true, onComplete);
+
+        // sleep to make sure the request was sent
+        awaitForCondition(onComplete, "onComplete timeout");
 
         awaitForCondition(() -> {
             Optional<String> html = experiment.getHtml();
             return html.isPresent() && ANOTHER_HTML.equals(html.get());
-        }, MESSAGE_HTML_UPDATED);
+        }, "Experiment ANOTHER_HTML update timeout");
 
-        experiment.logHtml(SOME_HTML, false);
+        // Check that HTML record was not overridden but appended
+        //
+        onComplete = new OnCompleteAction();
+        experiment.logHtmlAsync(SOME_HTML, false, onComplete);
 
+        // sleep to make sure the request was sent
+        awaitForCondition(onComplete, "onComplete timeout");
 
         awaitForCondition(() -> {
             Optional<String> html = experiment.getHtml();
             return html.isPresent() && JOINED_HTML.equals(html.get());
-        }, MESSAGE_HTML_UPDATED);
+        }, "Experiment JOINED_HTML update timeout");
 
         experiment.end();
     }
@@ -386,25 +407,39 @@ public class OnlineExperimentTest extends BaseApiTest {
         experiment.end();
     }
 
-    private OnlineExperiment fetchExperiment(String experimentKey) {
+    static final class OnCompleteAction implements Action, BooleanSupplier {
+        boolean completed;
+
+        @Override
+        public void run() {
+            this.completed = true;
+        }
+
+        @Override
+        public boolean getAsBoolean() {
+            return this.completed;
+        }
+    }
+
+    static OnlineExperiment fetchExperiment(String experimentKey) {
         return OnlineExperimentImpl.builder()
                 .withApiKey(API_KEY)
                 .withExistingExperimentKey(experimentKey)
                 .build();
     }
 
-    private void validateAsset(List<ExperimentAssetLink> assets, String expectedAssetName, long expectedSize) {
+    static void validateAsset(List<ExperimentAssetLink> assets, String expectedAssetName, long expectedSize) {
         assertTrue(assets.stream()
                 .filter(asset -> expectedAssetName.equals(asset.getFileName()))
                 .anyMatch(asset -> expectedSize == asset.getFileSize()));
     }
 
-    private void testLogParameters(OnlineExperiment experiment,
-                                   Function<Experiment, List<ValueMinMaxDto>> supplierFunction,
-                                   BiConsumer<String, Object> updateFunction) {
+    static void testLogParameters(OnlineExperiment experiment,
+                                  Function<Experiment, List<ValueMinMaxDto>> supplierFunction,
+                                  BiConsumer<String, Object> updateFunction) {
 
         List<ValueMinMaxDto> parameters = supplierFunction.apply(experiment);
-        assertTrue(parameters.isEmpty());
+        assertTrue(parameters.isEmpty(), "no experiment parameters expected");
 
         Map<String, Object> params = new HashMap<>();
         params.put(SOME_PARAMETER, SOME_PARAMETER_VALUE);
@@ -412,14 +447,15 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         params.forEach(updateFunction);
 
-        awaitForCondition(() -> supplierFunction.apply(experiment).size() == 2, "Experiment parameters added");
+        awaitForCondition(() -> supplierFunction.apply(
+                experiment).size() == 2, "Experiment parameters added");
 
         List<ValueMinMaxDto> updatedParameters = supplierFunction.apply(experiment);
         params.forEach((k, v) -> validateMetrics(updatedParameters, k, v));
 
     }
 
-    private void validateMetrics(List<ValueMinMaxDto> metrics, String name, Object value) {
+    static void validateMetrics(List<ValueMinMaxDto> metrics, String name, Object value) {
         String stringValue = value.toString();
         assertTrue(metrics.stream()
                 .filter(m -> name.equals(m.getName()))
@@ -429,13 +465,13 @@ public class OnlineExperimentTest extends BaseApiTest {
     }
 
 
-    private void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias) {
+    static void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias) {
         Awaitility.await(conditionAlias).atMost(30, SECONDS)
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
     }
 
-    private void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias, long timeoutSeconds) {
+    static void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias, long timeoutSeconds) {
         Awaitility.await(conditionAlias).atMost(timeoutSeconds, SECONDS)
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
