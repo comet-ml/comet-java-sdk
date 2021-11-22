@@ -13,6 +13,7 @@ import ml.comet.experiment.model.AddGraphRest;
 import ml.comet.experiment.model.ExperimentAssetListResponse;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.ExperimentStatusResponse;
+import ml.comet.experiment.model.ExperimentTimeRequest;
 import ml.comet.experiment.model.GetExperimentsResponse;
 import ml.comet.experiment.model.GetGraphResponse;
 import ml.comet.experiment.model.GetHtmlResponse;
@@ -40,6 +41,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSET_INFO;
@@ -168,6 +170,11 @@ final class RestApiClient implements Disposable {
     Single<LogDataResponse> logGraph(final AddGraphRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
         return singleFromPost(request, ADD_GRAPH, LogDataResponse.class);
+    }
+
+    Single<LogDataResponse> logStartEndTime(final ExperimentTimeRequest request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
+        return singleFromPost(request, ADD_START_END_TIME, LogDataResponse.class);
     }
 
     private <T> Single<T> singleFromPost(@NonNull Object payload, @NonNull String endpoint, @NonNull Class<T> clazz) {

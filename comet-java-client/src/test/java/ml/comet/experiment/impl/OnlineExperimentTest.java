@@ -286,27 +286,35 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetExperimentTime() {
-        // create online experiment
         OnlineExperiment experiment = createOnlineExperiment();
 
+        // Get experiment metadata
+        //
         ExperimentMetadataRest metadata = experiment.getMetadata();
         Long startTimeMillis = metadata.getStartTimeMillis();
         Long endTimeMillis = metadata.getEndTimeMillis();
         String experimentKey = experiment.getExperimentKey();
-
         experiment.end();
 
         // fetch existing experiment and update time
-        OnlineExperiment existingExperiment = fetchExperiment(experimentKey);
-
+        //
+        BaseExperiment existingExperiment = (BaseExperiment) fetchExperiment(experimentKey);
         long now = System.currentTimeMillis();
-        existingExperiment.logStartTime(now);
-        existingExperiment.logEndTime(now);
 
+        OnCompleteAction onComplete = new OnCompleteAction();
+        existingExperiment.logStartTimeAsync(now, onComplete);
+        awaitForCondition(onComplete, "logStartTime onComplete timeout", 120);
+
+        onComplete = new OnCompleteAction();
+        existingExperiment.logEndTimeAsync(now, onComplete);
+        awaitForCondition(onComplete, "logEndTime onComplete timeout", 120);
+
+        // Get updated experiment metadata and check results
+        //
         awaitForCondition(() -> {
             ExperimentMetadataRest data = existingExperiment.getMetadata();
             return data.getStartTimeMillis() == now && data.getEndTimeMillis() == now;
-        }, "Experiment start/stop time updated", 240);
+        }, "Experiment get start/stop time timeout", 240);
 
         ExperimentMetadataRest updatedMetadata = existingExperiment.getMetadata();
         assertNotEquals(startTimeMillis, updatedMetadata.getStartTimeMillis());

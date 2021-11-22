@@ -50,7 +50,6 @@ import java.util.Optional;
 
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_ASSET;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
 import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
@@ -224,7 +223,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("logMetric {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
         }
 
-        logRequestSynchronouslyOrThrow(restApiClient::logMetric,
+        sendSynchronously(restApiClient::logMetric,
                 createLogMetricRequest(metricName, metricValue, step, epoch, this.context));
     }
 
@@ -245,7 +244,7 @@ public abstract class BaseExperiment implements Experiment {
         }
 
         MetricRest metricRequest = createLogMetricRequest(metricName, metricValue, step, epoch, this.context);
-        this.logRequestAsynchronouslyAndNotify(restApiClient::logMetric, metricRequest, onComplete);
+        this.sendAsynchronously(restApiClient::logMetric, metricRequest, onComplete);
     }
 
     /**
@@ -261,7 +260,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("logParameter {} = {}, step: {}", parameterName, paramValue, step);
         }
 
-        logRequestSynchronouslyOrThrow(restApiClient::logParameter,
+        sendSynchronously(restApiClient::logParameter,
                 createLogParamRequest(parameterName, paramValue, step, this.context));
     }
 
@@ -280,7 +279,7 @@ public abstract class BaseExperiment implements Experiment {
         }
 
         ParameterRest paramRequest = createLogParamRequest(parameterName, paramValue, step, this.context);
-        this.logRequestAsynchronouslyAndNotify(restApiClient::logParameter, paramRequest, onComplete);
+        this.sendAsynchronously(restApiClient::logParameter, paramRequest, onComplete);
     }
 
     /**
@@ -294,7 +293,7 @@ public abstract class BaseExperiment implements Experiment {
     public void logLine(String line, long offset, boolean stderr) {
         validate();
 
-        logRequestSynchronouslyOrThrow(restApiClient::logOutputLine,
+        sendSynchronously(restApiClient::logOutputLine,
                 createLogLineRequest(line, offset, stderr, this.context));
     }
 
@@ -311,7 +310,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("logHtml {}, override: {}", html, override);
         }
 
-        logRequestSynchronouslyOrThrow(restApiClient::logHtml,
+        sendSynchronously(restApiClient::logHtml,
                 createLogHtmlRequest(html, override));
     }
 
@@ -330,7 +329,7 @@ public abstract class BaseExperiment implements Experiment {
         }
 
         HtmlRest htmlRequest = createLogHtmlRequest(html, override);
-        this.logRequestAsynchronouslyAndNotify(restApiClient::logHtml, htmlRequest, onComplete);
+        this.sendAsynchronously(restApiClient::logHtml, htmlRequest, onComplete);
     }
 
     /**
@@ -345,7 +344,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("logOther {} {}", key, value);
         }
 
-        logRequestSynchronouslyOrThrow(restApiClient::logOther, createLogOtherRequest(key, value));
+        sendSynchronously(restApiClient::logOther, createLogOtherRequest(key, value));
     }
 
     /**
@@ -362,7 +361,7 @@ public abstract class BaseExperiment implements Experiment {
         }
 
         LogOtherRest request = createLogOtherRequest(key, value);
-        logRequestAsynchronouslyAndNotify(restApiClient::logOther, request, onComplete);
+        sendAsynchronously(restApiClient::logOther, request, onComplete);
     }
 
     /**
@@ -376,7 +375,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("addTag {}", tag);
         }
 
-        logRequestSynchronouslyOrThrow(restApiClient::addTag, createTagRequest(tag));
+        sendSynchronously(restApiClient::addTag, createTagRequest(tag));
     }
 
     /**
@@ -391,7 +390,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("addTagAsync {}", tag);
         }
 
-        logRequestAsynchronouslyAndNotify(restApiClient::addTag, createTagRequest(tag), onComplete);
+        sendAsynchronously(restApiClient::addTag, createTagRequest(tag), onComplete);
     }
 
     /**
@@ -405,7 +404,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("logGraph {}", graph);
         }
 
-        logRequestSynchronouslyOrThrow(restApiClient::logGraph, createGraphRequest(graph));
+        sendSynchronously(restApiClient::logGraph, createGraphRequest(graph));
     }
 
     /**
@@ -420,29 +419,63 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("logGraphAsync {}", graph);
         }
 
-        logRequestAsynchronouslyAndNotify(restApiClient::logGraph, createGraphRequest(graph), onComplete);
+        sendAsynchronously(restApiClient::logGraph, createGraphRequest(graph), onComplete);
     }
 
+    /**
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
+     *
+     * @param startTimeMillis When you want to say that the experiment started
+     */
     @Override
     public void logStartTime(long startTimeMillis) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logStartTime {}", startTimeMillis);
         }
-        validate();
 
-        ExperimentTimeRequest request = getLogStartTimeRequest(startTimeMillis);
-        this.connection.sendPostAsync(request, ADD_START_END_TIME);
+        sendSynchronously(restApiClient::logStartEndTime, createLogStartTimeRequest(startTimeMillis));
     }
 
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
+     * @param startTimeMillis When you want to say that the experiment started
+     * @param onComplete      The optional action to be invoked when this operation asynchronously completes.
+     *                        Can be {@code null} if not interested in completion signal.
+     */
+    void logStartTimeAsync(long startTimeMillis, Action onComplete) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logStartTimeAsync {}", startTimeMillis);
+        }
+
+        sendAsynchronously(restApiClient::logStartEndTime, createLogStartTimeRequest(startTimeMillis), onComplete);
+    }
+
+    /**
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
+     *
+     * @param endTimeMillis When you want to say that the experiment ended
+     */
     @Override
     public void logEndTime(long endTimeMillis) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logEndTime {}", endTimeMillis);
         }
-        validate();
+        sendSynchronously(restApiClient::logStartEndTime, createLogEndTimeRequest(endTimeMillis));
+    }
 
-        ExperimentTimeRequest request = getLogEndTimeRequest(endTimeMillis);
-        this.connection.sendPostAsync(request, ADD_START_END_TIME);
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
+     * @param endTimeMillis When you want to say that the experiment ended
+     * @param onComplete    The optional action to be invoked when this operation asynchronously completes.
+     *                      Can be {@code null} if not interested in completion signal.
+     */
+    public void logEndTimeAsync(long endTimeMillis, Action onComplete) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logEndTimeAsync {}", endTimeMillis);
+        }
+        sendAsynchronously(restApiClient::logStartEndTime, createLogEndTimeRequest(endTimeMillis), onComplete);
     }
 
     @Override
@@ -723,8 +756,8 @@ public abstract class BaseExperiment implements Experiment {
      *                   successfully or erroneously.
      * @param <T>        the type of the request data object.
      */
-    private <T> void logRequestAsynchronouslyAndNotify(final BiFunction<T, String, Single<LogDataResponse>> func,
-                                                       final T request, final Action onComplete) {
+    private <T> void sendAsynchronously(final BiFunction<T, String, Single<LogDataResponse>> func,
+                                        final T request, final Action onComplete) {
         Single<LogDataResponse> single = validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
                 .concatMap(experimentKey -> func.apply(request, experimentKey));
@@ -752,8 +785,8 @@ public abstract class BaseExperiment implements Experiment {
      * @param <T>     the type of the request data object.
      * @throws CometApiException if received response with error indicating that data was not saved.
      */
-    private <T> void logRequestSynchronouslyOrThrow(final BiFunction<T, String, Single<LogDataResponse>> func,
-                                                    final T request) throws CometApiException {
+    private <T> void sendSynchronously(final BiFunction<T, String, Single<LogDataResponse>> func,
+                                       final T request) throws CometApiException {
         LogDataResponse response = validateAndGetExperimentKey()
                 .concatMap(experimentKey -> func.apply(request, experimentKey))
                 .blockingGet();
@@ -836,16 +869,14 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private ExperimentTimeRequest getLogStartTimeRequest(long startTimeMillis) {
+    private ExperimentTimeRequest createLogStartTimeRequest(long startTimeMillis) {
         ExperimentTimeRequest request = new ExperimentTimeRequest();
-        request.setExperimentKey(getExperimentKey());
         request.setStartTimeMillis(startTimeMillis);
         return request;
     }
 
-    private ExperimentTimeRequest getLogEndTimeRequest(long endTimeMillis) {
+    private ExperimentTimeRequest createLogEndTimeRequest(long endTimeMillis) {
         ExperimentTimeRequest request = new ExperimentTimeRequest();
-        request.setExperimentKey(getExperimentKey());
         request.setEndTimeMillis(endTimeMillis);
         return request;
     }
