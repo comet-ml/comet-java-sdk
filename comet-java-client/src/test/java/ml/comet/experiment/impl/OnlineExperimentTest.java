@@ -233,14 +233,24 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testAddAndGetTag() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
 
+        // Check that experiment has no TAGs
         assertTrue(experiment.getTags().isEmpty());
 
-        experiment.addTag(SOME_TEXT);
-        experiment.addTag(ANOTHER_TAG);
+        // Add TAGs and wait for response
+        //
+        OnCompleteAction onComplete = new OnCompleteAction();
+        experiment.addTagAsync(SOME_TEXT, onComplete);
+        awaitForCondition(onComplete, "onComplete timeout");
 
-        awaitForCondition(() -> experiment.getTags().size() == 2, "Experiment tags updated");
+        onComplete = new OnCompleteAction();
+        experiment.addTagAsync(ANOTHER_TAG, onComplete);
+        awaitForCondition(onComplete, "onComplete timeout");
+
+        // Get new TAGs and check
+        //
+        awaitForCondition(() -> experiment.getTags().size() == 2, "Experiment get tags timeout");
 
         List<String> tags = experiment.getTags();
         assertTrue(tags.contains(SOME_TEXT));

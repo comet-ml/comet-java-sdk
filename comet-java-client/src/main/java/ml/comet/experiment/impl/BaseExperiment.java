@@ -18,8 +18,8 @@ import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.JsonUtils;
+import ml.comet.experiment.model.AddExperimentTagsRest;
 import ml.comet.experiment.model.AddGraphRest;
-import ml.comet.experiment.model.AddTagsToExperimentRest;
 import ml.comet.experiment.model.CreateExperimentRequest;
 import ml.comet.experiment.model.CreateExperimentResponse;
 import ml.comet.experiment.model.CreateGitMetadata;
@@ -52,7 +52,6 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_ASSET;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
 import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
@@ -367,15 +366,33 @@ public abstract class BaseExperiment implements Experiment {
         logRequestAsynchronouslyAndNotify(restApiClient::logOther, request, onComplete);
     }
 
+    /**
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
+     *
+     * @param tag The tag to be added
+     */
     @Override
     public void addTag(@NonNull String tag) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logTag {}", tag);
+            getLogger().debug("addTag {}", tag);
         }
-        validate();
 
-        AddTagsToExperimentRest request = getTagRequest(tag);
-        this.connection.sendPostAsync(request, ADD_TAG);
+        logRequestSynchronouslyOrThrow(restApiClient::addTag, createTagRequest(tag));
+    }
+
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
+     * @param tag        The tag to be added
+     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
+     *                   Can be {@code null} if not interested in completion signal.
+     */
+    public void addTagAsync(@NonNull String tag, Action onComplete) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("addTagAsync {}", tag);
+        }
+
+        logRequestAsynchronouslyAndNotify(restApiClient::addTag, createTagRequest(tag), onComplete);
     }
 
     @Override
@@ -790,9 +807,8 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private AddTagsToExperimentRest getTagRequest(@NonNull String tag) {
-        AddTagsToExperimentRest request = new AddTagsToExperimentRest();
-        request.setExperimentKey(getExperimentKey());
+    private AddExperimentTagsRest createTagRequest(@NonNull String tag) {
+        AddExperimentTagsRest request = new AddExperimentTagsRest();
         request.setAddedTags(Collections.singletonList(tag));
         return request;
     }

@@ -8,6 +8,7 @@ import ml.comet.experiment.impl.constants.AssetType;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.utils.JsonUtils;
+import ml.comet.experiment.model.AddExperimentTagsRest;
 import ml.comet.experiment.model.ExperimentAssetListResponse;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.ExperimentStatusResponse;
@@ -37,6 +38,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSET_INFO;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GIT_METADATA;
@@ -154,6 +156,11 @@ final class RestApiClient implements Disposable {
     Single<LogDataResponse> logOther(final LogOtherRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
         return singleFromPost(request, ADD_LOG_OTHER, LogDataResponse.class);
+    }
+
+    Single<LogDataResponse> addTag(final AddExperimentTagsRest request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
+        return singleFromPost(request, ADD_TAG, LogDataResponse.class);
     }
 
     private <T> Single<T> singleFromPost(@NonNull Object payload, @NonNull String endpoint, @NonNull Class<T> clazz) {

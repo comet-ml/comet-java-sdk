@@ -13,7 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AddTagsToExperimentRest {
+public class AddExperimentTagsRest {
     private String experimentKey;
     private List<String> addedTags;
 }
