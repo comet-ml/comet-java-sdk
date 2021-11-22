@@ -18,6 +18,7 @@ import ml.comet.experiment.model.GetOutputResponse;
 import ml.comet.experiment.model.GetProjectsResponse;
 import ml.comet.experiment.model.GetWorkspacesResponse;
 import ml.comet.experiment.model.GitMetadataRest;
+import ml.comet.experiment.model.HtmlRest;
 import ml.comet.experiment.model.LogDataResponse;
 import ml.comet.experiment.model.MetricRest;
 import ml.comet.experiment.model.MinMaxResponse;
@@ -30,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_HTML;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
@@ -127,16 +129,24 @@ final class RestApiClient implements Disposable {
         return singleGetForExperiment(SET_EXPERIMENT_STATUS, experimentKey, ExperimentStatusResponse.class);
     }
 
-    Single<LogDataResponse> logMetric(MetricRest request) {
+    Single<LogDataResponse> logMetric(final MetricRest request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
         return singleFromPost(request, ADD_METRIC, LogDataResponse.class);
     }
 
-    Single<LogDataResponse> logParameter(ParameterRest request) {
+    Single<LogDataResponse> logParameter(final ParameterRest request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
         return singleFromPost(request, ADD_PARAMETER, LogDataResponse.class);
     }
 
-    Single<LogDataResponse> logOutputLine(OutputUpdate request) {
+    Single<LogDataResponse> logOutputLine(final OutputUpdate request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
         return singleFromPost(request, ADD_OUTPUT, LogDataResponse.class);
+    }
+
+    Single<LogDataResponse> logHtml(final HtmlRest request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
+        return singleFromPost(request, ADD_HTML, LogDataResponse.class);
     }
 
     private <T> Single<T> singleFromPost(@NonNull Object payload, @NonNull String endpoint, @NonNull Class<T> clazz) {

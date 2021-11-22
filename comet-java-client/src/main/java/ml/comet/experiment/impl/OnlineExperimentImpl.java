@@ -187,7 +187,7 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
         this.setStep(step);
         this.setEpoch(epoch);
-        this.logMetricAsync(metricName, metricValue, step, epoch);
+        this.logMetricAsync(metricName, metricValue, step, epoch, null);
     }
 
     @Override
@@ -198,7 +198,12 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
         this.setStep(step);
-        this.logParameterAsync(parameterName, paramValue, step);
+        this.logParameterAsync(parameterName, paramValue, step, null);
+    }
+
+    @Override
+    public void logHtml(@NonNull String html, boolean override) {
+        this.logHtmlAsync(html, override, null);
     }
 
     @Override
