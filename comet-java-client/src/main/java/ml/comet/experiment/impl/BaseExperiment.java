@@ -51,7 +51,6 @@ import java.util.Optional;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_ASSET;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
@@ -238,13 +237,15 @@ public abstract class BaseExperiment implements Experiment {
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      * @param step        The current step for this metric, this will set the given step for this experiment
      * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
-     * @param onComplete  The action to be invoked when this operation asynchronously completes. Can be {@code null}.
+     * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
+     *                    Can be {@code null} if not interested in completion signal.
      */
     void logMetricAsync(@NonNull String metricName, @NonNull Object metricValue,
                         long step, long epoch, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logMetricAsync {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
         }
+
         MetricRest metricRequest = createLogMetricRequest(metricName, metricValue, step, epoch, this.context);
         this.logRequestAsynchronouslyAndNotify(restApiClient::logMetric, metricRequest, onComplete);
     }
@@ -272,12 +273,14 @@ public abstract class BaseExperiment implements Experiment {
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
      * @param step          The current step for this metric, this will set the given step for this experiment
-     * @param onComplete    The action to be invoked when this operation asynchronously completes. Can be {@code null}.
+     * @param onComplete    The optional action to be invoked when this operation asynchronously completes.
+     *                      Can be {@code null} if not interested in completion signal.
      */
     void logParameterAsync(@NonNull String parameterName, @NonNull Object paramValue, long step, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logParameterAsync {} = {}, step: {}", parameterName, paramValue, step);
         }
+
         ParameterRest paramRequest = createLogParamRequest(parameterName, paramValue, step, this.context);
         this.logRequestAsynchronouslyAndNotify(restApiClient::logParameter, paramRequest, onComplete);
     }
@@ -298,10 +301,11 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     /**
-     * Asynchronous version that only logs any received exceptions or failures.
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
      *
      * @param html     A block of html to be sent to Comet
-     * @param override Whether previous html sent should be deleted.  If <code>true</code> the old html will be deleted.
+     * @param override Whether previous html sent should be deleted.
+     *                 If <code>true</code> the old html will be deleted.
      */
     @Override
     public void logHtml(@NonNull String html, boolean override) {
@@ -319,7 +323,8 @@ public abstract class BaseExperiment implements Experiment {
      * @param html       A block of html to be sent to Comet
      * @param override   Whether previous html sent should be deleted.
      *                   If <code>true</code> the old html will be deleted.
-     * @param onComplete The action to be invoked when this operation asynchronously completes. Can be {@code null}.
+     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
+     *                   Can be {@code null} if not interested in completion signal.
      */
     void logHtmlAsync(@NonNull String html, boolean override, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
@@ -328,6 +333,82 @@ public abstract class BaseExperiment implements Experiment {
 
         HtmlRest htmlRequest = createLogHtmlRequest(html, override);
         this.logRequestAsynchronouslyAndNotify(restApiClient::logHtml, htmlRequest, onComplete);
+    }
+
+    /**
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
+     *
+     * @param key   The key for the data to be stored
+     * @param value The value for said key
+     */
+    @Override
+    public void logOther(@NonNull String key, @NonNull Object value) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logOther {} {}", key, value);
+        }
+
+        logRequestSynchronouslyOrThrow(restApiClient::logOther, createLogOtherRequest(key, value));
+    }
+
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
+     * @param key        The key for the data to be stored
+     * @param value      The value for said key
+     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
+     *                   Can be {@code null} if not interested in completion signal.
+     */
+    void logOtherAsync(@NonNull String key, @NonNull Object value, Action onComplete) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logOtherAsync {} {}", key, value);
+        }
+
+        LogOtherRest request = createLogOtherRequest(key, value);
+        logRequestAsynchronouslyAndNotify(restApiClient::logOther, request, onComplete);
+    }
+
+    @Override
+    public void addTag(@NonNull String tag) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logTag {}", tag);
+        }
+        validate();
+
+        AddTagsToExperimentRest request = getTagRequest(tag);
+        this.connection.sendPostAsync(request, ADD_TAG);
+    }
+
+    @Override
+    public void logGraph(@NonNull String graph) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logOther {}", graph);
+        }
+        validate();
+
+        AddGraphRest request = getGraphRequest(graph);
+        this.connection.sendPostAsync(request, ADD_GRAPH);
+    }
+
+    @Override
+    public void logStartTime(long startTimeMillis) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logStartTime {}", startTimeMillis);
+        }
+        validate();
+
+        ExperimentTimeRequest request = getLogStartTimeRequest(startTimeMillis);
+        this.connection.sendPostAsync(request, ADD_START_END_TIME);
+    }
+
+    @Override
+    public void logEndTime(long endTimeMillis) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logEndTime {}", endTimeMillis);
+        }
+        validate();
+
+        ExperimentTimeRequest request = getLogEndTimeRequest(endTimeMillis);
+        this.connection.sendPostAsync(request, ADD_START_END_TIME);
     }
 
     @Override
@@ -375,61 +456,6 @@ public abstract class BaseExperiment implements Experiment {
                     getLogger().error("failed to log source code from file {}", asset, t);
                     return null;
                 });
-    }
-
-    @Override
-    public void logOther(@NonNull String key, @NonNull Object value) {
-        if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logOther {} {}", key, value);
-        }
-        validate();
-
-        LogOtherRest request = getLogOtherRequest(key, value);
-        this.connection.sendPostAsync(request, ADD_LOG_OTHER);
-    }
-
-    @Override
-    public void addTag(@NonNull String tag) {
-        if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logTag {}", tag);
-        }
-        validate();
-
-        AddTagsToExperimentRest request = getTagRequest(tag);
-        this.connection.sendPostAsync(request, ADD_TAG);
-    }
-
-    @Override
-    public void logGraph(@NonNull String graph) {
-        if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logOther {}", graph);
-        }
-        validate();
-
-        AddGraphRest request = getGraphRequest(graph);
-        this.connection.sendPostAsync(request, ADD_GRAPH);
-    }
-
-    @Override
-    public void logStartTime(long startTimeMillis) {
-        if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logStartTime {}", startTimeMillis);
-        }
-        validate();
-
-        ExperimentTimeRequest request = getLogStartTimeRequest(startTimeMillis);
-        this.connection.sendPostAsync(request, ADD_START_END_TIME);
-    }
-
-    @Override
-    public void logEndTime(long endTimeMillis) {
-        if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logEndTime {}", endTimeMillis);
-        }
-        validate();
-
-        ExperimentTimeRequest request = getLogEndTimeRequest(endTimeMillis);
-        this.connection.sendPostAsync(request, ADD_START_END_TIME);
     }
 
     @Override
@@ -756,9 +782,8 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private LogOtherRest getLogOtherRequest(@NonNull String key, @NonNull Object value) {
+    private LogOtherRest createLogOtherRequest(@NonNull String key, @NonNull Object value) {
         LogOtherRest request = new LogOtherRest();
-        request.setExperimentKey(getExperimentKey());
         request.setKey(key);
         request.setValue(getObjectValue(value));
         request.setTimestamp(System.currentTimeMillis());

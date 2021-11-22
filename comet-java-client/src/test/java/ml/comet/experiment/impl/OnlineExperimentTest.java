@@ -129,7 +129,11 @@ public class OnlineExperimentTest extends BaseApiTest {
     public void testLogAndGetMetric() {
         OnlineExperiment experiment = createOnlineExperiment();
 
-        testLogParameters(experiment, Experiment::getMetrics, experiment::logMetric);
+        testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
+            OnCompleteAction onCompleteAction = new OnCompleteAction();
+            ((BaseExperiment) experiment).logMetricAsync(key, value, 1, 1, onCompleteAction);
+            awaitForCondition(onCompleteAction, "logMetricAsync onComplete timeout");
+        });
 
         experiment.end();
     }
@@ -141,7 +145,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
             ((BaseExperiment) experiment).logParameterAsync(key, value, 1, onCompleteAction);
-            awaitForCondition(onCompleteAction, "onComplete timeout");
+            awaitForCondition(onCompleteAction, "logParameterAsync onComplete timeout");
         });
 
         experiment.end();
@@ -151,17 +155,27 @@ public class OnlineExperimentTest extends BaseApiTest {
     public void testLogAndGetOther() {
         OnlineExperiment experiment = createOnlineExperiment();
 
+        // Check that experiment has no extra other data yet
+        //
         List<ValueMinMaxDto> parameters = experiment.getLogOther();
         assertEquals(1, parameters.size());
         assertTrue(parameters.stream().anyMatch(p -> "Name".equals(p.getName())));
 
+        // Log some other data
+        //
         Map<String, Object> params = new HashMap<>();
         params.put(SOME_PARAMETER, SOME_PARAMETER_VALUE);
         params.put(ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
 
-        params.forEach(experiment::logOther);
+        params.forEach((key, value) -> {
+            OnCompleteAction onCompleteAction = new OnCompleteAction();
+            ((BaseExperiment) experiment).logOtherAsync(key, value, onCompleteAction);
+            awaitForCondition(onCompleteAction, "logOtherAsync onComplete timeout");
+        });
 
-        awaitForCondition(() -> experiment.getLogOther().size() == 3, "Experiment parameters added");
+        // Get saved other data and check
+        //
+        awaitForCondition(() -> experiment.getLogOther().size() == 3, "get other timeout");
 
         List<ValueMinMaxDto> updatedParameters = experiment.getLogOther();
         params.forEach((k, v) -> validateMetrics(updatedParameters, k, v));
@@ -186,7 +200,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         awaitForCondition(() -> {
             Optional<String> html = experiment.getHtml();
             return html.isPresent() && SOME_HTML.equals(html.get());
-        }, "Experiment SOME_HTML update timeout");
+        }, "Experiment SOME_HTML update timeout", 60);
 
         // Override first HTML record
         //
@@ -448,7 +462,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         params.forEach(updateFunction);
 
         awaitForCondition(() -> supplierFunction.apply(
-                experiment).size() == 2, "Experiment parameters added");
+                experiment).size() == 2, "experiment parameters get timeout");
 
         List<ValueMinMaxDto> updatedParameters = supplierFunction.apply(experiment);
         params.forEach((k, v) -> validateMetrics(updatedParameters, k, v));
@@ -467,12 +481,14 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     static void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias) {
         Awaitility.await(conditionAlias).atMost(30, SECONDS)
+                .pollDelay(1, SECONDS)
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
     }
 
     static void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias, long timeoutSeconds) {
         Awaitility.await(conditionAlias).atMost(timeoutSeconds, SECONDS)
+                .pollDelay(1, SECONDS)
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
     }
