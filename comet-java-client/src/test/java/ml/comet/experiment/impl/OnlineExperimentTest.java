@@ -261,17 +261,25 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetGraph() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
 
+        // Check that experiment has no Graph
+        //
         Optional<String> graph = experiment.getGraph();
         assertTrue(!graph.isPresent() || graph.get().isEmpty());
 
-        experiment.logGraph(SOME_GRAPH);
+        // Log Graph and wait for response
+        //
+        OnCompleteAction onComplete = new OnCompleteAction();
+        experiment.logGraphAsync(SOME_GRAPH, onComplete);
+        awaitForCondition(onComplete, "onComplete timeout");
 
+        // Get graph and check result
+        //
         awaitForCondition(() -> {
             Optional<String> graphOpt = experiment.getGraph();
             return graphOpt.isPresent() && SOME_GRAPH.equals(graphOpt.get());
-        }, "Experiment graph updated");
+        }, "Experiment get graph timeout");
 
         experiment.end();
     }

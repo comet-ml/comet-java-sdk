@@ -50,7 +50,6 @@ import java.util.Optional;
 
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_ASSET;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
@@ -395,15 +394,33 @@ public abstract class BaseExperiment implements Experiment {
         logRequestAsynchronouslyAndNotify(restApiClient::addTag, createTagRequest(tag), onComplete);
     }
 
+    /**
+     * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
+     *
+     * @param graph The graph to be logged.
+     */
     @Override
     public void logGraph(@NonNull String graph) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logOther {}", graph);
+            getLogger().debug("logGraph {}", graph);
         }
-        validate();
 
-        AddGraphRest request = getGraphRequest(graph);
-        this.connection.sendPostAsync(request, ADD_GRAPH);
+        logRequestSynchronouslyOrThrow(restApiClient::logGraph, createGraphRequest(graph));
+    }
+
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
+     * @param graph      The graph to be logged
+     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
+     *                   Can be {@code null} if not interested in completion signal.
+     */
+    void logGraphAsync(@NonNull String graph, Action onComplete) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logGraphAsync {}", graph);
+        }
+
+        logRequestAsynchronouslyAndNotify(restApiClient::logGraph, createGraphRequest(graph), onComplete);
     }
 
     @Override
@@ -813,9 +830,8 @@ public abstract class BaseExperiment implements Experiment {
         return request;
     }
 
-    private AddGraphRest getGraphRequest(@NonNull String graph) {
+    private AddGraphRest createGraphRequest(@NonNull String graph) {
         AddGraphRest request = new AddGraphRest();
-        request.setExperimentKey(getExperimentKey());
         request.setGraph(graph);
         return request;
     }

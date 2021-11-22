@@ -217,6 +217,11 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     }
 
     @Override
+    public void logGraph(@NonNull String graph) {
+        this.logGraphAsync(graph, null);
+    }
+
+    @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step) {
         super.uploadAsset(asset, fileName, overwrite, step, this.epoch);
     }
