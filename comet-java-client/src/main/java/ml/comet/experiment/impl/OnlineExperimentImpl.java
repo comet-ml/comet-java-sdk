@@ -4,11 +4,10 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
-import ml.comet.experiment.exception.ConfigException;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.log.StdOutLogger;
-import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentStatusResponse;
+import ml.comet.experiment.model.GitMetadata;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,25 +51,21 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     private final AtomicBoolean atShutdown = new AtomicBoolean();
 
     /**
-     * Default constructor which reads all configuration parameters of the experiment either from configuration file
-     * or from environment variables.
+     * Creates new instance with given parameters.
      *
-     * @throws ConfigException If the Comet API key, project name, and workspace are missing from the configuration
-     *                         source or wrong types of the values defined.
+     * @param apiKey          the Comet API key.
+     * @param projectName     the project name (optional).
+     * @param workspaceName   the workspace name (optional).
+     * @param experimentName  the experiment name (optional).
+     * @param experimentKey   the experiment key to continue existing experiment (optional).
+     * @param logger          the logger to be used instead (optional).
+     * @param interceptStdout the flag to indicate if StdOut should be intercepted.
+     * @param baseUrl         the base URL of the Comet backend.
+     * @param maxAuthRetries  the maximal number of authentication retries.
+     * @param cleaningTimeout the cleaning timeout after experiment end.
+     * @throws IllegalArgumentException if illegal argument is provided or mandatory argument is missing.
      */
-    public OnlineExperimentImpl() throws ConfigException {
-        super(COMET_API_KEY.getString(),
-                COMET_BASE_URL.getString(),
-                COMET_MAX_AUTH_RETRIES.getInt(),
-                StringUtils.EMPTY,
-                COMET_TIMEOUT_CLEANING_SECONDS.getDuration(),
-                COMET_PROJECT_NAME.getString(),
-                COMET_WORKSPACE_NAME.getString()
-        );
-        this.init();
-    }
-
-    private OnlineExperimentImpl(
+    OnlineExperimentImpl(
             String apiKey,
             String projectName,
             String workspaceName,
@@ -80,7 +75,7 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
             boolean interceptStdout,
             String baseUrl,
             int maxAuthRetries,
-            Duration cleaningTimeout) {
+            Duration cleaningTimeout) throws IllegalArgumentException {
         super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, projectName, workspaceName);
 
         this.experimentName = experimentName;
@@ -89,15 +84,6 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
             this.logger = logger;
         }
         this.init();
-    }
-
-    /**
-     * Returns builder to be used to create properly configured instance of this class.
-     *
-     * @return the builder to be used to create properly configured instance of this class.
-     */
-    public static OnlineExperimentBuilderImpl builder() {
-        return new OnlineExperimentBuilderImpl();
     }
 
     @Override
@@ -323,6 +309,15 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
         public void run() {
             onlineExperiment.sendHeartbeat();
         }
+    }
+
+    /**
+     * Returns builder to be used to create properly configured instance of this class.
+     *
+     * @return the builder to be used to create properly configured instance of this class.
+     */
+    public static OnlineExperimentBuilderImpl builder() {
+        return new OnlineExperimentBuilderImpl();
     }
 
     /**

@@ -140,8 +140,11 @@ public abstract class BaseExperiment implements Experiment {
      * @throws IllegalArgumentException if validation failed.
      */
     private void validateInitialParams() throws IllegalArgumentException {
-        if (StringUtils.isEmpty(apiKey)) {
+        if (StringUtils.isEmpty(this.apiKey)) {
             throw new IllegalArgumentException("API key is not specified!");
+        }
+        if (StringUtils.isEmpty(this.baseUrl)) {
+            throw new IllegalArgumentException("The Comet base URL is not specified!");
         }
     }
 
@@ -151,8 +154,8 @@ public abstract class BaseExperiment implements Experiment {
      * @throws CometGeneralException if failed to register experiment.
      */
     void registerExperiment() throws CometGeneralException {
-        if (experimentKey != null) {
-            getLogger().debug("Not registering a new experiment. Using previous experiment key {}", experimentKey);
+        if (!StringUtils.isEmpty(this.experimentKey)) {
+            getLogger().debug("Not registering a new experiment. Using previous experiment key {}", this.experimentKey);
             return;
         }
 
