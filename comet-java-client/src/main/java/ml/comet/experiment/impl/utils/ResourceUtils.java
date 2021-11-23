@@ -1,5 +1,7 @@
 package ml.comet.experiment.impl.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,6 +10,7 @@ import java.util.Properties;
 /**
  * Collection of utilities to access bundled resource files.
  */
+@UtilityClass
 public class ResourceUtils {
     // The name of the properties file bundled as resource with JAVA SDK options, such as current version.
     private static final String SDK_OPTIONS_RESOURCE_FILE = "comet-java-sdk-options.properties";
