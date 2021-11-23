@@ -1,5 +1,6 @@
 package ml.comet.experiment;
 
+import lombok.experimental.UtilityClass;
 import ml.comet.experiment.builder.CometApiBuilder;
 
 /**
@@ -7,6 +8,7 @@ import ml.comet.experiment.builder.CometApiBuilder;
  *
  * @deprecated It would be replaced in the future with new experiment creation API.
  */
+@UtilityClass
 public final class CometApiImpl {
     /**
      * Returns builder to be used to properly create instance of {@link CometApi}.
