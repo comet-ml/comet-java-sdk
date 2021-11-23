@@ -4,6 +4,7 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.BiFunction;
+import io.reactivex.rxjava3.functions.Function;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.Getter;
 import lombok.NonNull;
@@ -22,11 +23,11 @@ import ml.comet.experiment.model.AddExperimentTagsRest;
 import ml.comet.experiment.model.AddGraphRest;
 import ml.comet.experiment.model.CreateExperimentRequest;
 import ml.comet.experiment.model.CreateExperimentResponse;
-import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.ExperimentTimeRequest;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.HtmlRest;
 import ml.comet.experiment.model.LogDataResponse;
@@ -460,6 +461,7 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logEndTime {}", endTimeMillis);
         }
+
         sendSynchronously(restApiClient::logStartEndTime, createLogEndTimeRequest(endTimeMillis));
     }
 
@@ -474,6 +476,7 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logEndTimeAsync {}", endTimeMillis);
         }
+
         sendAsynchronously(restApiClient::logStartEndTime, createLogEndTimeRequest(endTimeMillis), onComplete);
     }
 
@@ -587,14 +590,8 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get metadata for experiment {}", this.experimentKey);
         }
-        try {
-            return validateAndGetExperimentKey()
-                    .concatMap(experimentKey -> restApiClient.getMetadata(experimentKey))
-                    .blockingGet();
-        } catch (Exception ex) {
-            getLogger().error("Failed to read experiment's metadata, experiment key: {}", this.experimentKey, ex);
-            throw ex;
-        }
+
+        return loadRemote(restApiClient::getMetadata, "METADATA");
     }
 
     @Override
@@ -603,11 +600,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("get git metadata for experiment {}", this.experimentKey);
         }
 
-        return validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.getGitMetadata(experimentKey))
-                .doOnError(ex -> getLogger().error("Failed to read experiment's Git metadata, experiment key: {}",
-                        this.experimentKey, ex))
-                .blockingGet();
+        return loadRemote(restApiClient::getGitMetadata, "GIT METADATA");
     }
 
     @Override
@@ -615,12 +608,8 @@ public abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get html for experiment {}", this.experimentKey);
         }
-        return Optional.ofNullable(validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.getHtml(experimentKey))
-                .doOnError(ex -> getLogger().error("Failed to read HTML for the experiment, experiment key: {}",
-                        this.experimentKey, ex))
-                .blockingGet()
-                .getHtml());
+
+        return Optional.ofNullable(loadRemote(restApiClient::getHtml, "HTML").getHtml());
     }
 
     @Override
@@ -629,12 +618,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("get output for experiment {}", this.experimentKey);
         }
 
-        return Optional.ofNullable(validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.getOutput(experimentKey))
-                .doOnError(ex -> getLogger().error("Failed to read StdOut for the experiment, experiment key: {}",
-                        this.experimentKey, ex))
-                .blockingGet()
-                .getOutput());
+        return Optional.ofNullable(loadRemote(restApiClient::getOutput, "StdOut").getOutput());
     }
 
     @Override
@@ -643,12 +627,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("get graph for experiment {}", this.experimentKey);
         }
 
-        return Optional.ofNullable(validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.getGraph(experimentKey))
-                .doOnError(ex -> getLogger().error("Failed to read Graph for the experiment, experiment key: {}",
-                        this.experimentKey, ex))
-                .blockingGet()
-                .getGraph());
+        return Optional.ofNullable(loadRemote(restApiClient::getGraph, "GRAPH").getGraph());
     }
 
     @Override
@@ -657,12 +636,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("get params for experiment {}", this.experimentKey);
         }
 
-        return validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.getParameters(experimentKey))
-                .doOnError(ex -> getLogger().error("Failed to read parameters for the experiment, experiment key: {}",
-                        this.experimentKey, ex))
-                .blockingGet()
-                .getValues();
+        return loadRemote(restApiClient::getParameters, "PARAMETERS").getValues();
     }
 
     @Override
@@ -671,12 +645,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("get metrics summary for experiment {}", this.experimentKey);
         }
 
-        return validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.getMetrics(experimentKey))
-                .doOnError(ex -> getLogger().error("Failed to read metrics for the experiment, experiment key: {}",
-                        this.experimentKey, ex))
-                .blockingGet()
-                .getValues();
+        return loadRemote(restApiClient::getMetrics, "METRICS").getValues();
     }
 
     @Override
@@ -685,13 +654,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("get log other for experiment {}", this.experimentKey);
         }
 
-        return validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.getLogOther(experimentKey))
-                .doOnError(ex -> getLogger().error(
-                        "Failed to read other parameters for the experiment, experiment key: {}",
-                        this.experimentKey, ex))
-                .blockingGet()
-                .getValues();
+        return loadRemote(restApiClient::getLogOther, "OTHER PARAMETERS").getValues();
     }
 
     @Override
@@ -700,12 +663,7 @@ public abstract class BaseExperiment implements Experiment {
             getLogger().debug("get tags for experiment {}", this.experimentKey);
         }
 
-        return validateAndGetExperimentKey()
-                .concatMap(experimentKey -> restApiClient.getTags(experimentKey))
-                .doOnError(ex -> getLogger().error("Failed to read TAGs for the experiment, experiment key: {}",
-                        this.experimentKey, ex))
-                .blockingGet()
-                .getTags();
+        return loadRemote(restApiClient::getTags, "TAGs").getTags();
     }
 
     @Override
@@ -716,7 +674,7 @@ public abstract class BaseExperiment implements Experiment {
 
         return validateAndGetExperimentKey()
                 .concatMap(experimentKey -> restApiClient.getAssetList(experimentKey, type))
-                .doOnError(ex -> getLogger().error("Failed to read ASSETS for the experiment, experiment key: {}",
+                .doOnError(ex -> getLogger().error("Failed to read ASSETS list for the experiment, experiment key: {}",
                         this.experimentKey, ex))
                 .blockingGet()
                 .getAssets();
@@ -753,6 +711,11 @@ public abstract class BaseExperiment implements Experiment {
         this.disposables.dispose();
     }
 
+    /**
+     * Sends heartbeat to the server and returns the status response.
+     *
+     * @return the status response of the experiment.
+     */
     Optional<ExperimentStatusResponse> sendExperimentStatus() {
         return Optional.ofNullable(validateAndGetExperimentKey()
                 .concatMap(experimentKey -> restApiClient.sendExperimentStatus(experimentKey))
@@ -760,8 +723,20 @@ public abstract class BaseExperiment implements Experiment {
                 .blockingGet());
     }
 
-    private static String getObjectValue(Object val) {
-        return val.toString();
+    /**
+     * Synchronously loads remote data using provided load function or throws an exception.
+     *
+     * @param loadFunc the function to be applied to load remote data.
+     * @param alias    the data type alias used for logging.
+     * @param <T>      the data type to be returned.
+     * @return the loaded data.
+     */
+    private <T> T loadRemote(final Function<String, Single<T>> loadFunc, String alias) {
+        return validateAndGetExperimentKey()
+                .concatMap(loadFunc)
+                .doOnError(ex -> getLogger().error("Failed to read {} for the experiment, experiment key: {}",
+                        alias, this.experimentKey, ex))
+                .blockingGet();
     }
 
     /**
@@ -816,8 +791,11 @@ public abstract class BaseExperiment implements Experiment {
 
     /**
      * Validates the state of the experiment.
+     *
+     * @throws IllegalStateException if current state of the experiment is wrong, i.e., no experiment key found or
+     *                               experiment already ended.
      */
-    private void validate() {
+    private void validate() throws IllegalStateException {
         if (StringUtils.isEmpty(this.experimentKey)) {
             throw new IllegalStateException("Experiment key must be present!");
         }
@@ -826,6 +804,11 @@ public abstract class BaseExperiment implements Experiment {
         }
     }
 
+    /**
+     * Validates the experiment state and return the experiment key or error as a {@link Single}.
+     *
+     * @return the experiment key or error as {@link Single}.
+     */
     private Single<String> validateAndGetExperimentKey() {
         if (StringUtils.isEmpty(this.experimentKey)) {
             return Single.error(new IllegalStateException("Experiment key must be present!"));
@@ -840,7 +823,7 @@ public abstract class BaseExperiment implements Experiment {
             @NonNull String metricName, @NonNull Object metricValue, long step, long epoch, String context) {
         MetricRest request = new MetricRest();
         request.setMetricName(metricName);
-        request.setMetricValue(getObjectValue(metricValue));
+        request.setMetricValue(metricValue.toString());
         request.setStep(step);
         request.setEpoch(epoch);
         request.setTimestamp(System.currentTimeMillis());
@@ -852,7 +835,7 @@ public abstract class BaseExperiment implements Experiment {
             @NonNull String parameterName, @NonNull Object paramValue, long step, String context) {
         ParameterRest request = new ParameterRest();
         request.setParameterName(parameterName);
-        request.setParameterValue(getObjectValue(paramValue));
+        request.setParameterValue(paramValue.toString());
         request.setStep(step);
         request.setTimestamp(System.currentTimeMillis());
         request.setContext(context);
@@ -870,7 +853,7 @@ public abstract class BaseExperiment implements Experiment {
     private LogOtherRest createLogOtherRequest(@NonNull String key, @NonNull Object value) {
         LogOtherRest request = new LogOtherRest();
         request.setKey(key);
-        request.setValue(getObjectValue(value));
+        request.setValue(value.toString());
         request.setTimestamp(System.currentTimeMillis());
         return request;
     }

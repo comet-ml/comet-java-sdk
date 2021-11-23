@@ -129,7 +129,7 @@ public class OnlineExperimentTest extends BaseApiTest {
     public void testLogAndGetMetric() {
         OnlineExperiment experiment = createOnlineExperiment();
 
-        testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
+        testLogParameters(experiment, Experiment::getMetrics, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
             ((BaseExperiment) experiment).logMetricAsync(key, value, 1, 1, onCompleteAction);
             awaitForCondition(onCompleteAction, "logMetricAsync onComplete timeout");
