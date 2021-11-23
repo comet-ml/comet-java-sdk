@@ -12,13 +12,11 @@ import lombok.Setter;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
-import ml.comet.experiment.impl.constants.ApiEndpoints;
 import ml.comet.experiment.impl.constants.AssetType;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.utils.CometUtils;
-import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.model.AddExperimentTagsRest;
 import ml.comet.experiment.model.AddGraphRest;
 import ml.comet.experiment.model.CreateExperimentRequest;
@@ -149,7 +147,7 @@ public abstract class BaseExperiment implements Experiment {
     }
 
     /**
-     * Registers experiment at the Comet server.
+     * Synchronously registers experiment at the Comet server.
      *
      * @throws CometGeneralException if failed to register experiment.
      */
@@ -159,19 +157,16 @@ public abstract class BaseExperiment implements Experiment {
             return;
         }
 
-        CreateExperimentRequest request = new CreateExperimentRequest(workspaceName, projectName, getExperimentName());
-        String body = JsonUtils.toJson(request);
+        // do synchronous call to register experiment
+        CreateExperimentResponse result = this.restApiClient.registerExperiment(
+                new CreateExperimentRequest(this.workspaceName, this.projectName, this.experimentName))
+                .blockingGet();
+        this.experimentKey = result.getExperimentKey();
+        this.experimentLink = result.getLink();
 
-        this.connection.sendPost(body, ApiEndpoints.NEW_EXPERIMENT, true)
-                .ifPresent(response -> {
-                    CreateExperimentResponse result = JsonUtils.fromJson(response, CreateExperimentResponse.class);
-                    this.experimentKey = result.getExperimentKey();
-                    this.experimentLink = result.getLink();
+        getLogger().info("Experiment is live on comet.ml " + this.experimentLink);
 
-                    getLogger().info("Experiment is live on comet.ml " + this.experimentLink);
-                });
-
-        if (this.experimentKey == null) {
+        if (StringUtils.isEmpty(this.experimentKey)) {
             throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
         }
     }
