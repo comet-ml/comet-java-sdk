@@ -53,11 +53,11 @@ public final class MnistExperimentExample {
     /**
      * The experiment entry point.
      *
-     * <p>You need to set three environment variables to run this experiment:
+     * <p>You should set three environment variables to run this experiment:
      * <ul>
-     *      <li>COMET_API_KEY - the API key to access Comet</li>
-     *      <li>COMET_WORKSPACE_NAME - the name of the workspace for your project</li>
-     *      <li>COMET_PROJECT_NAME - the name of the project.</li>
+     *      <li>COMET_API_KEY - the API key to access Comet (MANDATORY)</li>
+     *      <li>COMET_WORKSPACE_NAME - the name of the workspace for your project (OPTIONAL)</li>
+     *      <li>COMET_PROJECT_NAME - the name of the project (OPTIONAL)</li>
      * </ul>
      *
      * <p>Alternatively you can set these values in the <strong>resources/application.conf</strong> file
