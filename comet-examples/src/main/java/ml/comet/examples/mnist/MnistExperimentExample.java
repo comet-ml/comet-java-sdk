@@ -3,7 +3,7 @@ package ml.comet.examples.mnist;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import ml.comet.experiment.OnlineExperiment;
-import ml.comet.experiment.impl.OnlineExperimentImpl;
+import ml.comet.experiment.OnlineExperimentImpl;
 import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator;
 import org.deeplearning4j.nn.api.Model;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
@@ -73,8 +73,10 @@ public final class MnistExperimentExample {
                 .parse(args);
 
         // update application.conf or provide environment variables as described in JavaDoc.
-        OnlineExperiment experiment = OnlineExperimentImpl.builder().build();
-        experiment.setInterceptStdout();
+        OnlineExperiment experiment = OnlineExperimentImpl
+                .builder()
+                .interceptStdout()
+                .build();
         try {
             main.runMnistExperiment(experiment);
         } catch (Exception e) {

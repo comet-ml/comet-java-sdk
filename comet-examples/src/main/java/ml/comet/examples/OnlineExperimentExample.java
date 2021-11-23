@@ -1,7 +1,7 @@
 package ml.comet.examples;
 
 import ml.comet.experiment.OnlineExperiment;
-import ml.comet.experiment.impl.OnlineExperimentImpl;
+import ml.comet.experiment.OnlineExperimentImpl;
 
 import java.io.IOException;
 
@@ -40,8 +40,10 @@ public class OnlineExperimentExample {
         //this will take configs from /comet-java-sdk/comet-examples/src/main/resources/application.conf
         //be sure you have set up apiKey, project, workspace in defaults.conf before you start!
 
-        OnlineExperiment experiment = new OnlineExperimentImpl();
-        experiment.setInterceptStdout();
+        OnlineExperiment experiment = OnlineExperimentImpl
+                .builder()
+                .interceptStdout()
+                .build();
 
         //you can use a builder or just inject params
         //OnlineExperimentImpl.builder();
