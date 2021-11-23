@@ -143,15 +143,6 @@ public abstract class BaseExperiment implements Experiment {
         if (StringUtils.isEmpty(apiKey)) {
             throw new IllegalArgumentException("API key is not specified!");
         }
-        if (StringUtils.isNotEmpty(experimentKey)) {
-            return;
-        }
-        if (StringUtils.isEmpty(projectName)) {
-            throw new IllegalArgumentException("ProjectName is not specified!");
-        }
-        if (StringUtils.isEmpty(workspaceName)) {
-            throw new IllegalArgumentException("Workspace name is not specified!");
-        }
     }
 
     /**
