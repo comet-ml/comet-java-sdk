@@ -5,7 +5,6 @@ import lombok.Value;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.constants.QueryParamName;
-import ml.comet.experiment.impl.utils.JsonUtils;
 import org.asynchttpclient.AsyncCompletionHandler;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.AsyncHttpClientConfig;
@@ -21,11 +20,9 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
@@ -46,11 +43,14 @@ public class Connection implements Closeable {
 
     private static final String RESPONSE_NO_BODY = "NO BODY";
 
+    AsyncHttpClient asyncHttpClient;
     String cometBaseUrl;
     String apiKey;
     Logger logger;
+    /**
+     * The maximum number of retries when contacting server.
+     */
     int maxAuthRetries;
-    AsyncHttpClient asyncHttpClient;
     /**
      * This is inventory tracker to maintain remaining list of scheduled asynchronous request posts. It will be used
      * to properly close this connection only after all scheduled requests are processed.
@@ -83,47 +83,31 @@ public class Connection implements Closeable {
      *
      * @param endpoint the request path of the endpoint
      * @param params   the map with request parameters.
-     * @return the Optional response body.
+     * @return the {@link Optional} of response body.
      */
-    public Optional<String> sendGet(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params) {
-        return executeRequestWithAuth(
+    public Optional<String> sendGetWithRetries(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params) {
+        return executeRequestSyncWithRetries(
                 ConnectionUtils.createGetRequest(this.buildCometUrl(endpoint), params), false);
     }
 
     /**
-     * Allows sending POST to the specified endpoint with body as JSON string.
+     * Allows sending POST to the specified endpoint with body as JSON string. This method will retry request using
+     * {@link #maxAuthRetries} attempts. If failed empty {@link Optional} will be returned or {@link CometApiException}
+     * will be thrown if {@link #maxAuthRetries} attempts exceeded.
      *
      * @param json           the JSON string to be posted.
      * @param endpoint       the relative path to the endpoint
      * @param throwOnFailure the flag to indicate if exception should be thrown on failure of request execution.
-     * @return the Optional response body.
+     * @return the {@link Optional} of response body.
+     * @throws CometApiException if throwOnFailure set to {@code true} and request was failed.
      */
-    public Optional<String> sendPost(@NonNull String json, @NonNull String endpoint, boolean throwOnFailure) {
+    public Optional<String> sendPostWithRetries(
+            @NonNull String json, @NonNull String endpoint, boolean throwOnFailure) throws CometApiException {
         String url = this.buildCometUrl(endpoint);
         if (logger.isDebugEnabled()) {
             logger.debug("sending JSON {} to {}", json, url);
         }
-        return executeRequestWithAuth(ConnectionUtils.createPostJsonRequest(json, url), throwOnFailure);
-    }
-
-    /**
-     * Allows asynchronous sending given object as JSON encoded body of the POST request.
-     *
-     * @param payload  the payload object to be sent.
-     * @param endpoint the relative path to the endpoint.
-     */
-    public void sendPostAsync(@NonNull Object payload, @NonNull String endpoint) {
-        CompletableFuture<Response> future = sendPostAsync(JsonUtils.toJson(payload), endpoint)
-                .toCompletableFuture()
-                .exceptionally(t -> {
-                            logger.error("failed to execute asynchronous request to endpoint {} with payload {}",
-                                    endpoint, payload, t);
-                            return null;
-                        }
-                );
-        if (logger.isDebugEnabled()) {
-            future.thenApply(getDebugLogResponse(endpoint));
-        }
+        return executeRequestSyncWithRetries(ConnectionUtils.createPostJsonRequest(json, url), throwOnFailure);
     }
 
     /**
@@ -135,7 +119,7 @@ public class Connection implements Closeable {
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull String json, @NonNull String endpoint) {
-        return executeRequestWithAuthAsync(
+        return executeRequestAsync(
                 ConnectionUtils.createPostJsonRequest(json, this.buildCometUrl(endpoint)));
     }
 
@@ -150,7 +134,7 @@ public class Connection implements Closeable {
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull File file, @NonNull String endpoint,
                                                     @NonNull Map<QueryParamName, String> params) {
-        return executeRequestWithAuthAsync(
+        return executeRequestAsync(
                 ConnectionUtils.createPostFileRequest(file, this.buildCometUrl(endpoint), params));
     }
 
@@ -170,7 +154,7 @@ public class Connection implements Closeable {
             logger.debug("sending POST bytearray with length {} to {}", bytes.length, url);
         }
 
-        return executeRequestWithAuthAsync(ConnectionUtils.createPostByteArrayRequest(bytes, url, params));
+        return executeRequestAsync(ConnectionUtils.createPostByteArrayRequest(bytes, url, params));
     }
 
     /**
@@ -225,9 +209,9 @@ public class Connection implements Closeable {
      * Executes provided request asynchronously.
      *
      * @param request the request to be executed.
-     * @return the <code>ListenableFuture</code> which can be used to check request status.
+     * @return the {@link ListenableFuture} which can be used to check request status.
      */
-    ListenableFuture<Response> executeRequestWithAuthAsync(@NonNull Request request) {
+    ListenableFuture<Response> executeRequestAsync(@NonNull Request request) {
         // check that client is not closed
         if (this.asyncHttpClient.isClosed()) {
             String msg = String.format("failed to execute request %s connection to the server already closed", request);
@@ -245,49 +229,59 @@ public class Connection implements Closeable {
     }
 
     /**
-     * Synchronously executes provided request. It will attempt to execute request <code>maxAuthRetries</code> in
-     * case of failure. If all attempts failed the empty optional will be returned or <code>CometGeneralException</code>
-     * will be thrown in case of <code>throwOnFailure</code> is <code>true</code>.
+     * Synchronously executes provided request. It will attempt to execute request {@link #maxAuthRetries} in
+     * case of failure. If all attempts failed the empty optional will be returned or {@link CometApiException}
+     * will be thrown in case of {@code throwOnFailure} is {@code true}.
      *
      * @param request        the request to be executed
-     * @param throwOnFailure if <code>true</code> throws exception on failure. Otherwise, empty Optional will be
+     * @param throwOnFailure if {@code true} throws exception on failure. Otherwise, empty {@link Optional} will be
      *                       returned.
-     * @return the response body or empty Optional.
+     * @return the response body or empty {@link Optional}.
+     * @throws CometApiException if throwOnFailure set to {@code true} and request was failed.
      */
-    Optional<String> executeRequestWithAuth(@NonNull Request request, boolean throwOnFailure) {
+    Optional<String> executeRequestSyncWithRetries(
+            @NonNull Request request, boolean throwOnFailure) throws CometApiException {
         request.getHeaders().add(COMET_SDK_API_HEADER, apiKey);
         String endpoint = request.getUrl();
         try {
             org.asynchttpclient.Response response = null;
-            for (int i = 1; i < maxAuthRetries; i++) {
-                // execute request and wait for completion until default REQUEST_TIMEOUT_MS exceeded
-                if (!this.asyncHttpClient.isClosed()) {
-                    response = this.asyncHttpClient.executeRequest(request).get();
-                } else {
-                    logger.warn("failed to execute request {}, the connection already closed.", request);
+            for (int i = 1; i < this.maxAuthRetries; i++) {
+                if (this.asyncHttpClient.isClosed()) {
+                    this.logger.warn("failed to execute request {}, the connection already closed.", request);
                     if (throwOnFailure) {
-                        throw new CometGeneralException("failed to execute request, the connection already closed.");
+                        throw new CometApiException("failed to execute request, the connection already closed.");
                     }
                     return Optional.empty();
                 }
 
+                // execute request and wait for completion until default REQUEST_TIMEOUT_MS exceeded
+                response = this.asyncHttpClient
+                        .executeRequest(request)
+                        .get();
+
                 if (!ConnectionUtils.isResponseSuccessful(response.getStatusCode())) {
-                    // request attempt failed
-                    if (i < maxAuthRetries - 1) {
-                        logger.debug("for endpoint {} response {}, retrying\n", endpoint, response.getStatusText());
+                    // attempt failed - check if to retry
+                    if (i < this.maxAuthRetries - 1) {
+                        // sleep for a while and repeat
+                        this.logger.debug("for endpoint {} response {}, retrying\n", endpoint, response.getStatusText());
                         Thread.sleep((2 ^ i) * 1000L);
                     } else {
-                        logger.error("for endpoint {} response {}, last retry failed\n",
-                                endpoint, response.getStatusText());
+                        // maximal number of attempts exceeded - throw or return
+                        this.logger.error(
+                                "for endpoint {} got the response '{}', the last retry failed from {} attempts",
+                                endpoint, response.getStatusText(), this.maxAuthRetries);
                         if (throwOnFailure) {
                             String body = response.hasResponseBody() ? response.getResponseBody() : RESPONSE_NO_BODY;
-                            throw new CometGeneralException("failed to call: " + endpoint + ", response status: "
-                                    + response.getStatusCode() + ", body: " + body);
+                            throw new CometApiException(
+                                    "failed to call endpoint: %s, response status: %s, body: %s, failed attempts: %d",
+                                    endpoint, response.getStatusCode(), body, this.maxAuthRetries);
                         }
+                        return Optional.empty();
                     }
                 } else {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("for endpoint {} got response {}\n", endpoint, response.getResponseBody());
+                    // success - log debug and stop trying
+                    if (this.logger.isDebugEnabled()) {
+                        this.logger.debug("for endpoint {} got response {}\n", endpoint, response.getResponseBody());
                     }
                     break;
                 }
@@ -298,16 +292,12 @@ public class Connection implements Closeable {
             }
             return Optional.of(response.getResponseBody());
         } catch (Throwable e) {
-            logger.error("Failed to execute request: " + request, e);
+            this.logger.error("Failed to execute request: " + request, e);
             if (throwOnFailure) {
-                throw new CometGeneralException("failed to execute request, unknown error", e);
+                throw new CometApiException("failed to execute request, unknown error", e);
             }
             return Optional.empty();
         }
-    }
-
-    private Function<Response, Response> getDebugLogResponse(@NonNull String endpoint) {
-        return new ConnectionUtils.DebugLogResponse(this.logger, endpoint);
     }
 
     private String buildCometUrl(String endpoint) {

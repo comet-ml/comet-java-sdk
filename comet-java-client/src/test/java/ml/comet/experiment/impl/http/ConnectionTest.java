@@ -35,6 +35,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.http.Connection.COMET_SDK_API_HEADER;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -47,7 +48,7 @@ public class ConnectionTest {
     private static final int MAX_AUTH_RETRIES_DEFAULT = 4;
 
     @Test
-    public void testSendGet(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+    public void testSendGetWithRetries(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test data
         //
         HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
@@ -70,7 +71,7 @@ public class ConnectionTest {
         String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
-        Optional<String> response = connection.sendGet(endpoint, params);
+        Optional<String> response = connection.sendGetWithRetries(endpoint, params);
         assertDoesNotThrow(connection::close);
 
         assertTrue(response.isPresent(), "response expected");
@@ -86,7 +87,7 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testSendPost(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+    public void testSendPostWithRetries(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test data
         //
         String endpoint = "/someEndpoint";
@@ -103,7 +104,7 @@ public class ConnectionTest {
         String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
-        Optional<String> response = connection.sendPost(requestStr, endpoint, true);
+        Optional<String> response = connection.sendPostWithRetries(requestStr, endpoint, true);
         assertDoesNotThrow(connection::close);
 
         assertTrue(response.isPresent(), "response expected");
@@ -115,6 +116,53 @@ public class ConnectionTest {
                 .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
+    }
+
+    @Test
+    public void testSendPostWithRetriesException(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+        // create test data
+        //
+        String endpoint = "/someEndpoint";
+        String requestStr = "someRequestString";
+
+        // create test HTTP stub
+        //
+        stubFor(post(urlPathEqualTo(endpoint))
+                .willReturn(badRequest().withHeader("Content-Type", ConnectionUtils.JSON_MIME_TYPE)));
+
+        // execute request and check results
+        //
+        String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
+        Connection connection = new Connection(
+                baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
+        assertThrows(CometApiException.class, () ->
+                connection.sendPostWithRetries(requestStr, endpoint, true));
+    }
+
+    /**
+     * Tests that empty optional returned if max retry attempts exceeded and throwOnFailure is false.
+     */
+    @Test
+    public void testSendPostWithRetriesEmptyOptional(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+        // create test data
+        //
+        String endpoint = "/someEndpoint";
+        String requestStr = "someRequestString";
+
+        // create test HTTP stub
+        //
+        stubFor(post(urlPathEqualTo(endpoint))
+                .willReturn(badRequest().withHeader("Content-Type", ConnectionUtils.JSON_MIME_TYPE)));
+
+        // execute request and check results
+        //
+        String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
+        Connection connection = new Connection(
+                baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
+        Optional<String> response = connection.sendPostWithRetries(requestStr, endpoint, false);
+        assertDoesNotThrow(connection::close);
+
+        assertFalse(response.isPresent(), "empty optional expected");
     }
 
     @Test
@@ -142,7 +190,7 @@ public class ConnectionTest {
         // wait for result
         CompletableFuture<Response> completableFuture = responseListenableFuture.toCompletableFuture();
         assertDoesNotThrow(() -> {
-            Response response =completableFuture
+            Response response = completableFuture
                     .exceptionally(throwable -> fail("response failed", throwable))
                     .get(5, TimeUnit.SECONDS);
             assertEquals(responseStr, response.getResponseBody(), "wrong response body");
