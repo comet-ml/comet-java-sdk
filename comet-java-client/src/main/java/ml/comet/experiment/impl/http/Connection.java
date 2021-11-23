@@ -299,6 +299,9 @@ public class Connection implements Closeable {
             return Optional.of(response.getResponseBody());
         } catch (Throwable e) {
             logger.error("Failed to execute request: " + request, e);
+            if (throwOnFailure) {
+                throw new CometGeneralException("failed to execute request, unknown error", e);
+            }
             return Optional.empty();
         }
     }
