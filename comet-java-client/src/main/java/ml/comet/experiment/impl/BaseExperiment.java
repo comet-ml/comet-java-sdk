@@ -159,7 +159,7 @@ public abstract class BaseExperiment implements Experiment {
 
         // do synchronous call to register experiment
         CreateExperimentResponse result = this.restApiClient.registerExperiment(
-                new CreateExperimentRequest(this.workspaceName, this.projectName, this.experimentName))
+                        new CreateExperimentRequest(this.workspaceName, this.projectName, this.experimentName))
                 .blockingGet();
         this.experimentKey = result.getExperimentKey();
         this.experimentLink = result.getLink();
@@ -514,7 +514,7 @@ public abstract class BaseExperiment implements Experiment {
             put(OVERWRITE, Boolean.toString(false));
         }};
 
-        this.connection.sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params)
+        this.connection.sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params, null)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to log raw source code with file name {}", fileName, t);
@@ -537,7 +537,7 @@ public abstract class BaseExperiment implements Experiment {
             put(OVERWRITE, Boolean.toString(false));
         }};
 
-        this.connection.sendPostAsync(asset, ADD_ASSET, params)
+        this.connection.sendPostAsync(asset, ADD_ASSET, params, null)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to log source code from file {}", asset, t);
@@ -561,7 +561,7 @@ public abstract class BaseExperiment implements Experiment {
                     put(EPOCH, Long.toString(epoch));
                     put(CONTEXT, getContext());
                     put(OVERWRITE, Boolean.toString(overwrite));
-                }})
+                }}, null)
                 .toCompletableFuture()
                 .exceptionally(t -> {
                     getLogger().error("failed to upload asset from file {} with name {}", asset, fileName, t);

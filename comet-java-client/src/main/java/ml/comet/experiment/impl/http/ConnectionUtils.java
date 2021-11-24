@@ -2,27 +2,35 @@ package ml.comet.experiment.impl.http;
 
 import lombok.NonNull;
 import lombok.Value;
+import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.RequestBuilder;
 import org.asynchttpclient.Response;
 import org.asynchttpclient.request.body.generator.ByteArrayBodyGenerator;
 import org.asynchttpclient.request.body.multipart.ByteArrayPart;
+import org.asynchttpclient.request.body.multipart.FileLikePart;
 import org.asynchttpclient.request.body.multipart.FilePart;
+import org.asynchttpclient.request.body.multipart.Part;
+import org.asynchttpclient.request.body.multipart.StringPart;
 import org.asynchttpclient.util.HttpConstants;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
+import static ml.comet.experiment.impl.constants.FormParamName.FILE;
 
 /**
  * Collection of the utilities used by <code>Connection</code>.
  */
 public class ConnectionUtils {
-    static final String FILE = "file";
-    static final String FORM_MIME_TYPE = "multipart/form-data";
-    static final String JSON_MIME_TYPE = "application/json";
+    static final String MIME_MULTIPART_FORM_DATA = "multipart/form-data";
+    static final String MIME_APPLICATION_JSON = "application/json";
+    static final String MIME_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
     /**
      * Creates GET request to the given endpoint with specified query parameters.
@@ -40,32 +48,36 @@ public class ConnectionUtils {
     /**
      * Creates POST request from given file to the specified endpoint.
      *
-     * @param file   the file to be included in the body parts.
-     * @param url    the URL of the endpoint.
-     * @param params the query parameters of the request.
+     * @param file       the file to be included in the body parts.
+     * @param url        the URL of the endpoint.
+     * @param params     the query parameters of the request.
+     * @param formParams the form parameters to be added.
      * @return the POST request with specified file.
      */
-    static Request createPostFileRequest(@NonNull File file, @NonNull String url, Map<QueryParamName, String> params) {
-        return createRequestBuilder(HttpConstants.Methods.POST, params)
+    static Request createPostFileRequest(@NonNull File file, @NonNull String url,
+                                         Map<QueryParamName, String> params,
+                                         Map<FormParamName, Object> formParams) {
+        return createMultipartRequestBuilder(
+                new FilePart(FILE.paramName(), file), params, formParams)
                 .setUrl(url)
-                .setHeader("Content-Type", FORM_MIME_TYPE)
-                .addBodyPart(new FilePart(FILE, file, FORM_MIME_TYPE))
                 .build();
     }
 
     /**
      * Creates POST request from given byte array to the specified endpoint.
      *
-     * @param bytes  the bytes array to include into request.
-     * @param url    the URL of the endpoint.
-     * @param params the query parameters of the request.
+     * @param bytes      the bytes array to include into request.
+     * @param url        the URL of the endpoint.
+     * @param params     the query parameters of the request.
+     * @param formParams the form parameters to be added
      * @return the POST request with specified byte array as body part.
      */
-    static Request createPostByteArrayRequest(byte[] bytes, @NonNull String url, Map<QueryParamName, String> params) {
-        return createRequestBuilder(HttpConstants.Methods.POST, params)
+    static Request createPostByteArrayRequest(byte[] bytes, @NonNull String url,
+                                              Map<QueryParamName, String> params,
+                                              Map<FormParamName, Object> formParams) {
+        return createMultipartRequestBuilder(
+                new ByteArrayPart(FILE.paramName(), bytes, MIME_APPLICATION_OCTET_STREAM), params, formParams)
                 .setUrl(url)
-                .setHeader("Content-Type", FORM_MIME_TYPE)
-                .addBodyPart(new ByteArrayPart(FILE, bytes, FORM_MIME_TYPE))
                 .build();
     }
 
@@ -75,7 +87,7 @@ public class ConnectionUtils {
     static Request createPostJsonRequest(@NonNull String body, @NonNull String url) {
         return new RequestBuilder()
                 .setUrl(url)
-                .setHeader("Content-Type", JSON_MIME_TYPE)
+                .setHeader("Content-Type", MIME_APPLICATION_JSON)
                 .setBody(new ByteArrayBodyGenerator(body.getBytes()))
                 .setMethod(HttpConstants.Methods.POST)
                 .build();
@@ -102,6 +114,31 @@ public class ConnectionUtils {
             params.forEach((k, v) -> builder.addQueryParam(k.paramName(), v));
         }
         return builder;
+    }
+
+    /**
+     * Creates multipart request builder using provided parameters.
+     *
+     * @param fileLikePart the file like part to be added
+     * @param params       the query parameters to be added
+     * @param formParams   the form parameters
+     * @return the pre-configured request builder.
+     */
+    static RequestBuilder createMultipartRequestBuilder(
+            @NonNull FileLikePart fileLikePart, Map<QueryParamName, String> params,
+            Map<FormParamName, Object> formParams) {
+        RequestBuilder builder = createRequestBuilder(HttpConstants.Methods.POST, params);
+        List<Part> parts = new ArrayList<>();
+        parts.add(fileLikePart);
+        if (formParams != null) {
+            formParams.forEach((k, v) -> parts.add(createPart(k.paramName(), v)));
+        }
+        builder.setBodyParts(parts);
+        return builder;
+    }
+
+    private static Part createPart(String name, @NonNull Object value) {
+        return new StringPart(name, value.toString());
     }
 
     /**
