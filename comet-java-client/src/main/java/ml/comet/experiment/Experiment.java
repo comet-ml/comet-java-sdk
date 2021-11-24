@@ -1,9 +1,9 @@
 package ml.comet.experiment;
 
 import ml.comet.experiment.impl.constants.AssetType;
-import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
 
@@ -12,7 +12,14 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Describes the public contract of the Experiment.
+ * The {@link Experiment} is a unit of measurable research that defines a single run with
+ * some data/parameters/code/results.
+ *
+ * <p>Creating an {@link Experiment} object in your code will report a new experiment to
+ * your Comet.ml project.
+ *
+ * <p>Your {@link Experiment} will automatically track and collect many things and will also
+ * allow you to manually report anything.
  */
 public interface Experiment {
 
