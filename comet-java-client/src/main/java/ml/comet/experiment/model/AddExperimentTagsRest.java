@@ -6,16 +6,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ParameterRest {
-    private String parameterName;
-    private String parameterValue;
-    private Long step;
+public class AddExperimentTagsRest {
     private String experimentKey;
-    private Long timestamp;
-    private String context;
+    private List<String> addedTags;
 }

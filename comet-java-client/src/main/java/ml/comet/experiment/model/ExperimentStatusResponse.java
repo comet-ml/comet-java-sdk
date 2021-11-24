@@ -6,16 +6,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Describes response received when experiment set status sent.
+ */
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ParameterRest {
-    private String parameterName;
-    private String parameterValue;
-    private Long step;
-    private String experimentKey;
-    private Long timestamp;
-    private String context;
+public class ExperimentStatusResponse {
+    private long isAliveBeatDurationMillis;
+    private long gpuMonitorIntervalMillis;
+    private long cpuMonitorIntervalMillis;
 }

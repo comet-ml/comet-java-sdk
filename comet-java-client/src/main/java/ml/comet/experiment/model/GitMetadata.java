@@ -11,11 +11,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ParameterRest {
-    private String parameterName;
-    private String parameterValue;
-    private Long step;
+public class GitMetadata {
     private String experimentKey;
-    private Long timestamp;
-    private String context;
+    private String user;
+    private String root;
+    private String branch;
+    private String parent;
+    private String origin;
 }

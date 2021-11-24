@@ -6,16 +6,20 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Encodes common fields of response received for POST logXXX requests.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ParameterRest {
-    private String parameterName;
-    private String parameterValue;
-    private Long step;
-    private String experimentKey;
-    private Long timestamp;
-    private String context;
+public class LogDataResponse {
+    private String msg;
+    private int code;
+    private int sdkErrorCode;
+
+    public boolean hasFailed() {
+        return code != 200 || sdkErrorCode != 0;
+    }
 }

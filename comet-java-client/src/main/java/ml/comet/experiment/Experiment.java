@@ -1,14 +1,13 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.constants.AssetType;
-import ml.comet.experiment.model.CreateGitMetadata;
+import ml.comet.experiment.impl.constants.AssetType;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
 
 import java.io.File;
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -132,6 +131,15 @@ public interface Experiment {
     void setExperimentName(String experimentName);
 
     /**
+     * Send logs to Comet.
+     *
+     * @param line   Text to be logged
+     * @param offset Offset describes the place for current text to be inserted
+     * @param stderr the flag to indicate if this is StdErr message.
+     */
+    void logLine(String line, long offset, boolean stderr);
+
+    /**
      * Logs a metric with Comet. For running experiment updates current step to one from param!
      * Metrics are generally values that change from step to step.
      *
@@ -233,7 +241,7 @@ public interface Experiment {
      *
      * @param gitMetadata The Git Metadata for the experiment
      */
-    void logGitMetadata(CreateGitMetadata gitMetadata);
+    void logGitMetadata(GitMetadata gitMetadata);
 
     /**
      * Tells Comet that the Experiment is complete and release all associated resources.
