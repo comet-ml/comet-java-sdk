@@ -74,7 +74,6 @@ abstract class BaseExperiment implements Experiment {
     private RestApiClient restApiClient;
     @Getter
     private Connection connection;
-    final CompositeDisposable disposables = new CompositeDisposable();
 
     /**
      * Returns logger instance associated with particular experiment. The subclasses should override this method to
@@ -538,12 +537,6 @@ abstract class BaseExperiment implements Experiment {
                 getLogger().error("failed to close connection", e);
             }
         }
-
-        // dispose all pending calls
-        if (disposables.size() > 0) {
-            getLogger().warn("{} calls still has not been processed, disposing", disposables.size());
-        }
-        this.disposables.dispose();
     }
 
     /**

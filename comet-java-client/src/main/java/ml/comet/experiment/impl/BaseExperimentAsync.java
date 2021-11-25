@@ -1,6 +1,7 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
@@ -45,6 +46,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     @Setter
     String context = StringUtils.EMPTY;
 
+    final CompositeDisposable disposables = new CompositeDisposable();
+
     BaseExperimentAsync(@NonNull final String apiKey,
                         @NonNull final String baseUrl,
                         int maxAuthRetries,
@@ -53,6 +56,20 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         final String projectName,
                         final String workspaceName) {
         super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, projectName, workspaceName);
+    }
+
+    @Override
+    public void end() {
+        if (!this.alive) {
+            return;
+        }
+        super.end();
+
+        // dispose all pending asynchronous calls
+        if (disposables.size() > 0) {
+            getLogger().warn("{} calls still has not been processed, disposing", disposables.size());
+        }
+        this.disposables.dispose();
     }
 
     /**
