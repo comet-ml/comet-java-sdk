@@ -116,8 +116,17 @@ final class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
         }
         Duration cleaningTimeout = COMET_TIMEOUT_CLEANING_SECONDS.getDuration();
 
-        return new OnlineExperimentImpl(
+        OnlineExperimentImpl experiment = new OnlineExperimentImpl(
                 this.apiKey, this.projectName, this.workspace, this.experimentName, this.experimentKey,
                 this.logger, this.interceptStdout, this.baseUrl, this.maxAuthRetries, cleaningTimeout);
+        try {
+            // initialize experiment
+            experiment.init();
+        } catch (Throwable ex) {
+            // release hold resources and signal to user about failure
+            experiment.end();
+            throw ex;
+        }
+        return experiment;
     }
 }

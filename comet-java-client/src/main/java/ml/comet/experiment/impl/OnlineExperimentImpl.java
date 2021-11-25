@@ -73,7 +73,6 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         if (logger != null) {
             this.logger = logger;
         }
-        this.init();
     }
 
     @Override

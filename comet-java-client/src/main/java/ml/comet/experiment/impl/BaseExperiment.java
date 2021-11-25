@@ -526,7 +526,9 @@ abstract class BaseExperiment implements Experiment {
         this.alive = false;
 
         // close REST API
-        this.restApiClient.dispose();
+        if (this.restApiClient != null) {
+            this.restApiClient.dispose();
+        }
 
         // close connection
         if (this.connection != null) {
