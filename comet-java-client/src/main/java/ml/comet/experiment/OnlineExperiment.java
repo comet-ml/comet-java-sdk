@@ -4,8 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Describes the public contract of the online experiment which extends functionality of the Experiment by providing
- * additional methods to log various parameters in real time.
+ * The OnlineExperiment should be used to asynchronously update data of your Comet.ml Experiment.
  */
 public interface OnlineExperiment extends Experiment {
 
