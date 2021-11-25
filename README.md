@@ -18,7 +18,7 @@
 ```
 #### Create experiment and log metrics and parameters:
 ```java
-OnlineExperiment experiment = OnlineExperimentImpl.builder()
+OnlineExperiment experiment = ExperimentBuilder.OnlineExperiment()
                 .withApiKey("someApiKey")
                 .withProjectName("someProject")
                 .withWorkspace("someWorkspace")
@@ -31,13 +31,13 @@ OnlineExperiment experiment = OnlineExperimentImpl.builder()
 
 #### Configure you experiment object:
 ```java
-#Configuration hierarchy:
-#Environment Variable > Configuration File Override > Default config file (application.conf)
+# Configuration hierarchy:
+Environment Variable > Configuration File Override > Default config file (application.conf)
 
-#Setting configuration in code:
+# Setting configuration in code:
 OnlineExperimentImpl.builder().withApiKey("someApiKey").build();
 
-#Override configuration file (can have partial keys)
+# Override configuration file (can have partial keys)
 OnlineExperimentImpl.builder().withConfig(new File("/tmp/comet.conf")).build();
 
 # Read from environment variables OR from configuration file in classpath (application.conf)
@@ -55,5 +55,7 @@ COMET_MAX_AUTH_RETRIES
 
 #### Examples
 
-* You also can check [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
+* You also can check 
+  * [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
+  * [MNIST classification experiment](comet-examples/src/main/java/ml/comet/examples/mnist/MnistExperimentExample.java)
 * For more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)

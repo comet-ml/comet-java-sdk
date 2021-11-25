@@ -48,16 +48,6 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
         super.init();
     }
 
-    /**
-     * Returns builder to create ApiExperiment instance.
-     *
-     * @param experimentKey the unique identifier of the existing experiment.
-     * @return the initialized ApiExperiment instance.
-     */
-    public static ApiExperimentImpl.ApiExperimentBuilderImpl builder(@NonNull final String experimentKey) {
-        return new ApiExperimentImpl.ApiExperimentBuilderImpl(experimentKey);
-    }
-
     @Override
     public String getWorkspaceName() {
         return getMetadata().getWorkspaceName();
@@ -88,15 +78,39 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
     }
 
     /**
+     * Returns builder to create {@link Experiment} instance.
+     *
+     * @param experimentKey the unique identifier of the existing experiment.
+     * @return the initialized {@link ApiExperimentBuilder} instance.
+     */
+    public static ApiExperimentImpl.ApiExperimentBuilderImpl builder(@NonNull final String experimentKey) {
+        return builder().withExistingExperimentKey(experimentKey);
+    }
+
+    /**
+     * Returns builder to create {@link Experiment} instance.
+     *
+     * @return the initialized {@link ApiExperimentBuilder} instance.
+     */
+    public static ApiExperimentImpl.ApiExperimentBuilderImpl builder() {
+        return new ApiExperimentImpl.ApiExperimentBuilderImpl();
+    }
+
+    /**
      * The builder to create properly configured ApiExperiment instance.
      */
     public static final class ApiExperimentBuilderImpl implements ApiExperimentBuilder {
-        private final String experimentKey;
+        private String experimentKey;
         private String apiKey;
         private Logger logger;
 
-        private ApiExperimentBuilderImpl(final String anExperimentKey) {
-            this.experimentKey = anExperimentKey;
+        private ApiExperimentBuilderImpl() {
+        }
+
+        @Override
+        public ApiExperimentImpl.ApiExperimentBuilderImpl withExistingExperimentKey(@NonNull String experimentKey) {
+            this.experimentKey = experimentKey;
+            return this;
         }
 
         @Override

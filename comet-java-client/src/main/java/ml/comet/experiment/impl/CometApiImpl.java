@@ -39,7 +39,7 @@ public final class CometApiImpl implements CometApi {
         CometUtils.printCometSdkVersion();
     }
 
-    @SuppressWarnings("checkstyle:MissingJavadocMethod")
+    @Override
     public List<String> getAllWorkspaces() {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllWorkspaces invoked");
@@ -51,7 +51,7 @@ public final class CometApiImpl implements CometApi {
                 .getWorkspaceNames();
     }
 
-    @SuppressWarnings("checkstyle:MissingJavadocMethod")
+    @Override
     public List<RestProject> getAllProjects(@NonNull String workspaceName) {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllProjects invoked");
@@ -63,7 +63,7 @@ public final class CometApiImpl implements CometApi {
                 .getProjects();
     }
 
-    @SuppressWarnings("checkstyle:MissingJavadocMethod")
+    @Override
     public List<ExperimentMetadataRest> getAllExperiments(@NonNull String projectId) {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllExperiments invoked");
@@ -120,7 +120,7 @@ public final class CometApiImpl implements CometApi {
         }
 
         /**
-         * Factory method to build fully initialized instance of the CometApiImpl.
+         * Factory method to build fully initialized instance of the {@link CometApi}.
          *
          * @return the fully initialized instance of the CometApiImpl.
          */
