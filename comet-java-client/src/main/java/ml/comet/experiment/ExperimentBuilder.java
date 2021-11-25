@@ -1,7 +1,9 @@
 package ml.comet.experiment;
 
 import lombok.experimental.UtilityClass;
+import ml.comet.experiment.builder.ApiExperimentBuilder;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
+import ml.comet.experiment.impl.ApiExperimentImpl;
 import ml.comet.experiment.impl.OnlineExperimentImpl;
 
 /**
@@ -25,5 +27,15 @@ public class ExperimentBuilder {
      */
     public static OnlineExperimentBuilder OnlineExperiment() {
         return OnlineExperimentImpl.builder();
+    }
+
+    /**
+     * The factory to create instance of the {@link ApiExperimentBuilder} which can be used
+     * to configure and create fully initialized instance of the {@link ApiExperiment}.
+     *
+     * @return the initialized instance of the {@link ApiExperimentBuilder}.
+     */
+    public static ApiExperimentBuilder ApiExperiment() {
+        return ApiExperimentImpl.builder();
     }
 }
