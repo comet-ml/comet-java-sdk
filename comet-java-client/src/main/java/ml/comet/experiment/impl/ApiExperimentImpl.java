@@ -2,6 +2,7 @@ package ml.comet.experiment.impl;
 
 import lombok.Getter;
 import lombok.NonNull;
+import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
 import ml.comet.experiment.impl.config.CometConfig;
@@ -22,7 +23,7 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_TIMEOUT_CLEANING
 /**
  * Implementation of the {@link Experiment} that allows to read/update existing experiment synchronously.
  */
-public final class ApiExperimentImpl extends BaseExperiment {
+public final class ApiExperimentImpl extends BaseExperiment implements ApiExperiment {
     @Getter
     private Logger logger = LoggerFactory.getLogger(ApiExperimentImpl.class);
 
@@ -117,7 +118,7 @@ public final class ApiExperimentImpl extends BaseExperiment {
         }
 
         @Override
-        public ApiExperimentImpl build() {
+        public ApiExperiment build() {
             if (StringUtils.isEmpty(this.apiKey)) {
                 this.apiKey = COMET_API_KEY.getString();
             }
