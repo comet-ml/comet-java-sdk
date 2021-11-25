@@ -140,11 +140,12 @@ public interface Experiment {
     /**
      * Send logs to Comet.
      *
-     * @param line   Text to be logged
-     * @param offset Offset describes the place for current text to be inserted
-     * @param stderr the flag to indicate if this is StdErr message.
+     * @param line    Text to be logged
+     * @param offset  Offset describes the place for current text to be inserted
+     * @param stderr  the flag to indicate if this is StdErr message.
+     * @param context the context to be associated with the parameter.
      */
-    void logLine(String line, long offset, boolean stderr);
+    void logLine(String line, long offset, boolean stderr, String context);
 
     /**
      * Logs a metric with Comet. For running experiment updates current step to one from param!
@@ -154,9 +155,9 @@ public interface Experiment {
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      * @param step        The current step for this metric, this will set the given step for this experiment
      * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
+     * @param context     the context to be associated with the parameter.
      */
-    void logMetric(String metricName, Object metricValue, long step, long epoch);
-
+    void logMetric(String metricName, Object metricValue, long step, long epoch, String context);
 
     /**
      * Logs a param with Comet. For running experiment updates current step to one from param!
@@ -165,8 +166,9 @@ public interface Experiment {
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
      * @param step          The current step for this metric, this will set the given step for this experiment
+     * @param context       the context to be associated with the parameter.
      */
-    void logParameter(String parameterName, Object paramValue, long step);
+    void logParameter(String parameterName, Object paramValue, long step, String context);
 
     /**
      * Allows you to create html report for the experiment.
@@ -219,15 +221,17 @@ public interface Experiment {
      *
      * @param code     Code to be sent to Comet
      * @param fileName Name of source file to be displayed on UI 'code' tab
+     * @param context  the context to be associated with the asset.
      */
-    void logCode(String code, String fileName);
+    void logCode(String code, String fileName, String context);
 
     /**
      * Allows you to report code for the experiment.
      *
-     * @param file Asset with source code to be sent
+     * @param file    Asset with source code to be sent
+     * @param context the context to be associated with the asset.
      */
-    void logCode(File file);
+    void logCode(File file, String context);
 
     /**
      * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.
@@ -236,12 +240,13 @@ public interface Experiment {
      * @param asset     The asset to be stored
      * @param fileName  The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite Whether to overwrite files of the same name in Comet
-     * @param step      the step to be associated with asset
-     * @param epoch     the epoch to be associated with asset
+     * @param step      the step to be associated with the asset
+     * @param epoch     the epoch to be associated with the asset
+     * @param context   the context to be associated with the asset.
      */
-    void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch);
+    void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch, String context);
 
-    void uploadAsset(File asset, boolean overwrite, long step, long epoch);
+    void uploadAsset(File asset, boolean overwrite, long step, long epoch, String context);
 
     /**
      * Logs Git Metadata for the experiment.

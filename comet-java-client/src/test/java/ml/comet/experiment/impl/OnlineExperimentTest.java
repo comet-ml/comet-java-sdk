@@ -132,7 +132,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getMetrics, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logMetricAsync(key, value, 1, 1, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logMetricAsync(key, value, 1, 1, null, onCompleteAction);
             awaitForCondition(onCompleteAction, "logMetricAsync onComplete timeout");
         });
 
@@ -145,7 +145,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logParameterAsync(key, value, 1, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logParameterAsync(key, value, 1, null, onCompleteAction);
             awaitForCondition(onCompleteAction, "logParameterAsync onComplete timeout");
         });
 

@@ -4,7 +4,14 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * The OnlineExperiment should be used to asynchronously update data of your Comet.ml Experiment.
+ * The {@code OnlineExperiment} should be used to asynchronously update data of your Comet.ml experiment.
+ *
+ * <p>This experiment type allows you to automatically intercept {@code StdOut} and {@code StdErr} streams and send
+ * them to the Comet.ml. Use the {@link #setInterceptStdout()} to start automatic interception of {@code StdOut} and
+ * the {@link #stopInterceptStdout()} to stop.
+ *
+ * <p>Also, it is possible to use {@link #setStep(long)}, {@link #setEpoch(long)},
+ * and {@link #setContext(String)} which will bbe automatically associated with related logged data records.
  */
 public interface OnlineExperiment extends Experiment {
 
@@ -75,17 +82,19 @@ public interface OnlineExperiment extends Experiment {
     String getContext();
 
     /**
-     * Logs a metric with Comet under the current experiment step.
+     * Logs a metric with Comet. For running experiment updates current step to one from param!
      * Metrics are generally values that change from step to step.
      *
      * @param metricName  The name for the metric to be logged
-     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them.
-     * @param step        The step to be associated with this metric
+     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
+     * @param step        The current step for this metric, this will set the given step for this experiment
+     * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
      */
+    void logMetric(String metricName, Object metricValue, long step, long epoch);
+
     void logMetric(String metricName, Object metricValue, long step);
 
     void logMetric(String metricName, Object metricValue);
-
 
     /**
      * Logs a param with Comet under the current experiment step.
@@ -93,8 +102,20 @@ public interface OnlineExperiment extends Experiment {
      *
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
+     * @param step          The current step for this parameter, this will set the given step for this experiment
      */
+    void logParameter(String parameterName, Object paramValue, long step);
+
     void logParameter(String parameterName, Object paramValue);
+
+    /**
+     * Send output logs to Comet.
+     *
+     * @param line   Text to be logged
+     * @param offset Offset describes the place for current text to be inserted
+     * @param stderr the flag to indicate if this is StdErr message.
+     */
+    void logLine(String line, long offset, boolean stderr);
 
     /**
      * Upload an asset under the current experiment step to be associated with the experiment,
@@ -110,4 +131,19 @@ public interface OnlineExperiment extends Experiment {
     void uploadAsset(File asset, String fileName, boolean overwrite);
 
     void uploadAsset(File asset, boolean overwrite);
+
+    /**
+     * Allows you to report code for the experiment.
+     *
+     * @param code     Code to be sent to Comet
+     * @param fileName Name of source file to be displayed on UI 'code' tab
+     */
+    void logCode(String code, String fileName);
+
+    /**
+     * Allows you to report code for the experiment.
+     *
+     * @param file Asset with source code to be sent
+     */
+    void logCode(File file);
 }
