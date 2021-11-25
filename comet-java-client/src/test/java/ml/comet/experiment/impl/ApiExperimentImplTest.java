@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.exception.CometGeneralException;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ public class ApiExperimentImplTest extends BaseApiTest {
         String experimentKey = experiment.getExperimentKey();
         experiment.end();
 
-        ApiExperimentImpl apiExperiment = ApiExperimentImpl.builder(experimentKey)
+        ApiExperiment apiExperiment = ApiExperimentImpl.builder(experimentKey)
                 .withApiKey(API_KEY)
                 .build();
 

@@ -1,12 +1,13 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.functions.Action;
+import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
 import org.apache.commons.lang3.StringUtils;
@@ -78,7 +79,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         experiment.end();
 
         // use REST API to check experiment status
-        ApiExperimentImpl apiExperiment = ApiExperimentImpl.builder(experimentKey).build();
+        ApiExperiment apiExperiment = ApiExperimentImpl.builder(experimentKey).build();
         awaitForCondition(() -> !apiExperiment.getMetadata().isRunning(),
                 "Experiment running status updated", 60);
         assertFalse(apiExperiment.getMetadata().isRunning(), "Experiment must have status not running");
@@ -96,7 +97,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // get previous experiment by key and check that update is working
         String experimentKey = experiment.getExperimentKey();
 
-        OnlineExperiment updatedExperiment = fetchExperiment(experimentKey);
+        OnlineExperiment updatedExperiment = onlineExperiment(experimentKey);
         updatedExperiment.setExperimentName(SOME_NAME);
 
         awaitForCondition(
@@ -131,7 +132,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getMetrics, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((BaseExperiment) experiment).logMetricAsync(key, value, 1, 1, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logMetricAsync(key, value, 1, 1, onCompleteAction);
             awaitForCondition(onCompleteAction, "logMetricAsync onComplete timeout");
         });
 
@@ -144,7 +145,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((BaseExperiment) experiment).logParameterAsync(key, value, 1, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logParameterAsync(key, value, 1, onCompleteAction);
             awaitForCondition(onCompleteAction, "logParameterAsync onComplete timeout");
         });
 
@@ -169,7 +170,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         params.forEach((key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((BaseExperiment) experiment).logOtherAsync(key, value, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logOtherAsync(key, value, onCompleteAction);
             awaitForCondition(onCompleteAction, "logOtherAsync onComplete timeout");
         });
 
@@ -185,7 +186,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetHtml() {
-        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
 
         assertFalse(experiment.getHtml().isPresent());
 
@@ -233,7 +234,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testAddAndGetTag() {
-        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
 
         // Check that experiment has no TAGs
         assertTrue(experiment.getTags().isEmpty());
@@ -261,7 +262,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetGraph() {
-        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
 
         // Check that experiment has no Graph
         //
@@ -298,7 +299,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // fetch existing experiment and update time
         //
-        BaseExperiment existingExperiment = (BaseExperiment) fetchExperiment(experimentKey);
+        OnlineExperimentImpl existingExperiment = (OnlineExperimentImpl) onlineExperiment(experimentKey);
         long now = System.currentTimeMillis();
 
         OnCompleteAction onComplete = new OnCompleteAction();
@@ -382,7 +383,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         OnCompleteAction onComplete = new OnCompleteAction();
         GitMetadata request = new GitMetadata(experiment.getExperimentKey(),
                 "user", "root", "branch", "parent", "origin");
-        ((BaseExperiment)experiment).logGitMetadataAsync(request, onComplete);
+        ((OnlineExperimentImpl) experiment).logGitMetadataAsync(request, onComplete);
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get GIT metadata and check results
@@ -470,7 +471,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         }
     }
 
-    static OnlineExperiment fetchExperiment(String experimentKey) {
+    static OnlineExperiment onlineExperiment(String experimentKey) {
         return OnlineExperimentImpl.builder()
                 .withApiKey(API_KEY)
                 .withExistingExperimentKey(experimentKey)

@@ -32,7 +32,7 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_WORKSPACE_NAME;
 /**
  * The implementation of the {@link OnlineExperiment} to work with Comet API asynchronously.
  */
-public final class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
+public final class OnlineExperimentImpl extends BaseExperimentAsync implements OnlineExperiment {
     private static final int SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC = 60;
     private static final int STD_OUT_LOGGER_FLUSH_WAIT_DELAY_MS = 2000;
 
