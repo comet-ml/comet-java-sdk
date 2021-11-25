@@ -1,5 +1,7 @@
 package ml.comet.experiment.impl.http;
 
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import lombok.NonNull;
 import lombok.Value;
 import ml.comet.experiment.impl.constants.FormParamName;
@@ -28,9 +30,6 @@ import static ml.comet.experiment.impl.constants.FormParamName.FILE;
  * Collection of the utilities used by <code>Connection</code>.
  */
 public class ConnectionUtils {
-    static final String MIME_MULTIPART_FORM_DATA = "multipart/form-data";
-    static final String MIME_APPLICATION_JSON = "application/json";
-    static final String MIME_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
     /**
      * Creates GET request to the given endpoint with specified query parameters.
@@ -76,7 +75,8 @@ public class ConnectionUtils {
                                               Map<QueryParamName, String> params,
                                               Map<FormParamName, Object> formParams) {
         return createMultipartRequestBuilder(
-                new ByteArrayPart(FILE.paramName(), bytes, MIME_APPLICATION_OCTET_STREAM), params, formParams)
+                new ByteArrayPart(FILE.paramName(), bytes, HttpHeaderValues.APPLICATION_OCTET_STREAM.toString()),
+                params, formParams)
                 .setUrl(url)
                 .build();
     }
@@ -87,7 +87,7 @@ public class ConnectionUtils {
     static Request createPostJsonRequest(@NonNull String body, @NonNull String url) {
         return new RequestBuilder()
                 .setUrl(url)
-                .setHeader("Content-Type", MIME_APPLICATION_JSON)
+                .setHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .setBody(new ByteArrayBodyGenerator(body.getBytes()))
                 .setMethod(HttpConstants.Methods.POST)
                 .build();
@@ -133,7 +133,9 @@ public class ConnectionUtils {
         if (formParams != null) {
             formParams.forEach((k, v) -> parts.add(createPart(k.paramName(), v)));
         }
-        builder.setBodyParts(parts);
+        builder
+                .setHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.MULTIPART_FORM_DATA)
+                .setBodyParts(parts);
         return builder;
     }
 
@@ -153,9 +155,9 @@ public class ConnectionUtils {
         public Response apply(Response response) {
             // log response for debug purposes
             if (ConnectionUtils.isResponseSuccessful(response.getStatusCode())) {
-                logger.debug("for endpoint {} response {}\n", endpoint, response.getResponseBody());
+                logger.debug("for endpoint {} got response {}\n", endpoint, response.getResponseBody());
             } else {
-                logger.error("for endpoint {} response {}\n", endpoint, response.getStatusText());
+                logger.error("for endpoint {} got response {}\n", endpoint, response.getStatusText());
             }
             return response;
         }
