@@ -146,4 +146,16 @@ public interface OnlineExperiment extends Experiment {
      * @param file Asset with source code to be sent
      */
     void logCode(File file);
+
+    /**
+     * Logs all the files located in the given folder as assets.
+     *
+     * @param folder       the folder you want to log.
+     * @param useFileNames if {@code true}, log the file path with each file.
+     * @param recursive    if {@code true}, recurse the folder.
+     * @param step         the step to be associated with the asset
+     */
+    void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step);
+
+    void logAssetFolder(File folder, boolean useFileNames, boolean recursive);
 }

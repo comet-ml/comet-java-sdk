@@ -170,7 +170,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         this.setStep(step);
         this.setEpoch(epoch);
         this.setContext(context);
-        this.logMetricAsync(metricName, metricValue, step, epoch, context, null);
+        this.logMetric(metricName, metricValue, step, epoch, context, null);
     }
 
     @Override
@@ -187,37 +187,37 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     public void logParameter(String parameterName, Object paramValue, long step, String context) {
         this.setStep(step);
         this.setContext(context);
-        this.logParameterAsync(parameterName, paramValue, step, context, null);
+        this.logParameter(parameterName, paramValue, step, context, null);
     }
 
     @Override
     public void logHtml(@NonNull String html, boolean override) {
-        this.logHtmlAsync(html, override, null);
+        this.logHtml(html, override, null);
     }
 
     @Override
     public void logOther(@NonNull String key, @NonNull Object value) {
-        this.logOtherAsync(key, value, null);
+        this.logOther(key, value, null);
     }
 
     @Override
     public void addTag(@NonNull String tag) {
-        this.addTagAsync(tag, null);
+        this.addTag(tag, null);
     }
 
     @Override
     public void logGraph(@NonNull String graph) {
-        this.logGraphAsync(graph, null);
+        this.logGraph(graph, null);
     }
 
     @Override
     public void logStartTime(long startTimeMillis) {
-        this.logStartTimeAsync(startTimeMillis, null);
+        this.logStartTime(startTimeMillis, null);
     }
 
     @Override
     public void logEndTime(long endTimeMillis) {
-        this.logEndTimeAsync(endTimeMillis, null);
+        this.logEndTime(endTimeMillis, null);
     }
 
     @Override
@@ -233,7 +233,18 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logLine(String line, long offset, boolean stderr, String context) {
         this.setContext(context);
-        this.logLineAsync(line, offset, stderr, context, null);
+        this.logLine(line, offset, stderr, context, null);
+    }
+
+    @Override
+    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step) {
+        this.setStep(step);
+        this.logAssetFolder(folder, useFileNames, recursive, step, null);
+    }
+
+    @Override
+    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive) {
+        this.logAssetFolder(folder, useFileNames, recursive, this.step);
     }
 
     @Override
@@ -242,7 +253,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         this.setStep(step);
         this.setEpoch(epoch);
         this.setContext(context);
-        this.uploadAssetAsync(asset, fileName, overwrite, step, epoch, context, null);
+        this.uploadAsset(asset, fileName, overwrite, step, epoch, context, null);
     }
 
     @Override
@@ -266,12 +277,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logCode(@NonNull String code, @NonNull String fileName, String context) {
-        this.logCodeAsync(code, fileName, context, null);
+        this.logCode(code, fileName, context, null);
     }
 
     @Override
     public void logCode(@NonNull File file, String context) {
-        this.logCodeAsync(file, context, null);
+        this.logCode(file, context, null);
     }
 
     @Override

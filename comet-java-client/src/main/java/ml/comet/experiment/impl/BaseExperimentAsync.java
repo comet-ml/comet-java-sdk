@@ -83,8 +83,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
-    void logMetricAsync(@NonNull String metricName, @NonNull Object metricValue,
-                        long step, long epoch, String context, Action onComplete) {
+    void logMetric(@NonNull String metricName, @NonNull Object metricValue,
+                   long step, long epoch, String context, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logMetricAsync {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
         }
@@ -103,8 +103,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete    The optional action to be invoked when this operation asynchronously completes.
      *                      Can be {@code null} if not interested in completion signal.
      */
-    void logParameterAsync(@NonNull String parameterName, @NonNull Object paramValue,
-                           long step, String context, Action onComplete) {
+    void logParameter(@NonNull String parameterName, @NonNull Object paramValue,
+                      long step, String context, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logParameterAsync {} = {}, step: {}", parameterName, paramValue, step);
         }
@@ -122,7 +122,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logHtmlAsync(@NonNull String html, boolean override, Action onComplete) {
+    void logHtml(@NonNull String html, boolean override, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logHtmlAsync {}, override: {}", html, override);
         }
@@ -139,7 +139,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logOtherAsync(@NonNull String key, @NonNull Object value, Action onComplete) {
+    void logOther(@NonNull String key, @NonNull Object value, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logOtherAsync {} {}", key, value);
         }
@@ -155,7 +155,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    public void addTagAsync(@NonNull String tag, Action onComplete) {
+    public void addTag(@NonNull String tag, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("addTagAsync {}", tag);
         }
@@ -170,7 +170,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logGraphAsync(@NonNull String graph, Action onComplete) {
+    void logGraph(@NonNull String graph, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logGraphAsync {}", graph);
         }
@@ -185,7 +185,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete      The optional action to be invoked when this operation asynchronously completes.
      *                        Can be {@code null} if not interested in completion signal.
      */
-    void logStartTimeAsync(long startTimeMillis, Action onComplete) {
+    void logStartTime(long startTimeMillis, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logStartTimeAsync {}", startTimeMillis);
         }
@@ -200,7 +200,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete    The optional action to be invoked when this operation asynchronously completes.
      *                      Can be {@code null} if not interested in completion signal.
      */
-    void logEndTimeAsync(long endTimeMillis, Action onComplete) {
+    void logEndTime(long endTimeMillis, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logEndTimeAsync {}", endTimeMillis);
         }
@@ -233,7 +233,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logLineAsync(String line, long offset, boolean stderr, String context, Action onComplete) {
+    void logLine(String line, long offset, boolean stderr, String context, Action onComplete) {
         OutputUpdate request = createLogLineRequest(line, offset, stderr, context);
         Single<LogDataResponse> single = validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
@@ -251,6 +251,20 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
+     * @param folder       the folder you want to log.
+     * @param useFileNames if {@code true}, log the file path with each file.
+     * @param recursive    if {@code true}, recurse the folder.
+     * @param step         the step to be associated with the asset
+     * @param onComplete   onComplete The optional action to be invoked when this operation asynchronously completes.
+     *                     Can be {@code null} if not interested in completion signal.
+     */
+    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step, Action onComplete) {
+        // TODO logAssetFolder
+    }
+
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
      * @param asset      The asset to be stored
      * @param fileName   The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite  Whether to overwrite files of the same name in Comet
@@ -260,8 +274,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void uploadAssetAsync(@NonNull File asset, @NonNull String fileName,
-                          boolean overwrite, long step, long epoch, String context, Action onComplete) {
+    void uploadAsset(@NonNull File asset, @NonNull String fileName,
+                     boolean overwrite, long step, long epoch, String context, Action onComplete) {
         // TODO implement me
     }
 
@@ -275,7 +289,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logCodeAsync(@NonNull String code, @NonNull String fileName, String context, Action onComplete) {
+    void logCode(@NonNull String code, @NonNull String fileName, String context, Action onComplete) {
         // TODO implement me
     }
 
@@ -287,7 +301,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logCodeAsync(@NonNull File file, String context, Action onComplete) {
+    void logCode(@NonNull File file, String context, Action onComplete) {
         // TODO implement me
     }
 

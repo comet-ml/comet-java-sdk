@@ -132,7 +132,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getMetrics, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logMetricAsync(key, value, 1, 1, null, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logMetric(key, value, 1, 1, null, onCompleteAction);
             awaitForCondition(onCompleteAction, "logMetricAsync onComplete timeout");
         });
 
@@ -145,7 +145,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logParameterAsync(key, value, 1, null, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logParameter(key, value, 1, null, onCompleteAction);
             awaitForCondition(onCompleteAction, "logParameterAsync onComplete timeout");
         });
 
@@ -170,7 +170,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         params.forEach((key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logOtherAsync(key, value, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logOther(key, value, onCompleteAction);
             awaitForCondition(onCompleteAction, "logOtherAsync onComplete timeout");
         });
 
@@ -193,7 +193,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Create first HTML record
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logHtmlAsync(SOME_HTML, true, onComplete);
+        experiment.logHtml(SOME_HTML, true, onComplete);
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -206,7 +206,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Override first HTML record
         //
         onComplete = new OnCompleteAction();
-        experiment.logHtmlAsync(ANOTHER_HTML, true, onComplete);
+        experiment.logHtml(ANOTHER_HTML, true, onComplete);
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -219,7 +219,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Check that HTML record was not overridden but appended
         //
         onComplete = new OnCompleteAction();
-        experiment.logHtmlAsync(SOME_HTML, false, onComplete);
+        experiment.logHtml(SOME_HTML, false, onComplete);
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -242,11 +242,11 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Add TAGs and wait for response
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.addTagAsync(SOME_TEXT, onComplete);
+        experiment.addTag(SOME_TEXT, onComplete);
         awaitForCondition(onComplete, "onComplete timeout");
 
         onComplete = new OnCompleteAction();
-        experiment.addTagAsync(ANOTHER_TAG, onComplete);
+        experiment.addTag(ANOTHER_TAG, onComplete);
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get new TAGs and check
@@ -272,7 +272,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Log Graph and wait for response
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logGraphAsync(SOME_GRAPH, onComplete);
+        experiment.logGraph(SOME_GRAPH, onComplete);
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get graph and check result
@@ -303,11 +303,11 @@ public class OnlineExperimentTest extends BaseApiTest {
         long now = System.currentTimeMillis();
 
         OnCompleteAction onComplete = new OnCompleteAction();
-        existingExperiment.logStartTimeAsync(now, onComplete);
+        existingExperiment.logStartTime(now, onComplete);
         awaitForCondition(onComplete, "logStartTime onComplete timeout", 120);
 
         onComplete = new OnCompleteAction();
-        existingExperiment.logEndTimeAsync(now, onComplete);
+        existingExperiment.logEndTime(now, onComplete);
         awaitForCondition(onComplete, "logEndTime onComplete timeout", 120);
 
         // Get updated experiment metadata and check results
