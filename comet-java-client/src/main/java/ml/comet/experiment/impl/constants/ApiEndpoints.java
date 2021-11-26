@@ -1,8 +1,11 @@
 package ml.comet.experiment.impl.constants;
 
+import lombok.experimental.UtilityClass;
+
 /**
  * Definitions of the Comet API endpoints.
  */
+@UtilityClass
 public final class ApiEndpoints {
     public static final String UPDATE_API_URL = "/api/rest/v2/write";
     public static final String ADD_OUTPUT = UPDATE_API_URL + "/experiment/output";
