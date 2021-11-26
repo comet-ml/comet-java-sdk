@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class TestCometUtils {
+public class CometUtilsTest {
 
     @Test
     public void testJavaSdkVersionParsing() {

@@ -25,9 +25,9 @@ import java.util.function.Function;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_ALL;
-import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
-import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_UNKNOWN;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ALL;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_UNKNOWN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
