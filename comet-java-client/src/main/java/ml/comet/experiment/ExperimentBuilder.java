@@ -25,6 +25,7 @@ public class ExperimentBuilder {
      *
      * @return the instance of the {@link OnlineExperimentBuilder}.
      */
+    @SuppressWarnings({"MethodName"})
     public static OnlineExperimentBuilder OnlineExperiment() {
         return OnlineExperimentImpl.builder();
     }
@@ -35,6 +36,7 @@ public class ExperimentBuilder {
      *
      * @return the initialized instance of the {@link ApiExperimentBuilder}.
      */
+    @SuppressWarnings({"MethodName"})
     public static ApiExperimentBuilder ApiExperiment() {
         return ApiExperimentImpl.builder();
     }

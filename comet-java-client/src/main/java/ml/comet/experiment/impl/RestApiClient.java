@@ -4,7 +4,7 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
 import ml.comet.experiment.exception.CometApiException;
-import ml.comet.experiment.impl.constants.AssetType;
+import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.utils.JsonUtils;

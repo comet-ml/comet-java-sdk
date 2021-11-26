@@ -21,6 +21,9 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.time.Duration;
 
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_REQUEST;
+import static ml.comet.experiment.impl.resources.LogMessages.LOG_ASSET_FOLDER_EMPTY;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogHtmlRequest;
@@ -255,10 +258,16 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param useFileNames if {@code true}, log the file path with each file.
      * @param recursive    if {@code true}, recurse the folder.
      * @param step         the step to be associated with the asset
+     * @param epoch        used to associate each file  asset to a specific epoch.
      * @param onComplete   onComplete The optional action to be invoked when this operation asynchronously completes.
      *                     Can be {@code null} if not interested in completion signal.
      */
-    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step, Action onComplete) {
+    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive,
+                               long step, long epoch, Action onComplete) {
+        if (folder == null || !folder.isDirectory()) {
+            getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
+            return;
+        }
         // TODO logAssetFolder
     }
 
@@ -331,7 +340,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                 .observeOn(Schedulers.single())
                 .subscribe(
                         (logDataResponse) -> AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), request),
-                        (throwable) -> getLogger().error("failed to log {}", request, throwable),
+                        (throwable) -> getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, request), throwable),
                         disposables);
     }
 

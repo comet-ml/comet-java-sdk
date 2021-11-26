@@ -1,7 +1,6 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Single;
-import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.functions.Function;
 import lombok.Getter;
@@ -9,7 +8,7 @@ import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
-import ml.comet.experiment.impl.constants.AssetType;
+import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
@@ -34,8 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_ASSET;
-import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
 import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
@@ -43,6 +42,10 @@ import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogHtmlRequest;
@@ -152,7 +155,7 @@ abstract class BaseExperiment implements Experiment {
         this.experimentKey = result.getExperimentKey();
         this.experimentLink = result.getLink();
 
-        getLogger().info("Experiment is live on comet.ml " + this.experimentLink);
+        getLogger().info(getString(EXPERIMENT_LIVE, this.experimentLink));
 
         if (StringUtils.isEmpty(this.experimentKey)) {
             throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
@@ -519,8 +522,7 @@ abstract class BaseExperiment implements Experiment {
         if (!this.alive) {
             return;
         }
-        getLogger().info("Waiting for all scheduled uploads to complete. It can take up to {} seconds.",
-                cleaningTimeout.getSeconds());
+        getLogger().info(getString(EXPERIMENT_CLEANUP_PROMPT, cleaningTimeout.getSeconds()));
 
         // mark as not alive
         this.alive = false;
@@ -564,8 +566,8 @@ abstract class BaseExperiment implements Experiment {
     private <T> T loadRemote(final Function<String, Single<T>> loadFunc, String alias) {
         return validateAndGetExperimentKey()
                 .concatMap(loadFunc)
-                .doOnError(ex -> getLogger().error("Failed to read {} for the experiment, experiment key: {}",
-                        alias, this.experimentKey, ex))
+                .doOnError(ex -> getLogger().error(
+                        getString(FAILED_READ_DATA_FOR_EXPERIMENT, alias, this.experimentKey), ex))
                 .blockingGet();
     }
 

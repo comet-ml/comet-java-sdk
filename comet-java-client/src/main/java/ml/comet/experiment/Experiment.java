@@ -1,6 +1,6 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.impl.constants.AssetType;
+import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.GitMetadata;

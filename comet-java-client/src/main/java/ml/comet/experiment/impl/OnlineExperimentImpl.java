@@ -19,6 +19,9 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HEARTBEAT_STOPPED_PROMPT;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
+
 /**
  * The implementation of the {@link OnlineExperiment} to work with Comet API asynchronously.
  */
@@ -85,7 +88,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
             if (!heartbeatSendFuture.cancel(true)) {
                 this.logger.error("failed to stop experiment's heartbeat sender");
             } else {
-                this.logger.info("Experiment's heartbeat sender stopped");
+                this.logger.info(getString(EXPERIMENT_HEARTBEAT_STOPPED_PROMPT));
             }
             heartbeatSendFuture = null;
         }
@@ -237,9 +240,15 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step) {
+    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step, long epoch) {
         this.setStep(step);
-        this.logAssetFolder(folder, useFileNames, recursive, step, null);
+        this.setEpoch(epoch);
+        this.logAssetFolder(folder, useFileNames, recursive, step, epoch, null);
+    }
+
+    @Override
+    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step) {
+        this.logAssetFolder(folder, useFileNames, recursive, step, this.epoch);
     }
 
     @Override

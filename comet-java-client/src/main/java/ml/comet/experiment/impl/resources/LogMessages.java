@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl.resources;
 
+import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -9,8 +10,16 @@ import java.util.PropertyResourceBundle;
 /**
  * Provides access to the log messages to be presented to the user.
  */
+@UtilityClass
 public class LogMessages {
+
+    public static final String EXPERIMENT_LIVE = "EXPERIMENT_LIVE";
+    public static final String EXPERIMENT_CLEANUP_PROMPT = "EXPERIMENT_CLEANUP_PROMPT";
+    public static final String EXPERIMENT_HEARTBEAT_STOPPED_PROMPT = "EXPERIMENT_HEARTBEAT_STOPPED_PROMPT";
     public static final String LOG_ASSET_FOLDER_EMPTY = "LOG_ASSET_FOLDER_EMPTY";
+
+    public static final String FAILED_READ_DATA_FOR_EXPERIMENT = "FAILED_READ_DATA_FOR_EXPERIMENT";
+    public static final String FAILED_TO_SEND_LOG_REQUEST = "FAILED_TO_SEND_LOG_REQUEST";
 
 
     /**
@@ -58,7 +67,8 @@ public class LogMessages {
     static PropertyResourceBundle res;
 
     static {
-        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("messages");
+        InputStream is = Thread.currentThread()
+                .getContextClassLoader().getResourceAsStream("messages.properties");
         if (is != null) {
             try {
                 res = new PropertyResourceBundle(is);
