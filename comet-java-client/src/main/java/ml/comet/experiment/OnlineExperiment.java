@@ -13,7 +13,7 @@ import java.io.IOException;
  * <p>Also, it is possible to use {@link #setStep(long)}, {@link #setEpoch(long)},
  * and {@link #setContext(String)} which will bbe automatically associated with related logged data records.
  */
-public interface OnlineExperiment extends Experiment {
+public interface OnlineExperiment extends Experiment, AutoCloseable {
 
     /**
      * Turn on intercept of stdout and stderr and the logging of both in Comet.

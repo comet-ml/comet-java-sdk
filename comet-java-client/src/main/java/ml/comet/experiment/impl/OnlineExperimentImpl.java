@@ -116,6 +116,16 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         super.end();
     }
 
+    /**
+     * Allows using {@link OnlineExperiment} with try-with-resources statement with automatic closing after usage.
+     *
+     * @throws Exception if an exception occurs.
+     */
+    @Override
+    public void close() throws Exception {
+        this.end();
+    }
+
     @Override
     public void setInterceptStdout() throws IOException {
         if (!interceptStdout) {
