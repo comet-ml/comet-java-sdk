@@ -49,4 +49,27 @@ public class FileUtils {
         res.sort(Comparator.naturalOrder());
         return res;
     }
+
+    /**
+     * Resolves the logical file name of the asset.
+     *
+     * @param folder       the parent folder of the asset
+     * @param path         the path to the asset file
+     * @param logFilePath  if {@code true} the absolute of relative file path to be used.
+     * @param absolutePath if {@code true} the absolute file path going to be used.
+     * @return the logical file name of the asset to be logged.
+     */
+    public static String resolveAssetFileName(File folder, Path path, boolean logFilePath, boolean absolutePath) {
+        if (logFilePath) {
+            if (absolutePath) {
+                return path.toAbsolutePath().toString();
+            } else {
+                // the path relative to the assets' folder root
+                return folder.toPath().relativize(path).toString();
+            }
+        } else {
+            // the asset's file name
+            return path.getFileName().toString();
+        }
+    }
 }

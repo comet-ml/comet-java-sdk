@@ -17,6 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FileUtilsTest {
     private static Path root;
+    private static Path subFolderFile;
+    private static Path subDir;
 
     @BeforeAll
     static void setup() throws IOException {
@@ -26,8 +28,8 @@ public class FileUtilsTest {
         Files.createTempFile(root, "b_file", ".txt");
         Files.createTempFile(root, "c_file", ".txt");
 
-        Path subDir = Files.createTempDirectory(root, "subDir");
-        Files.createTempFile(subDir, "d_file", ".txt");
+        subDir = Files.createTempDirectory(root, "subDir");
+        subFolderFile = Files.createTempFile(subDir, "d_file", ".txt");
         Files.createTempFile(subDir, "e_file", ".txt");
     }
 
@@ -63,5 +65,29 @@ public class FileUtilsTest {
                         || path.toString().startsWith("d_file")
                         || path.toString().startsWith("e_file")));
 
+    }
+
+    @Test
+    public void testResolveAssetFileNameSimple() {
+        // test only file name
+        String expected = subFolderFile.getFileName().toString();
+        String name = FileUtils.resolveAssetFileName(root.toFile(), subFolderFile, false, false);
+        assertEquals(expected, name, "wrong simple file name");
+    }
+
+    @Test
+    public void testResolveAssetFileNameRelative() {
+        // test relative path
+        String expected = subDir.getFileName().toString() + "/" + subFolderFile.getFileName().toString();
+        String name = FileUtils.resolveAssetFileName(root.toFile(), subFolderFile, true, false);
+        assertEquals(expected, name, "wrong relative file name");
+    }
+
+    @Test
+    public void testResolveAssetFileNameAbsolute() {
+        // test absolute path
+        String expected = subFolderFile.toAbsolutePath().toString();
+        String name = FileUtils.resolveAssetFileName(root.toFile(), subFolderFile, true, true);
+        assertEquals(expected, name, "wrong absolute file name");
     }
 }
