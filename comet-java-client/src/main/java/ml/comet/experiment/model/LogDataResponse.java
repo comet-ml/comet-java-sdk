@@ -18,6 +18,7 @@ public class LogDataResponse {
     private String msg;
     private int code;
     private int sdkErrorCode;
+    private String data;
 
     public boolean hasFailed() {
         return code != 200 || sdkErrorCode != 0;
