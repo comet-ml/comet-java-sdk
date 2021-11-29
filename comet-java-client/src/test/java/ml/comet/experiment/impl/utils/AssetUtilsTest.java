@@ -63,6 +63,7 @@ public class AssetUtilsTest {
         assertEquals(step, asset.getStep(), "wrong step value");
         assertEquals(epoch, asset.getEpoch(), "wrong epoch");
         assertFalse(StringUtils.isEmpty(asset.getAssetId()), "asset ID expected");
+        assertEquals("txt", asset.getFileExtension(), "wrong file extension");
     }
 
     @Test
@@ -86,6 +87,7 @@ public class AssetUtilsTest {
         assertEquals(step, asset.getStep(), "wrong step value");
         assertEquals(epoch, asset.getEpoch(), "wrong epoch");
         assertEquals(assetID, asset.getAssetId(), "wrong asset ID");
+        assertEquals("txt", asset.getFileExtension(), "wrong file extension");
     }
 
     @Test

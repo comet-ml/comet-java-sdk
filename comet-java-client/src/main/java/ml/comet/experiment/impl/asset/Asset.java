@@ -15,6 +15,7 @@ import java.util.Map;
 @AllArgsConstructor
 public class Asset {
     private File file;
+    private byte[] fileLikeData;
     private String fileName;
     private AssetType type;
     private boolean overwrite;
@@ -23,5 +24,7 @@ public class Asset {
     private String groupingName;
     private Map<String, Object> metadata;
     private String assetId;
-    private String extension;
+    private String fileExtension;
+    private String context;
+    private boolean remote;
 }
