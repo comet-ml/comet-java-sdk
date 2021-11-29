@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -26,7 +25,7 @@ public class FileUtils {
      * @return the list of files under given directory.
      * @throws IOException if an I/O exception occurs.
      */
-    public static List<Path> listFiles(File folder, boolean recursive) throws IOException {
+    public static Stream<Path> listFiles(File folder, boolean recursive) throws IOException {
         ArrayList<Path> res;
         if (recursive) {
             try (Stream<Path> files = Files.walk(folder.toPath())) {
@@ -46,8 +45,7 @@ public class FileUtils {
                 });
             }
         }
-        res.sort(Comparator.naturalOrder());
-        return res;
+        return res.stream().sorted(Comparator.naturalOrder());
     }
 
     /**

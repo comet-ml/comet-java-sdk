@@ -1,15 +1,14 @@
 package ml.comet.experiment.impl.utils;
 
+import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -35,20 +34,17 @@ public class FileUtilsTest {
 
     @AfterAll
     static void teardown() throws IOException {
-        Files.walk(root)
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
-
+        PathUtils.delete(root);
         assertFalse(Files.exists(root), "Directory still exists");
     }
 
     @Test
     public void testListFilesPlain() throws IOException {
-        List<Path> files = FileUtils.listFiles(root.toFile(), false);
-        assertEquals(3, files.size());
+        Stream<Path> files = FileUtils.listFiles(root.toFile(), false);
+        assertEquals(3, files.count());
 
-        assertTrue(files.stream().map(Path::getFileName).allMatch(
+        files = FileUtils.listFiles(root.toFile(), false);
+        assertTrue(files.map(Path::getFileName).allMatch(
                 path -> path.toString().startsWith("a_file")
                         || path.toString().startsWith("b_file")
                         || path.toString().startsWith("c_file")));
@@ -56,9 +52,11 @@ public class FileUtilsTest {
 
     @Test
     public void testListFilesRecursive() throws IOException {
-        List<Path> files = FileUtils.listFiles(root.toFile(), true);
-        assertEquals(5, files.size());
-        assertTrue(files.stream().map(Path::getFileName).allMatch(
+        Stream<Path> files = FileUtils.listFiles(root.toFile(), true);
+        assertEquals(5, files.count());
+
+        files = FileUtils.listFiles(root.toFile(), true);
+        assertTrue(files.map(Path::getFileName).allMatch(
                 path -> path.toString().startsWith("a_file")
                         || path.toString().startsWith("b_file")
                         || path.toString().startsWith("c_file")

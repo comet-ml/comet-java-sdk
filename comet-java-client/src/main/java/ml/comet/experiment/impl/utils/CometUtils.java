@@ -1,8 +1,10 @@
 package ml.comet.experiment.impl.utils;
 
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
+import java.util.UUID;
 
 import static ml.comet.experiment.impl.utils.ResourceUtils.readCometSdkVersion;
 
@@ -40,5 +42,16 @@ public final class CometUtils {
         // check URI syntax and return
         URI uri = URI.create(url);
         return uri.toString();
+    }
+
+    /**
+     * Generates global unique identifier in format supported by Comet.ml
+     *
+     * @return the global unique identifier in format supported by Comet.ml.
+     */
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+    public static String generateGUID() {
+        String guid = UUID.randomUUID().toString();
+        return StringUtils.remove(guid, '-');
     }
 }

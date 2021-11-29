@@ -19,7 +19,9 @@ public class Asset {
     private AssetType type;
     private boolean overwrite;
     private long step;
+    private long epoch;
     private String groupingName;
     private Map<String, Object> metadata;
     private String assetId;
+    private String extension;
 }
