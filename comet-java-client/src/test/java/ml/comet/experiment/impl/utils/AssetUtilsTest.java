@@ -10,11 +10,9 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ASSET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -44,78 +42,33 @@ public class AssetUtilsTest {
     }
 
     @Test
-    public void testMapToFileAssetEmptyID() {
-        Map<String, Object> meta = new HashMap<String, Object>() {{
-            put("int", 1);
-            put("bool", true);
-            put("string", "test string");
-        }};
-        long step = 1001;
-        long epoch = 1;
+    public void testMapToFileAsset() {
         Asset asset = AssetUtils.mapToFileAsset(
-                root.toFile(), subFolderFile, false, false,
-                ASSET_TYPE_ASSET, null, meta, step, epoch);
+                root.toFile(), subFolderFile, false, false);
         assertNotNull(asset, "asset expected");
         assertEquals(asset.getFile(), subFolderFile.toFile(), "wrong asset file");
         assertEquals(asset.getFileName(), subFolderFile.getFileName().toString(), "wrong asset file name");
-        assertEquals(ASSET_TYPE_ASSET, asset.getType(), "wrong type");
-        assertEquals(meta, asset.getMetadata(), "wrong metadata");
-        assertEquals(step, asset.getStep(), "wrong step value");
-        assertEquals(epoch, asset.getEpoch(), "wrong epoch");
-        assertFalse(StringUtils.isEmpty(asset.getAssetId()), "asset ID expected");
-        assertEquals("txt", asset.getFileExtension(), "wrong file extension");
-    }
-
-    @Test
-    public void testMapToFileAssetWithID() {
-        Map<String, Object> meta = new HashMap<String, Object>() {{
-            put("int", 1);
-            put("bool", true);
-            put("string", "test string");
-        }};
-        long step = 1001;
-        long epoch = 1;
-        String assetID = CometUtils.generateGUID();
-        Asset asset = AssetUtils.mapToFileAsset(
-                root.toFile(), subFolderFile, false, false,
-                ASSET_TYPE_ASSET, assetID, meta, step, epoch);
-        assertNotNull(asset, "asset expected");
-        assertEquals(asset.getFile(), subFolderFile.toFile(), "wrong asset file");
-        assertEquals(asset.getFileName(), subFolderFile.getFileName().toString(), "wrong asset file name");
-        assertEquals(ASSET_TYPE_ASSET, asset.getType(), "wrong type");
-        assertEquals(meta, asset.getMetadata(), "wrong metadata");
-        assertEquals(step, asset.getStep(), "wrong step value");
-        assertEquals(epoch, asset.getEpoch(), "wrong epoch");
-        assertEquals(assetID, asset.getAssetId(), "wrong asset ID");
         assertEquals("txt", asset.getFileExtension(), "wrong file extension");
     }
 
     @Test
     public void testWalkFolderAssets() throws IOException {
-        Map<String, Object> meta = new HashMap<String, Object>() {{
-            put("int", 1);
-            put("bool", true);
-            put("string", "test string");
-        }};
-        long step = 1001;
-        long epoch = 1;
         // tests that correct number of assets returned
         Stream<Asset> assets = AssetUtils.walkFolderAssets(
-                root.toFile(), true, true, meta, step, epoch);
+                root.toFile(), true, true);
         assertEquals(5, assets.count(), "wrong assets count");
 
         // tests that assets has been populated
-        assets = AssetUtils.walkFolderAssets(
-                root.toFile(), true, true, meta, step, epoch);
+        assets = AssetUtils.walkFolderAssets(root.toFile(), true, true);
         assertTrue(
                 assets.allMatch(
-                        asset -> asset.getMetadata().equals(meta) && asset.getStep() == step &&
-                                asset.getEpoch() == epoch && !StringUtils.isEmpty(asset.getAssetId())),
+                        asset -> Objects.equals(asset.getFileExtension(), "txt")
+                                && !StringUtils.isEmpty(asset.getFileName())
+                                && asset.getFile() != null),
                 "wrong asset data");
 
         // tests that known file has correct path recorded
-        assets = AssetUtils.walkFolderAssets(
-                root.toFile(), true, true, meta, step, epoch);
+        assets = AssetUtils.walkFolderAssets(root.toFile(), true, true);
         assertTrue(
                 assets.anyMatch(asset -> asset.getFile().equals(subFolderFile.toFile())),
                 "file match expected"
