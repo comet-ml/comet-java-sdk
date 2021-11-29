@@ -254,20 +254,22 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
-     * @param folder       the folder you want to log.
-     * @param useFileNames if {@code true}, log the file path with each file.
-     * @param recursive    if {@code true}, recurse the folder.
-     * @param step         the step to be associated with the asset
-     * @param epoch        used to associate each file  asset to a specific epoch.
-     * @param onComplete   onComplete The optional action to be invoked when this operation asynchronously completes.
-     *                     Can be {@code null} if not interested in completion signal.
+     * @param folder      the folder you want to log.
+     * @param logFilePath if {@code true}, log the file path with each file.
+     * @param recursive   if {@code true}, recurse the folder.
+     * @param step        the step to be associated with the asset
+     * @param epoch       used to associate each file  asset to a specific epoch.
+     * @param onComplete  onComplete The optional action to be invoked when this operation asynchronously completes.
+     *                    Can be {@code null} if not interested in completion signal.
      */
-    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive,
-                               long step, long epoch, Action onComplete) {
+    void logAssetFolder(File folder, boolean logFilePath, boolean recursive,
+                        long step, long epoch, Action onComplete) {
         if (folder == null || !folder.isDirectory()) {
             getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
         }
+
+
         // TODO logAssetFolder
     }
 
@@ -286,6 +288,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     void uploadAsset(@NonNull File asset, @NonNull String fileName,
                      boolean overwrite, long step, long epoch, String context, Action onComplete) {
         // TODO implement me
+        super.uploadAsset(asset, fileName, overwrite, step, epoch, context);
     }
 
 

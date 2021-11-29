@@ -151,14 +151,14 @@ public interface OnlineExperiment extends Experiment, AutoCloseable {
      * Logs all the files located in the given folder as assets.
      *
      * @param folder       the folder you want to log.
-     * @param useFileNames if {@code true}, log the file path with each file.
+     * @param logFilePath if {@code true}, log the file path with each file.
      * @param recursive    if {@code true}, recurse the folder.
      * @param step         the step to be associated with each file asset.
      * @param epoch        used to associate each file  asset to a specific epoch.
      */
-    void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step, long epoch);
+    void logAssetFolder(File folder, boolean logFilePath, boolean recursive, long step, long epoch);
 
-    void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step);
+    void logAssetFolder(File folder, boolean logFilePath, boolean recursive, long step);
 
-    void logAssetFolder(File folder, boolean useFileNames, boolean recursive);
+    void logAssetFolder(File folder, boolean logFilePath, boolean recursive);
 }
