@@ -352,9 +352,7 @@ abstract class BaseExperiment implements Experiment {
         Asset asset = new Asset();
         asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
         asset.setFileName(fileName);
-        asset.setContext(context.getContext());
-        asset.setStep(context.getStep());
-        asset.setEpoch(context.getEpoch());
+        asset.setExperimentContext(context);
         asset.setType(ASSET_TYPE_SOURCE_CODE);
 
         sendSynchronously(restApiClient::logAsset, asset);
@@ -373,9 +371,7 @@ abstract class BaseExperiment implements Experiment {
         Asset asset = new Asset();
         asset.setFile(file);
         asset.setFileName(file.getName());
-        asset.setContext(context.getContext());
-        asset.setStep(context.getStep());
-        asset.setEpoch(context.getEpoch());
+        asset.setExperimentContext(context);
         asset.setType(ASSET_TYPE_SOURCE_CODE);
 
         sendSynchronously(restApiClient::logAsset, asset);
@@ -396,9 +392,7 @@ abstract class BaseExperiment implements Experiment {
         Asset asset = new Asset();
         asset.setFile(file);
         asset.setFileName(fileName);
-        asset.setStep(context.getStep());
-        asset.setEpoch(context.getEpoch());
-        asset.setContext(context.getContext());
+        asset.setExperimentContext(context);
         asset.setOverwrite(overwrite);
         asset.setType(ASSET_TYPE_ASSET);
 
