@@ -289,8 +289,16 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             }
 
             // subscribe for processing results
-            disposables.add(
-                    observable.subscribe(logDataResponse -> count.incrementAndGet()));
+            observable.subscribe(
+                    (logDataResponse) -> {
+                        // ignore - already processed, see: sendAssetAsync
+                    },
+                    (throwable -> {
+                        // ignore - already processed, see: sendAssetAsync
+                    }),
+                    count::incrementAndGet,
+                    disposables
+            );
         } catch (Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
         }
@@ -317,7 +325,6 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         this.logAsset(asset, context, onComplete);
     }
-
 
     /**
      * Asynchronous version that only logs any received exceptions or failures.
@@ -373,7 +380,14 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         // subscribe to get operation completed
-        disposables.add(single.subscribe());
+        single.subscribe(
+                (logDataResponse) -> {
+                    // ignore - already logged, see: sendAssetAsync
+                },
+                (throwable) -> {
+                    // ignore - already logged, see: sendAssetAsync
+                },
+                disposables);
     }
 
     /**
