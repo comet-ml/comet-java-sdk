@@ -334,14 +334,15 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // Upload few assets and wait for completion
         //
+        ExperimentContext context = new ExperimentContext(10, 101, "train");
         OnCompleteAction onComplete = new OnCompleteAction();
         experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)), IMAGE_FILE_NAME,
-                false, ExperimentContext.empty(), onComplete);
+                false, context, onComplete);
         awaitForCondition(onComplete, "image file onComplete timeout", 30);
 
         onComplete = new OnCompleteAction();
         experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
-                false, ExperimentContext.empty(), onComplete);
+                false, context, onComplete);
         awaitForCondition(onComplete, "text file onComplete timeout", 30);
 
         // wait for assets become available and validate results
@@ -349,13 +350,12 @@ public class OnlineExperimentTest extends BaseApiTest {
         awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
 
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
-        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE);
-        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE);
+        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, context);
+        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
 
         // update one of the assets and validate
         //
         onComplete = new OnCompleteAction();
-        ExperimentContext context = new ExperimentContext(10, 101, "train");
         experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)),
                 SOME_TEXT_FILE_NAME, true, context, onComplete);
         awaitForCondition(onComplete, "update text file onComplete timeout", 30);
@@ -462,23 +462,43 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetFileCode() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+
+        // check that no code was logged
+        //
         assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
-        experiment.logCode(TestUtils.getFile(CODE_FILE_NAME));
-        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(), "Experiment code from file added");
+
+        // log code and check results
+        //
+        ExperimentContext context = new ExperimentContext(10, 101, "test");
+        experiment.logCode(Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)), context);
+
+        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(),
+                "Experiment code from file added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
-        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE);
+        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, context);
+
         experiment.end();
     }
 
     @Test
     public void testLogAndGetRawCode() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+
+        // check that no code was logged
+        //
         assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
-        experiment.logCode(SOME_TEXT, CODE_FILE_NAME);
-        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(), "Experiment raw code added");
+
+        // log code and check results
+        //
+        ExperimentContext context = new ExperimentContext(10, 101, "test");
+        experiment.logCode(SOME_TEXT, CODE_FILE_NAME, context);
+
+        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(),
+                "Experiment raw code added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
-        validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE);
+        validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
+
         experiment.end();
     }
 
@@ -503,10 +523,13 @@ public class OnlineExperimentTest extends BaseApiTest {
                 .build();
     }
 
-    static void validateAsset(List<ExperimentAssetLink> assets, String expectedAssetName, long expectedSize) {
+    static void validateAsset(List<ExperimentAssetLink> assets, String expectedAssetName,
+                              long expectedSize, ExperimentContext context) {
         assertTrue(assets.stream()
                 .filter(asset -> expectedAssetName.equals(asset.getFileName()))
-                .anyMatch(asset -> expectedSize == asset.getFileSize()));
+                .anyMatch(asset -> expectedSize == asset.getFileSize()
+                        && context.getStep() == asset.getStep()
+                        && context.getContext().equals(asset.getRunContext())));
     }
 
     static void testLogParameters(OnlineExperiment experiment,
