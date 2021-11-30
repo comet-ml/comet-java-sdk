@@ -11,11 +11,16 @@ import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
+import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +64,63 @@ public class OnlineExperimentTest extends BaseApiTest {
     private static final String LOGGED_LINE = "This should end up in Comet ML.";
     private static final String LOGGED_ERROR_LINE = "This error should also get to Comet ML.";
     private static final String NON_LOGGED_LINE = "This should not end up in Comet ML.";
+
+    private static Path root;
+    private static Path emptyFile;
+
+    @BeforeAll
+    static void setup() throws IOException {
+        // create temporary directory tree
+        root = Files.createTempDirectory("testFileUtils");
+        PathUtils.copyFileToDirectory(
+                Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)).toPath(), root);
+        PathUtils.copyFileToDirectory(
+                Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)).toPath(), root);
+        emptyFile = Files.createTempFile(root, "c_file", ".txt");
+
+        Path subDir = Files.createTempDirectory(root, "subDir");
+        PathUtils.copyFileToDirectory(
+                Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)).toPath(), subDir);
+        PathUtils.copyFileToDirectory(
+                Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)).toPath(), subDir);
+    }
+
+    @AfterAll
+    static void tearDown() throws IOException {
+        PathUtils.delete(root);
+        assertFalse(Files.exists(root), "Directory still exists");
+    }
+
+    @Test
+    public void testLogAndGetAssetsFolder() {
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+
+        // Make sure experiment has no assets
+        //
+        assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+
+        // Log assets folder nd wait for completion
+        //
+        ExperimentContext context = new ExperimentContext(123, 1042, "train");
+        OnCompleteAction onComplete = new OnCompleteAction();
+        experiment.logAssetFolder(root.toFile(), false, true, context, onComplete);
+
+        awaitForCondition(onComplete, "log assets' folder timeout", 60);
+
+        // wait for assets become available and validate results
+        //
+        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 5, "Assets was uploaded");
+
+        List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
+
+        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
+        validateAsset(assets, ANOTHER_TEXT_FILE_NAME, ANOTHER_TEXT_FILE_SIZE, context);
+        validateAsset(assets, emptyFile.getFileName().toString(), 0, context);
+        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, context);
+        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, context);
+
+        experiment.end();
+    }
 
     @Test
     public void testExperimentCreatedAndShutDown() {

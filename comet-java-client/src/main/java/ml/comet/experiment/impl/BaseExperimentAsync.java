@@ -273,7 +273,10 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         AtomicInteger count = new AtomicInteger();
         try {
             Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive)
-                    .peek(asset -> asset.setExperimentContext(context));
+                    .peek(asset -> {
+                        asset.setExperimentContext(context);
+                        asset.setType(ASSET_TYPE_ASSET);
+                    });
 
             // create parallel execution flow
             Observable<LogDataResponse> observable = Observable.fromStream(assets)
