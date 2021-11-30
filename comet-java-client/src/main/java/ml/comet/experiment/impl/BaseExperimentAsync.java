@@ -5,9 +5,8 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
-import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.HtmlRest;
 import ml.comet.experiment.model.LogDataResponse;
@@ -15,7 +14,6 @@ import ml.comet.experiment.model.LogOtherRest;
 import ml.comet.experiment.model.MetricRest;
 import ml.comet.experiment.model.OutputUpdate;
 import ml.comet.experiment.model.ParameterRest;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -39,15 +37,7 @@ import static ml.comet.experiment.impl.utils.DataUtils.createTagRequest;
  * using asynchronous networking.
  */
 abstract class BaseExperimentAsync extends BaseExperiment {
-    @Setter
-    @Getter
-    long step;
-    @Setter
-    @Getter
-    long epoch;
-    @Getter
-    @Setter
-    String context = StringUtils.EMPTY;
+    ExperimentContext context;
 
     final CompositeDisposable disposables = new CompositeDisposable();
 
@@ -59,6 +49,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         final String projectName,
                         final String workspaceName) {
         super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, projectName, workspaceName);
+        this.context = ExperimentContext.builder().build();
     }
 
     @Override
@@ -75,24 +66,26 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.disposables.dispose();
     }
 
+    void setContext(@NonNull ExperimentContext context) {
+        this.context = context;
+    }
+
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
      * @param metricName  The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
-     * @param step        The current step for this metric, this will set the given step for this experiment
-     * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
      * @param context     the context to be associated with the parameter.
      * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
     void logMetric(@NonNull String metricName, @NonNull Object metricValue,
-                   long step, long epoch, String context, Action onComplete) {
+                   @NonNull ExperimentContext context, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logMetricAsync {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
+            getLogger().debug("logMetricAsync {} = {}, context: {}", metricName, metricValue, context);
         }
 
-        MetricRest metricRequest = createLogMetricRequest(metricName, metricValue, step, epoch, context);
+        MetricRest metricRequest = createLogMetricRequest(metricName, metricValue, context);
         this.sendAsynchronously(getRestApiClient()::logMetric, metricRequest, onComplete);
     }
 
@@ -101,18 +94,17 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
-     * @param step          The current step for this metric, this will set the given step for this experiment
      * @param context       the context to be associated with the parameter.
      * @param onComplete    The optional action to be invoked when this operation asynchronously completes.
      *                      Can be {@code null} if not interested in completion signal.
      */
     void logParameter(@NonNull String parameterName, @NonNull Object paramValue,
-                      long step, String context, Action onComplete) {
+                      @NonNull ExperimentContext context, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logParameterAsync {} = {}, step: {}", parameterName, paramValue, step);
+            getLogger().debug("logParameterAsync {} = {}, context: {}", parameterName, paramValue, context);
         }
 
-        ParameterRest paramRequest = createLogParamRequest(parameterName, paramValue, step, context);
+        ParameterRest paramRequest = createLogParamRequest(parameterName, paramValue, context);
         this.sendAsynchronously(getRestApiClient()::logParameter, paramRequest, onComplete);
     }
 
@@ -257,13 +249,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param folder      the folder you want to log.
      * @param logFilePath if {@code true}, log the file path with each file.
      * @param recursive   if {@code true}, recurse the folder.
-     * @param step        the step to be associated with the asset
-     * @param epoch       used to associate each file  asset to a specific epoch.
+     * @param context     the context to be associated with logged assets.
      * @param onComplete  onComplete The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
     void logAssetFolder(File folder, boolean logFilePath, boolean recursive,
-                        long step, long epoch, Action onComplete) {
+                        ExperimentContext context, Action onComplete) {
         if (folder == null || !folder.isDirectory()) {
             getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
@@ -279,16 +270,14 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param asset      The asset to be stored
      * @param fileName   The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite  Whether to overwrite files of the same name in Comet
-     * @param step       the step to be associated with the asset
-     * @param epoch      the epoch to be associated with the asset
      * @param context    the context to be associated with the asset.
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
     void uploadAsset(@NonNull File asset, @NonNull String fileName,
-                     boolean overwrite, long step, long epoch, String context, Action onComplete) {
+                     boolean overwrite, @NonNull ExperimentContext context, Action onComplete) {
         // TODO implement me
-        super.uploadAsset(asset, fileName, overwrite, step, epoch, context);
+        super.uploadAsset(asset, fileName, overwrite, context);
     }
 
 

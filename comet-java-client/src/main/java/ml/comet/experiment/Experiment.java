@@ -1,5 +1,6 @@
 package ml.comet.experiment;
 
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -152,12 +153,21 @@ public interface Experiment {
      * Metrics are generally values that change from step to step.
      *
      * @param metricName  The name for the metric to be logged
+     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them.
+     * @param context     the context to be associated with the metric.
+     */
+    void logMetric(String metricName, Object metricValue, ExperimentContext context);
+
+    /**
+     * Logs a metric with Comet. For running experiment updates current step to one from param!
+     * Metrics are generally values that change from step to step.
+     *
+     * @param metricName  The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      * @param step        The current step for this metric, this will set the given step for this experiment
-     * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
-     * @param context     the context to be associated with the parameter.
+     * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment.
      */
-    void logMetric(String metricName, Object metricValue, long step, long epoch, String context);
+    void logMetric(String metricName, Object metricValue, long step, long epoch);
 
     /**
      * Logs a param with Comet. For running experiment updates current step to one from param!
@@ -165,10 +175,19 @@ public interface Experiment {
      *
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
-     * @param step          The current step for this metric, this will set the given step for this experiment
      * @param context       the context to be associated with the parameter.
      */
-    void logParameter(String parameterName, Object paramValue, long step, String context);
+    void logParameter(String parameterName, Object paramValue, ExperimentContext context);
+
+    /**
+     * Logs a param with Comet. For running experiment updates current step to one from param!
+     * Params should be set at the start of the experiment.
+     *
+     * @param parameterName The name of the param being logged
+     * @param paramValue    The value for the param being logged
+     * @param step          The current step for this metric, this will set the given step for this experiment.
+     */
+    void logParameter(String parameterName, Object paramValue, long step);
 
     /**
      * Allows you to create html report for the experiment.
@@ -240,13 +259,42 @@ public interface Experiment {
      * @param asset     The asset to be stored
      * @param fileName  The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite Whether to overwrite files of the same name in Comet
-     * @param step      the step to be associated with the asset
-     * @param epoch     the epoch to be associated with the asset
      * @param context   the context to be associated with the asset.
      */
-    void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch, String context);
+    void uploadAsset(File asset, String fileName, boolean overwrite, ExperimentContext context);
 
-    void uploadAsset(File asset, boolean overwrite, long step, long epoch, String context);
+    /**
+     * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.
+     * For running experiment updates current step to one from param!
+     *
+     * @param asset     The asset to be stored
+     * @param fileName  The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
+     * @param overwrite Whether to overwrite files of the same name in Comet
+     * @param step      the step to be associated with the asset
+     * @param epoch     the epoch to be associated with the asset
+     */
+    void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch);
+
+    /**
+     * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.
+     * For running experiment updates current step to one from param!
+     *
+     * @param asset     The file asset to be stored. The name of the file will be used as assets identifier on Comet.
+     * @param overwrite Whether to overwrite files of the same name in Comet
+     * @param context   the context to be associated with the asset.
+     */
+    void uploadAsset(File asset, boolean overwrite, ExperimentContext context);
+
+    /**
+     * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.
+     * For running experiment updates current step to one from param!
+     *
+     * @param asset     The file asset to be stored. The name of the file will be used as assets identifier on Comet.
+     * @param overwrite Whether to overwrite files of the same name in Comet
+     * @param step      the step to be associated with the asset
+     * @param epoch     the epoch to be associated with the asset
+     */
+    void uploadAsset(File asset, boolean overwrite, long step, long epoch);
 
     /**
      * Logs Git Metadata for the experiment.

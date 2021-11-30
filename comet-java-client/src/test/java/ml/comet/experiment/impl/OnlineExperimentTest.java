@@ -4,6 +4,7 @@ import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -132,7 +133,8 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getMetrics, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logMetric(key, value, 1, 1, null, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logMetric(key, value,
+                    new ExperimentContext(1, 1), onCompleteAction);
             awaitForCondition(onCompleteAction, "logMetricAsync onComplete timeout");
         });
 
@@ -145,7 +147,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logParameter(key, value, 1, null, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logParameter(key, value, new ExperimentContext(1), onCompleteAction);
             awaitForCondition(onCompleteAction, "logParameterAsync onComplete timeout");
         });
 

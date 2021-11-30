@@ -3,6 +3,7 @@ package ml.comet.experiment.impl;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.log.StdOutLogger;
 import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.GitMetadata;
@@ -149,12 +150,42 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void nextStep() {
-        this.step++;
+        this.setStep(this.getStep() + 1);
+    }
+
+    @Override
+    public long getStep() {
+        return this.context.getStep();
+    }
+
+    @Override
+    public void setStep(long step) {
+        this.context.setStep(step);
     }
 
     @Override
     public void nextEpoch() {
-        this.epoch++;
+        this.setEpoch(this.getEpoch() + 1);
+    }
+
+    @Override
+    public long getEpoch() {
+        return this.context.getEpoch();
+    }
+
+    @Override
+    public void setEpoch(long epoch) {
+        this.context.setEpoch(epoch);
+    }
+
+    @Override
+    public void setContext(String context) {
+        this.context.setContext(context);
+    }
+
+    @Override
+    public String getContext() {
+        return this.context.getContext();
     }
 
     @Override
@@ -163,44 +194,45 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue) {
-        this.logMetric(metricName, metricValue, this.step, this.epoch);
-    }
-
-    @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step) {
-        this.logMetric(metricName, metricValue, step, this.epoch);
-    }
-
-    @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
-        this.logMetric(metricName, metricValue, step, epoch, this.context);
-    }
-
-    @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue,
-                          long step, long epoch, String context) {
-        this.setStep(step);
-        this.setEpoch(epoch);
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, @NonNull ExperimentContext context) {
         this.setContext(context);
-        this.logMetric(metricName, metricValue, step, epoch, context, null);
+        this.logMetric(metricName, metricValue, context, null);
+    }
+
+    @Override
+    public void logMetric(String metricName, Object metricValue, long step, long epoch) {
+        this.logMetric(metricName, metricValue,
+                new ExperimentContext(step, epoch, this.getContext()));
+    }
+
+    @Override
+    public void logMetric(String metricName, Object metricValue, long step) {
+        this.logMetric(metricName, metricValue,
+                new ExperimentContext(step, this.getEpoch(), this.getContext()));
+    }
+
+    @Override
+    public void logMetric(String metricName, Object metricValue) {
+        this.logMetric(metricName, metricValue,
+                new ExperimentContext(this.getStep(), this.getEpoch(), this.getContext()));
     }
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
-        this.logParameter(parameterName, paramValue, this.step);
+        this.logParameter(parameterName, paramValue,
+                new ExperimentContext(this.getStep(), this.getEpoch(), this.getContext()));
     }
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
-        this.logParameter(parameterName, paramValue, step, this.context);
+        this.logParameter(parameterName, paramValue,
+                new ExperimentContext(step, this.getEpoch(), this.getContext()));
     }
 
     @Override
-    public void logParameter(String parameterName, Object paramValue, long step, String context) {
-        this.setStep(step);
+    public void logParameter(String parameterName, Object paramValue, @NonNull ExperimentContext context) {
         this.setContext(context);
-        this.logParameter(parameterName, paramValue, step, context, null);
+        this.logParameter(parameterName, paramValue, context, null);
     }
 
     @Override
@@ -240,7 +272,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logLine(String line, long offset, boolean stderr) {
-        this.logLine(line, offset, stderr, this.context);
+        this.logLine(line, offset, stderr, this.getContext());
     }
 
     @Override
@@ -250,48 +282,50 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step, long epoch) {
-        this.setStep(step);
-        this.setEpoch(epoch);
-        this.logAssetFolder(folder, useFileNames, recursive, step, epoch, null);
+    public void logAssetFolder(File folder, boolean logFilePath, boolean recursive, ExperimentContext context) {
+        this.setContext(context);
+        this.logAssetFolder(folder, logFilePath, recursive, context, null);
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive, long step) {
-        this.logAssetFolder(folder, useFileNames, recursive, step, this.epoch);
-    }
-
-    @Override
-    public void logAssetFolder(File folder, boolean useFileNames, boolean recursive) {
-        this.logAssetFolder(folder, useFileNames, recursive, this.step);
+    public void logAssetFolder(File folder, boolean logFilePath, boolean recursive) {
+        this.logAssetFolder(folder, logFilePath, recursive,
+                new ExperimentContext(this.getStep(), this.getEpoch(), this.getContext()));
     }
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName,
-                            boolean overwrite, long step, long epoch, String context) {
-        this.setStep(step);
-        this.setEpoch(epoch);
+                            boolean overwrite, @NonNull ExperimentContext context) {
         this.setContext(context);
-        this.uploadAsset(asset, fileName, overwrite, step, epoch, context, null);
+        this.uploadAsset(asset, fileName, overwrite, context, null);
     }
 
     @Override
-    public void uploadAsset(@NonNull File asset, boolean overwrite, long step, long epoch, String context) {
-        this.uploadAsset(asset, asset.getName(), overwrite, step, epoch, context);
+    public void uploadAsset(File asset, boolean overwrite, ExperimentContext context) {
+        this.uploadAsset(asset, asset.getName(), overwrite, context);
+    }
+
+    @Override
+    public void uploadAsset(@NonNull File asset, boolean overwrite, long step, long epoch) {
+        this.uploadAsset(asset, asset.getName(), overwrite,
+                new ExperimentContext(step, epoch, getContext()));
     }
 
     public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step) {
-        this.uploadAsset(asset, fileName, overwrite, step, this.epoch, this.context);
+        this.uploadAsset(asset, fileName, overwrite,
+                new ExperimentContext(step, this.getEpoch(), this.getContext()));
     }
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite) {
-        this.uploadAsset(asset, fileName, overwrite, this.step, this.epoch, this.context);
+        this.uploadAsset(asset, fileName, overwrite,
+                new ExperimentContext(getStep(), this.getEpoch(), this.getContext()));
     }
 
     @Override
     public void uploadAsset(@NonNull File asset, boolean overwrite) {
-        this.uploadAsset(asset, overwrite, this.step, this.epoch, this.context);
+        this.uploadAsset(asset, asset.getName(), overwrite,
+                new ExperimentContext(getStep(), this.getEpoch(), this.getContext()));
     }
 
     @Override
@@ -306,12 +340,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logCode(@NonNull String code, @NonNull String fileName) {
-        this.logCode(code, fileName, this.context);
+        this.logCode(code, fileName, this.getContext());
     }
 
     @Override
     public void logCode(@NonNull File file) {
-        this.logCode(file, this.context);
+        this.logCode(file, this.getContext());
     }
 
     @Override

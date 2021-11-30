@@ -2,6 +2,7 @@ package ml.comet.experiment.impl.utils;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.model.AddExperimentTagsRest;
 import ml.comet.experiment.model.AddGraphRest;
 import ml.comet.experiment.model.ExperimentTimeRequest;
@@ -24,20 +25,18 @@ public class DataUtils {
      *
      * @param metricName  the metric name
      * @param metricValue the metric value
-     * @param step        the current step of the experiment
-     * @param epoch       the current epoch of the experiment
      * @param context     the current context
      * @return the initialized {@link MetricRest} instance.
      */
     public static MetricRest createLogMetricRequest(
-            @NonNull String metricName, @NonNull Object metricValue, long step, long epoch, String context) {
+            @NonNull String metricName, @NonNull Object metricValue, @NonNull ExperimentContext context) {
         MetricRest request = new MetricRest();
         request.setMetricName(metricName);
         request.setMetricValue(metricValue.toString());
-        request.setStep(step);
-        request.setEpoch(epoch);
+        request.setStep(context.getStep());
+        request.setEpoch(context.getEpoch());
         request.setTimestamp(System.currentTimeMillis());
-        request.setContext(context);
+        request.setContext(context.getContext());
         return request;
     }
 
@@ -46,18 +45,17 @@ public class DataUtils {
      *
      * @param parameterName the name of the parameter
      * @param paramValue    the value of the parameter
-     * @param step          the current experiment step
      * @param context       the current context
      * @return the initialized {@link ParameterRest} instance.
      */
     public static ParameterRest createLogParamRequest(
-            @NonNull String parameterName, @NonNull Object paramValue, long step, String context) {
+            @NonNull String parameterName, @NonNull Object paramValue, @NonNull ExperimentContext context) {
         ParameterRest request = new ParameterRest();
         request.setParameterName(parameterName);
         request.setParameterValue(paramValue.toString());
-        request.setStep(step);
+        request.setStep(context.getStep());
         request.setTimestamp(System.currentTimeMillis());
-        request.setContext(context);
+        request.setContext(context.getContext());
         return request;
     }
 

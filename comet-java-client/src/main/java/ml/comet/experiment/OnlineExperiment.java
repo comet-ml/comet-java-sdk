@@ -1,5 +1,7 @@
 package ml.comet.experiment;
 
+import ml.comet.experiment.context.ExperimentContext;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -68,14 +70,14 @@ public interface OnlineExperiment extends Experiment, AutoCloseable {
     long getEpoch();
 
     /**
-     * Sets the context for any logs and uploaded files.
+     * Sets the context identifier for any logs and uploaded files.
      *
-     * @param context the context to be associated with any log records, files, and assets.
+     * @param context the context identifier to be associated with any log records, files, and assets.
      */
     void setContext(String context);
 
     /**
-     * Gets the current context as recorded in the Experiment object locally.
+     * Gets the current context identifier as recorded in the {@link OnlineExperiment} object locally.
      *
      * @return the current context which associated with log records of this experiment.
      */
@@ -88,10 +90,7 @@ public interface OnlineExperiment extends Experiment, AutoCloseable {
      * @param metricName  The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
      * @param step        The current step for this metric, this will set the given step for this experiment
-     * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
      */
-    void logMetric(String metricName, Object metricValue, long step, long epoch);
-
     void logMetric(String metricName, Object metricValue, long step);
 
     void logMetric(String metricName, Object metricValue);
@@ -102,10 +101,7 @@ public interface OnlineExperiment extends Experiment, AutoCloseable {
      *
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
-     * @param step          The current step for this parameter, this will set the given step for this experiment
      */
-    void logParameter(String parameterName, Object paramValue, long step);
-
     void logParameter(String parameterName, Object paramValue);
 
     /**
@@ -150,15 +146,12 @@ public interface OnlineExperiment extends Experiment, AutoCloseable {
     /**
      * Logs all the files located in the given folder as assets.
      *
-     * @param folder       the folder you want to log.
+     * @param folder      the folder you want to log.
      * @param logFilePath if {@code true}, log the file path with each file.
-     * @param recursive    if {@code true}, recurse the folder.
-     * @param step         the step to be associated with each file asset.
-     * @param epoch        used to associate each file  asset to a specific epoch.
+     * @param recursive   if {@code true}, recurse the folder.
+     * @param context     the experiment context to be associated with the logged assets.
      */
-    void logAssetFolder(File folder, boolean logFilePath, boolean recursive, long step, long epoch);
-
-    void logAssetFolder(File folder, boolean logFilePath, boolean recursive, long step);
+    void logAssetFolder(File folder, boolean logFilePath, boolean recursive, ExperimentContext context);
 
     void logAssetFolder(File folder, boolean logFilePath, boolean recursive);
 }

@@ -6,6 +6,7 @@ import io.reactivex.rxjava3.functions.Function;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.AssetType;
@@ -193,20 +194,23 @@ abstract class BaseExperiment implements Experiment {
      *
      * @param metricName  The name for the metric to be logged
      * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
-     * @param step        The current step for this metric, this will set the given step for this experiment
-     * @param epoch       The current epoch for this metric, this will set the given epoch for this experiment
      * @param context     the context to be associated with the parameter.
      * @throws CometApiException if received response with failure code.
      */
     @Override
     public void logMetric(@NonNull String metricName, @NonNull Object metricValue,
-                          long step, long epoch, String context) {
+                          @NonNull ExperimentContext context) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logMetric {} = {}, step: {}, epoch: {}", metricName, metricValue, step, epoch);
+            getLogger().debug("logMetric {} = {}, context: {}", metricName, metricValue, context);
         }
 
         sendSynchronously(restApiClient::logMetric,
-                createLogMetricRequest(metricName, metricValue, step, epoch, context));
+                createLogMetricRequest(metricName, metricValue, context));
+    }
+
+    @Override
+    public void logMetric(String metricName, Object metricValue, long step, long epoch) {
+        this.logMetric(metricName, metricValue, new ExperimentContext(step, epoch));
     }
 
     /**
@@ -214,17 +218,21 @@ abstract class BaseExperiment implements Experiment {
      *
      * @param parameterName The name of the param being logged
      * @param paramValue    The value for the param being logged
-     * @param step          The current step for this metric, this will set the given step for this experiment
      * @param context       the context to be associated with the parameter.
      */
     @Override
-    public void logParameter(String parameterName, Object paramValue, long step, String context) {
+    public void logParameter(String parameterName, Object paramValue, ExperimentContext context) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logParameter {} = {}, step: {}", parameterName, paramValue, step);
+            getLogger().debug("logParameter {} = {}, context: {}", parameterName, paramValue, context);
         }
 
         sendSynchronously(restApiClient::logParameter,
-                createLogParamRequest(parameterName, paramValue, step, context));
+                createLogParamRequest(parameterName, paramValue, context));
+    }
+
+    @Override
+    public void logParameter(String parameterName, Object paramValue, long step) {
+        this.logParameter(parameterName, paramValue, new ExperimentContext(step));
     }
 
     /**
@@ -393,10 +401,10 @@ abstract class BaseExperiment implements Experiment {
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName,
-                            boolean overwrite, long step, long epoch, String context) {
+                            boolean overwrite, @NonNull ExperimentContext context) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("uploadAsset from file {}, name {}, override {}, step {}, epoch {}",
-                    asset.getName(), fileName, overwrite, step, epoch);
+            getLogger().debug("uploadAsset from file {}, name {}, override {}, context {}",
+                    asset.getName(), fileName, overwrite, context);
         }
         validate();
 
@@ -404,9 +412,9 @@ abstract class BaseExperiment implements Experiment {
                 .sendPostAsync(asset, ADD_ASSET, new HashMap<QueryParamName, String>() {{
                             put(EXPERIMENT_KEY, getExperimentKey());
                             put(FILE_NAME, fileName);
-                            put(STEP, Long.toString(step));
-                            put(EPOCH, Long.toString(epoch));
-                            put(CONTEXT, context);
+                            put(STEP, Long.toString(context.getStep()));
+                            put(EPOCH, Long.toString(context.getEpoch()));
+                            put(CONTEXT, context.getContext());
                             put(OVERWRITE, Boolean.toString(overwrite));
                         }},
                         null)
@@ -418,8 +426,18 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void uploadAsset(@NonNull File asset, boolean overwrite, long step, long epoch, String context) {
-        this.uploadAsset(asset, asset.getName(), overwrite, step, epoch, context);
+    public void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch) {
+        this.uploadAsset(asset, fileName, overwrite, new ExperimentContext(step, epoch));
+    }
+
+    @Override
+    public void uploadAsset(File asset, boolean overwrite, ExperimentContext context) {
+        this.uploadAsset(asset, asset.getName(), overwrite, context);
+    }
+
+    @Override
+    public void uploadAsset(@NonNull File asset, boolean overwrite, long step, long epoch) {
+        this.uploadAsset(asset, overwrite, new ExperimentContext(step, epoch));
     }
 
     @Override
