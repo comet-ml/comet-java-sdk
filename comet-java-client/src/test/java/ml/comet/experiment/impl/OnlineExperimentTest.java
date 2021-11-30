@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
@@ -325,28 +326,48 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testUploadAndGetAssets() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
 
+        // Make sure experiment has no assets
+        //
         assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
 
-        experiment.uploadAsset(TestUtils.getFile(IMAGE_FILE_NAME), false);
-        experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
+        // Upload few assets and wait for completion
+        //
+        OnCompleteAction onComplete = new OnCompleteAction();
+        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)), IMAGE_FILE_NAME,
+                false, ExperimentContext.empty(), onComplete);
+        awaitForCondition(onComplete, "image file onComplete timeout", 30);
 
+        onComplete = new OnCompleteAction();
+        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
+                false, ExperimentContext.empty(), onComplete);
+        awaitForCondition(onComplete, "text file onComplete timeout", 30);
+
+        // wait for assets become available and validate results
+        //
         awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
 
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
         validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE);
         validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE);
 
-        experiment.uploadAsset(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME), SOME_TEXT_FILE_NAME, true);
+        // update one of the assets and validate
+        //
+        onComplete = new OnCompleteAction();
+        ExperimentContext context = new ExperimentContext(10, 101, "train");
+        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)),
+                SOME_TEXT_FILE_NAME, true, context, onComplete);
+        awaitForCondition(onComplete, "update text file onComplete timeout", 30);
 
         awaitForCondition(() -> {
-            List<ExperimentAssetLink> textFiles = experiment.getAssetList(ASSET_TYPE_ALL);
-            if (textFiles.size() > 0) {
-                ExperimentAssetLink file = textFiles.get(0);
-                return ANOTHER_TEXT_FILE_SIZE == file.getFileSize();
-            }
-            return false;
+            List<ExperimentAssetLink> assetList = experiment.getAssetList(ASSET_TYPE_ALL);
+            return assetList.stream()
+                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
+                    .anyMatch(asset ->
+                            ANOTHER_TEXT_FILE_SIZE == asset.getFileSize()
+                                    && asset.getStep() == context.getStep()
+                                    && asset.getRunContext().equals(context.getContext()));
         }, "Asset was updated");
 
         experiment.end();
