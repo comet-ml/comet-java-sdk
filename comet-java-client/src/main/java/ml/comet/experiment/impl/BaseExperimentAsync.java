@@ -3,7 +3,6 @@ package ml.comet.experiment.impl;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
-import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
@@ -21,10 +20,13 @@ import ml.comet.experiment.model.ParameterRest;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ASSET;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_REQUEST;
@@ -295,36 +297,25 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     }
 
     /**
-     * Attempts to given {@link Asset} asynchronously. This method will wrap send operation into {@link Single} and
-     * transparently log any errors that may happen.
-     *
-     * @param asset the {@link Asset} to be sent.
-     * @return the {@link Single} which can be used to subscribe for operation results.
-     */
-    private Single<LogDataResponse> sendAssetAsync(@NonNull final Asset asset) {
-        return validateAndGetExperimentKey()
-                .subscribeOn(Schedulers.io())
-                .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey))
-                .doOnSuccess(logDataResponse ->
-                        AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), asset))
-                .doOnError(throwable ->
-                        getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, asset), throwable));
-    }
-
-    /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
-     * @param asset      The asset to be stored
+     * @param file       The file asset to be stored
      * @param fileName   The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite  Whether to overwrite files of the same name in Comet
      * @param context    the context to be associated with the asset.
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void uploadAsset(@NonNull File asset, @NonNull String fileName,
+    void uploadAsset(@NonNull File file, @NonNull String fileName,
                      boolean overwrite, @NonNull ExperimentContext context, Action onComplete) {
-        // TODO implement me
-        super.uploadAsset(asset, fileName, overwrite, context);
+        Asset asset = new Asset();
+        asset.setFile(file);
+        asset.setFileName(fileName);
+        asset.setExperimentContext(context);
+        asset.setOverwrite(overwrite);
+        asset.setType(ASSET_TYPE_ASSET);
+
+        this.logAsset(asset, context, onComplete);
     }
 
 
@@ -337,9 +328,15 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context, Action onComplete) {
-        // TODO implement me
-        super.logCode(code, fileName, context);
+    void logCode(@NonNull String code, @NonNull String fileName,
+                 @NonNull ExperimentContext context, Action onComplete) {
+        Asset asset = new Asset();
+        asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
+        asset.setFileName(fileName);
+        asset.setExperimentContext(context);
+        asset.setType(ASSET_TYPE_SOURCE_CODE);
+
+        this.logAsset(asset, context, onComplete);
     }
 
     /**
@@ -351,8 +348,49 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   Can be {@code null} if not interested in completion signal.
      */
     void logCode(@NonNull File file, @NonNull ExperimentContext context, Action onComplete) {
-        // TODO implement me
-        super.logCode(file, context);
+        Asset asset = new Asset();
+        asset.setFile(file);
+        asset.setFileName(file.getName());
+        asset.setExperimentContext(context);
+        asset.setType(ASSET_TYPE_SOURCE_CODE);
+
+        this.logAsset(asset, context, onComplete);
+    }
+
+    /**
+     * Asynchronously logs provided asset and signals upload completion if {@code onComplete} action provided.
+     *
+     * @param asset      the {@link Asset} to be uploaded.
+     * @param context    the current experiment context.
+     * @param onComplete the optional {@link Action} to be called upon operation completed,
+     *                   either successful or failure.
+     */
+    void logAsset(@NonNull final Asset asset, @NonNull ExperimentContext context, Action onComplete) {
+        asset.setExperimentContext(context);
+        Single<LogDataResponse> single = this.sendAssetAsync(asset);
+        if (onComplete != null) {
+            single = single.doFinally(onComplete);
+        }
+
+        // subscribe to get operation completed
+        disposables.add(single.subscribe());
+    }
+
+    /**
+     * Attempts to send given {@link Asset} asynchronously.
+     * This method will wrap send operation into {@link Single} and transparently log any errors that may happen.
+     *
+     * @param asset the {@link Asset} to be sent.
+     * @return the {@link Single} which can be used to subscribe for operation results.
+     */
+    private Single<LogDataResponse> sendAssetAsync(@NonNull final Asset asset) {
+        return validateAndGetExperimentKey()
+                .subscribeOn(Schedulers.io())
+                .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey))
+                .doOnSuccess(logDataResponse ->
+                        AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), asset))
+                .doOnError(throwable ->
+                        getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, asset), throwable));
     }
 
     /**
