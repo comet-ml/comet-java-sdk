@@ -28,7 +28,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ALL;
 import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_UNKNOWN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -333,7 +332,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         experiment.uploadAsset(TestUtils.getFile(IMAGE_FILE_NAME), false);
         experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
 
-        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets uploaded");
+        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
 
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
         validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE);
@@ -342,9 +341,12 @@ public class OnlineExperimentTest extends BaseApiTest {
         experiment.uploadAsset(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME), SOME_TEXT_FILE_NAME, true);
 
         awaitForCondition(() -> {
-            List<ExperimentAssetLink> textFiles = experiment.getAssetList(ASSET_TYPE_UNKNOWN);
-            ExperimentAssetLink file = textFiles.get(0);
-            return ANOTHER_TEXT_FILE_SIZE == file.getFileSize();
+            List<ExperimentAssetLink> textFiles = experiment.getAssetList(ASSET_TYPE_ALL);
+            if (textFiles.size() > 0) {
+                ExperimentAssetLink file = textFiles.get(0);
+                return ANOTHER_TEXT_FILE_SIZE == file.getFileSize();
+            }
+            return false;
         }, "Asset was updated");
 
         experiment.end();

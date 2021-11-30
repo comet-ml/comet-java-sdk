@@ -9,8 +9,8 @@ import ml.comet.experiment.Experiment;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
+import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetType;
-import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.utils.CometUtils;
@@ -29,20 +29,11 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ASSET;
 import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_ASSET;
-import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
-import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
-import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
-import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
-import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
-import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
-import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
@@ -353,76 +344,65 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logCode(@NonNull String code, @NonNull String fileName, String context) {
+    public void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("log raw source code, file name: {}", fileName);
         }
 
-        validate();
+        Asset asset = new Asset();
+        asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
+        asset.setFileName(fileName);
+        asset.setContext(context.getContext());
+        asset.setStep(context.getStep());
+        asset.setEpoch(context.getEpoch());
+        asset.setType(ASSET_TYPE_SOURCE_CODE);
 
-        Map<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
-            put(EXPERIMENT_KEY, getExperimentKey());
-            put(FILE_NAME, fileName);
-            put(CONTEXT, context);
-            put(TYPE, ASSET_TYPE_SOURCE_CODE.type());
-            put(OVERWRITE, Boolean.toString(false));
-        }};
-
-        this.connection.sendPostAsync(code.getBytes(StandardCharsets.UTF_8), ADD_ASSET, params, null)
-                .toCompletableFuture()
-                .exceptionally(t -> {
-                    getLogger().error("failed to log raw source code with file name {}", fileName, t);
-                    return null;
-                });
+        sendSynchronously(restApiClient::logAsset, asset);
     }
 
     @Override
-    public void logCode(@NonNull File asset, String context) {
+    public void logCode(String code, String fileName) {
+        this.logCode(code, fileName, ExperimentContext.empty());
+    }
+
+    @Override
+    public void logCode(@NonNull File file, @NonNull ExperimentContext context) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("log source code from file {}", asset.getName());
+            getLogger().debug("log source code from file {}", file.getName());
         }
-        validate();
+        Asset asset = new Asset();
+        asset.setFile(file);
+        asset.setFileName(file.getName());
+        asset.setContext(context.getContext());
+        asset.setStep(context.getStep());
+        asset.setEpoch(context.getEpoch());
+        asset.setType(ASSET_TYPE_SOURCE_CODE);
 
-        Map<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
-            put(EXPERIMENT_KEY, getExperimentKey());
-            put(FILE_NAME, asset.getName());
-            put(CONTEXT, context);
-            put(TYPE, ASSET_TYPE_SOURCE_CODE.type());
-            put(OVERWRITE, Boolean.toString(false));
-        }};
-
-        this.connection.sendPostAsync(asset, ADD_ASSET, params, null)
-                .toCompletableFuture()
-                .exceptionally(t -> {
-                    getLogger().error("failed to log source code from file {}", asset, t);
-                    return null;
-                });
+        sendSynchronously(restApiClient::logAsset, asset);
     }
 
     @Override
-    public void uploadAsset(@NonNull File asset, @NonNull String fileName,
+    public void logCode(File file) {
+        this.logCode(file, ExperimentContext.empty());
+    }
+
+    @Override
+    public void uploadAsset(@NonNull File file, @NonNull String fileName,
                             boolean overwrite, @NonNull ExperimentContext context) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("uploadAsset from file {}, name {}, override {}, context {}",
-                    asset.getName(), fileName, overwrite, context);
+                    file.getName(), fileName, overwrite, context);
         }
-        validate();
+        Asset asset = new Asset();
+        asset.setFile(file);
+        asset.setFileName(fileName);
+        asset.setStep(context.getStep());
+        asset.setEpoch(context.getEpoch());
+        asset.setContext(context.getContext());
+        asset.setOverwrite(overwrite);
+        asset.setType(ASSET_TYPE_ASSET);
 
-        this.connection
-                .sendPostAsync(asset, ADD_ASSET, new HashMap<QueryParamName, String>() {{
-                            put(EXPERIMENT_KEY, getExperimentKey());
-                            put(FILE_NAME, fileName);
-                            put(STEP, Long.toString(context.getStep()));
-                            put(EPOCH, Long.toString(context.getEpoch()));
-                            put(CONTEXT, context.getContext());
-                            put(OVERWRITE, Boolean.toString(overwrite));
-                        }},
-                        null)
-                .toCompletableFuture()
-                .exceptionally(t -> {
-                    getLogger().error("failed to upload asset from file {} with name {}", asset, fileName, t);
-                    return null;
-                });
+        sendSynchronously(restApiClient::logAsset, asset);
     }
 
     @Override

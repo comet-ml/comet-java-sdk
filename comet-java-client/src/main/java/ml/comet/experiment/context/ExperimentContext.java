@@ -48,6 +48,15 @@ public final class ExperimentContext {
     }
 
     /**
+     * The factory to return empty {@link ExperimentContext} instance.
+     *
+     * @return the empty {@link ExperimentContext}
+     */
+    public static ExperimentContext empty() {
+        return new ExperimentContext();
+    }
+
+    /**
      * Returns builder to create populated instance of the {@link ExperimentContext}.
      *
      * @return the builder to create populated instance of the {@link ExperimentContext}.

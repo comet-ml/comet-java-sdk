@@ -242,7 +242,15 @@ public interface Experiment {
      * @param fileName Name of source file to be displayed on UI 'code' tab
      * @param context  the context to be associated with the asset.
      */
-    void logCode(String code, String fileName, String context);
+    void logCode(String code, String fileName, ExperimentContext context);
+
+    /**
+     * Allows you to report code for the experiment.
+     *
+     * @param code     Code to be sent to Comet
+     * @param fileName Name of source file to be displayed on UI 'code' tab
+     */
+    void logCode(String code, String fileName);
 
     /**
      * Allows you to report code for the experiment.
@@ -250,7 +258,14 @@ public interface Experiment {
      * @param file    Asset with source code to be sent
      * @param context the context to be associated with the asset.
      */
-    void logCode(File file, String context);
+    void logCode(File file, ExperimentContext context);
+
+    /**
+     * Allows you to report code for the experiment.
+     *
+     * @param file Asset with source code to be sent
+     */
+    void logCode(File file);
 
     /**
      * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.

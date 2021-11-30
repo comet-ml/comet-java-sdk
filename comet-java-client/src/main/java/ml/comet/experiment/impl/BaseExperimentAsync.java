@@ -49,7 +49,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         final String projectName,
                         final String workspaceName) {
         super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, projectName, workspaceName);
-        this.context = ExperimentContext.builder().build();
+        this.context = ExperimentContext.empty();
     }
 
     @Override
@@ -290,8 +290,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logCode(@NonNull String code, @NonNull String fileName, String context, Action onComplete) {
+    void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context, Action onComplete) {
         // TODO implement me
+        super.logCode(code, fileName, context);
     }
 
     /**
@@ -302,8 +303,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logCode(@NonNull File file, String context, Action onComplete) {
+    void logCode(@NonNull File file, @NonNull ExperimentContext context, Action onComplete) {
         // TODO implement me
+        super.logCode(file, context);
     }
 
     /**

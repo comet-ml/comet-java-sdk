@@ -129,21 +129,6 @@ public interface OnlineExperiment extends Experiment, AutoCloseable {
     void uploadAsset(File asset, boolean overwrite);
 
     /**
-     * Allows you to report code for the experiment.
-     *
-     * @param code     Code to be sent to Comet
-     * @param fileName Name of source file to be displayed on UI 'code' tab
-     */
-    void logCode(String code, String fileName);
-
-    /**
-     * Allows you to report code for the experiment.
-     *
-     * @param file Asset with source code to be sent
-     */
-    void logCode(File file);
-
-    /**
      * Logs all the files located in the given folder as assets.
      *
      * @param folder      the folder you want to log.

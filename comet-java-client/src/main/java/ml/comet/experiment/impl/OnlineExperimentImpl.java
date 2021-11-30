@@ -213,14 +213,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logMetric(String metricName, Object metricValue) {
-        this.logMetric(metricName, metricValue,
-                new ExperimentContext(this.getStep(), this.getEpoch(), this.getContext()));
+        this.logMetric(metricName, metricValue, this.context);
     }
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
-        this.logParameter(parameterName, paramValue,
-                new ExperimentContext(this.getStep(), this.getEpoch(), this.getContext()));
+        this.logParameter(parameterName, paramValue, this.context);
     }
 
     @Override
@@ -289,8 +287,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logAssetFolder(File folder, boolean logFilePath, boolean recursive) {
-        this.logAssetFolder(folder, logFilePath, recursive,
-                new ExperimentContext(this.getStep(), this.getEpoch(), this.getContext()));
+        this.logAssetFolder(folder, logFilePath, recursive, this.context);
     }
 
     @Override
@@ -318,34 +315,32 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite) {
-        this.uploadAsset(asset, fileName, overwrite,
-                new ExperimentContext(getStep(), this.getEpoch(), this.getContext()));
+        this.uploadAsset(asset, fileName, overwrite, this.context);
     }
 
     @Override
     public void uploadAsset(@NonNull File asset, boolean overwrite) {
-        this.uploadAsset(asset, asset.getName(), overwrite,
-                new ExperimentContext(getStep(), this.getEpoch(), this.getContext()));
+        this.uploadAsset(asset, asset.getName(), overwrite, this.context);
     }
 
     @Override
-    public void logCode(@NonNull String code, @NonNull String fileName, String context) {
+    public void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context) {
         this.logCode(code, fileName, context, null);
     }
 
     @Override
-    public void logCode(@NonNull File file, String context) {
+    public void logCode(@NonNull File file, @NonNull ExperimentContext context) {
         this.logCode(file, context, null);
     }
 
     @Override
     public void logCode(@NonNull String code, @NonNull String fileName) {
-        this.logCode(code, fileName, this.getContext());
+        this.logCode(code, fileName, this.context);
     }
 
     @Override
     public void logCode(@NonNull File file) {
-        this.logCode(file, this.getContext());
+        this.logCode(file, this.context);
     }
 
     @Override
