@@ -1,12 +1,16 @@
 package ml.comet.experiment.impl;
 
+import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.NonNull;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.HtmlRest;
 import ml.comet.experiment.model.LogDataResponse;
@@ -18,7 +22,11 @@ import org.slf4j.Logger;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
+import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_ASSET_FOLDER_EMPTY;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
@@ -210,7 +218,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
-    void logGitMetadataAsync(GitMetadata gitMetadata, Action onComplete) {
+    void logGitMetadataAsync(@NonNull GitMetadata gitMetadata, Action onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logGitMetadata {}", gitMetadata);
         }
@@ -253,15 +261,54 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete  onComplete The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
-    void logAssetFolder(File folder, boolean logFilePath, boolean recursive,
-                        ExperimentContext context, Action onComplete) {
-        if (folder == null || !folder.isDirectory()) {
+    void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive,
+                        @NonNull ExperimentContext context, Action onComplete) {
+        if (!folder.isDirectory()) {
             getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
         }
 
+        AtomicInteger count = new AtomicInteger();
+        try {
+            Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive)
+                    .peek(asset -> asset.setExperimentContext(context));
 
-        // TODO logAssetFolder
+            // create parallel execution flow
+            Observable<LogDataResponse> observable = Observable.fromStream(assets)
+                    .flatMap(asset -> Observable.fromSingle(sendAssetAsync(asset)));
+
+            // register on completion action
+            if (onComplete != null) {
+                observable = observable.doFinally(onComplete);
+            } else {
+                // register default
+                observable = observable.doFinally(() ->
+                        getLogger().info(getString(ASSETS_FOLDER_UPLOAD_COMPLETED, count.get())));
+            }
+
+            // subscribe for processing results
+            disposables.add(
+                    observable.subscribe(logDataResponse -> count.incrementAndGet()));
+        } catch (Throwable t) {
+            getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
+        }
+    }
+
+    /**
+     * Attempts to given {@link Asset} asynchronously. This method will wrap send operation into {@link Single} and
+     * transparently log any errors that may happen.
+     *
+     * @param asset the {@link Asset} to be sent.
+     * @return the {@link Single} which can be used to subscribe for operation results.
+     */
+    private Single<LogDataResponse> sendAssetAsync(@NonNull final Asset asset) {
+        return validateAndGetExperimentKey()
+                .subscribeOn(Schedulers.io())
+                .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey))
+                .doOnSuccess(logDataResponse ->
+                        AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), asset))
+                .doOnError(throwable ->
+                        getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, asset), throwable));
     }
 
     /**
