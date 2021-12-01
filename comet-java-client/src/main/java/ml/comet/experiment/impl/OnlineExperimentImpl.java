@@ -291,6 +291,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
+    public void logAssetFolder(File folder, boolean logFilePath) {
+        this.logAssetFolder(folder, logFilePath, false);
+    }
+
+    @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName,
                             boolean overwrite, @NonNull ExperimentContext context) {
         this.setContext(context);

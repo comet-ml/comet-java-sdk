@@ -139,4 +139,6 @@ public interface OnlineExperiment extends Experiment, AutoCloseable {
     void logAssetFolder(File folder, boolean logFilePath, boolean recursive, ExperimentContext context);
 
     void logAssetFolder(File folder, boolean logFilePath, boolean recursive);
+
+    void logAssetFolder(File folder, boolean logFilePath);
 }
