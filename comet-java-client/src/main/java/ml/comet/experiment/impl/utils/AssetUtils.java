@@ -19,32 +19,28 @@ public class AssetUtils {
      * Walks through th asset files in the given folder and produce stream of {@link Asset} objects holding information
      * about file assets found in the folder.
      *
-     * @param folder      the folder where to look for asset files
-     * @param logFilePath if {@code true} the absolute of relative file path to be used.
-     * @param recursive   if {@code true} then subfolder files will be included recursively.
+     * @param folder               the folder where to look for asset files
+     * @param logFilePath          if {@code true} the file path relative to the folder will be used.
+     *                             Otherwise, basename of the asset file will be used.
+     * @param recursive            if {@code true} then subfolder files will be included recursively.
+     * @param prefixWithFolderName if {@code true} then path of each asset file will be prefixed with folder name
+     *                             in case if {@code logFilePath} is {@code true}.
      * @return the stream of {@link Asset} objects.
      * @throws IOException if an I/O exception occurred.
      */
-    public static Stream<Asset> walkFolderAssets(File folder, boolean logFilePath, boolean recursive)
+    public static Stream<Asset> walkFolderAssets(File folder, boolean logFilePath,
+                                                 boolean recursive, boolean prefixWithFolderName)
             throws IOException {
         // list files in the directory and process each file as an asset
         return FileUtils.listFiles(folder, recursive)
                 .map(path -> mapToFileAsset(folder, path, logFilePath, true));
     }
 
-    /**
-     * Allows mapping file denoted by {@code assetPath} into {@link Asset} object.
-     *
-     * @param folder       the root folder for the asset.
-     * @param assetPath    the path to the asset file.
-     * @param logFilePath  if {@code true} the absolute of relative file path to be used.
-     * @param absolutePath if {@code true} the absolute file path going to be used.
-     * @return the fully initialized {@link Asset} object encapsulating information about asset file.
-     */
-    public static Asset mapToFileAsset(File folder, Path assetPath, boolean logFilePath, boolean absolutePath) {
+    static Asset mapToFileAsset(File folder, Path assetPath,
+                                       boolean logFilePath, boolean prefixWithFolderName) {
         Asset asset = new Asset();
         asset.setFile(assetPath.toFile());
-        String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, absolutePath);
+        String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);
         asset.setFileName(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
         return asset;

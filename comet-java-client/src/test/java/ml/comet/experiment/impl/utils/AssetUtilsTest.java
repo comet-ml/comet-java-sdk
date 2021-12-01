@@ -66,11 +66,11 @@ public class AssetUtilsTest {
     public void testWalkFolderAssets() throws IOException {
         // tests that correct number of assets returned
         Stream<Asset> assets = AssetUtils.walkFolderAssets(
-                root.toFile(), true, true);
+                root.toFile(), true, true, true);
         assertEquals(assetFolderFiles.size(), assets.count(), "wrong assets count");
 
         // tests that assets has been populated
-        assets = AssetUtils.walkFolderAssets(root.toFile(), true, true);
+        assets = AssetUtils.walkFolderAssets(root.toFile(), true, true, true);
         assertTrue(
                 assets.allMatch(
                         asset -> Objects.equals(asset.getFileExtension(), someFileExtension)
@@ -79,7 +79,7 @@ public class AssetUtilsTest {
                 "wrong asset data");
 
         // tests that known file has correct path recorded
-        assets = AssetUtils.walkFolderAssets(root.toFile(), true, true);
+        assets = AssetUtils.walkFolderAssets(root.toFile(), true, true, true);
         assertTrue(
                 assets.anyMatch(asset -> asset.getFile().equals(subFolderFile.toFile())),
                 "file match expected"
