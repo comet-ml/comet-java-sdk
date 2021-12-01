@@ -31,7 +31,7 @@ public class AssetUtilsTest {
     static void setup() throws IOException {
         assetFolderFiles = new ArrayList<>();
         // create temporary directory tree
-        root = Files.createTempDirectory("testFileUtils");
+        root = Files.createTempDirectory("testAssetUtils");
         assetFolderFiles.add(
                 Files.createTempFile(root, "a_file", "." + someFileExtension));
         assetFolderFiles.add(
