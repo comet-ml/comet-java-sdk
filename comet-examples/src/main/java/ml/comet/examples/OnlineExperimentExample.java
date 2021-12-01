@@ -2,6 +2,7 @@ package ml.comet.examples;
 
 import ml.comet.experiment.ExperimentBuilder;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.context.ExperimentContext;
 import org.apache.commons.io.file.PathUtils;
 
 import java.io.IOException;
@@ -30,6 +31,7 @@ public class OnlineExperimentExample {
     private static final String MODEL_FILE = "model.hd5";
     private static final String HTML_REPORT_FILE = "report.html";
     private static final String GRAPH_JSON_FILE = "graph.json";
+    private static final String CODE_FILE = "code_sample.py";
 
     /**
      * The main entry point to the example.
@@ -80,7 +82,10 @@ public class OnlineExperimentExample {
         experiment.logParameter("learning_rate", 12);
 
         experiment.uploadAsset(getResourceFile(CHART_IMAGE_FILE), "amazing chart.png", false);
-        experiment.uploadAsset(getResourceFile(MODEL_FILE), false);
+        experiment.uploadAsset(getResourceFile(MODEL_FILE), false,
+                ExperimentContext.builder().withContext("train").build());
+
+        experiment.nextStep();
 
         // upload assets from folder
         Path assetDir = copyResourcesToTmpDir();
@@ -92,6 +97,9 @@ public class OnlineExperimentExample {
         System.out.println("- loss: 0.7858 - acc: 0.7759 - val_loss: 0.3416 - val_acc: 0.9026");
 
         experiment.logGraph(readResourceToString(GRAPH_JSON_FILE));
+
+        experiment.logCode(getResourceFile(CODE_FILE),
+                ExperimentContext.builder().withContext("test").build());
 
         System.out.println("===== Experiment completed ====");
 
