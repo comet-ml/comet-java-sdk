@@ -8,8 +8,8 @@ import org.apache.commons.lang3.StringUtils;
  */
 @Data
 public final class ExperimentContext {
-    private long step;
-    private long epoch;
+    private Long step;
+    private Long epoch;
     private String context;
 
     ExperimentContext() {
@@ -20,7 +20,7 @@ public final class ExperimentContext {
      *
      * @param step    the current step of the experiment.
      * @param epoch   the current epoch of the experiment.
-     * @param context the current context of the data log operation.
+     * @param context the current context identifier of the data log operation.
      */
     public ExperimentContext(long step, long epoch, String context) {
         this.step = step;

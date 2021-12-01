@@ -437,7 +437,7 @@ public class OnlineExperimentTest extends BaseApiTest {
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
                     .anyMatch(asset ->
                             ANOTHER_TEXT_FILE_SIZE == asset.getFileSize()
-                                    && asset.getStep() == context.getStep()
+                                    && Objects.equals(asset.getStep(), context.getStep())
                                     && asset.getRunContext().equals(context.getContext()));
         }, "Asset was updated");
 
@@ -599,7 +599,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         assertTrue(assets.stream()
                 .filter(asset -> expectedAssetName.equals(asset.getFileName()))
                 .anyMatch(asset -> expectedSize == asset.getFileSize()
-                        && context.getStep() == asset.getStep()
+                        && Objects.equals(context.getStep(), asset.getStep())
                         && context.getContext().equals(asset.getRunContext())));
     }
 
