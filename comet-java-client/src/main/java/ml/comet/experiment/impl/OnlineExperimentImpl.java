@@ -155,8 +155,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public long getStep() {
-        if (this.context.getStep() != null) {
-            return this.context.getStep();
+        if (this.baseContext.getStep() != null) {
+            return this.baseContext.getStep();
         } else {
             return 0;
         }
@@ -164,7 +164,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void setStep(long step) {
-        this.context.setStep(step);
+        this.baseContext.setStep(step);
     }
 
     @Override
@@ -174,8 +174,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public long getEpoch() {
-        if (this.context.getEpoch() != null) {
-            return this.context.getEpoch();
+        if (this.baseContext.getEpoch() != null) {
+            return this.baseContext.getEpoch();
         } else {
             return 0;
         }
@@ -183,17 +183,17 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void setEpoch(long epoch) {
-        this.context.setEpoch(epoch);
+        this.baseContext.setEpoch(epoch);
     }
 
     @Override
     public void setContext(String context) {
-        this.context.setContext(context);
+        this.baseContext.setContext(context);
     }
 
     @Override
     public String getContext() {
-        return this.context.getContext();
+        return this.baseContext.getContext();
     }
 
     @Override
@@ -203,7 +203,6 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logMetric(@NonNull String metricName, @NonNull Object metricValue, @NonNull ExperimentContext context) {
-        this.setContext(context);
         this.logMetric(metricName, metricValue, context, null);
     }
 
@@ -221,12 +220,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logMetric(String metricName, Object metricValue) {
-        this.logMetric(metricName, metricValue, this.context);
+        this.logMetric(metricName, metricValue, this.baseContext);
     }
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
-        this.logParameter(parameterName, paramValue, this.context);
+        this.logParameter(parameterName, paramValue, this.baseContext);
     }
 
     @Override
@@ -237,7 +236,6 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logParameter(String parameterName, Object paramValue, @NonNull ExperimentContext context) {
-        this.setContext(context);
         this.logParameter(parameterName, paramValue, context, null);
     }
 
@@ -289,13 +287,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logAssetFolder(File folder, boolean logFilePath, boolean recursive, ExperimentContext context) {
-        this.setContext(context);
         this.logAssetFolder(folder, logFilePath, recursive, true, context, null);
     }
 
     @Override
     public void logAssetFolder(File folder, boolean logFilePath, boolean recursive) {
-        this.logAssetFolder(folder, logFilePath, recursive, this.context);
+        this.logAssetFolder(folder, logFilePath, recursive, this.baseContext);
     }
 
     @Override
@@ -306,7 +303,6 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName,
                             boolean overwrite, @NonNull ExperimentContext context) {
-        this.setContext(context);
         this.uploadAsset(asset, fileName, overwrite, context, null);
     }
 
@@ -328,12 +324,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite) {
-        this.uploadAsset(asset, fileName, overwrite, this.context);
+        this.uploadAsset(asset, fileName, overwrite, this.baseContext);
     }
 
     @Override
     public void uploadAsset(@NonNull File asset, boolean overwrite) {
-        this.uploadAsset(asset, asset.getName(), overwrite, this.context);
+        this.uploadAsset(asset, asset.getName(), overwrite, this.baseContext);
     }
 
     @Override
@@ -348,12 +344,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logCode(@NonNull String code, @NonNull String fileName) {
-        this.logCode(code, fileName, this.context);
+        this.logCode(code, fileName, this.baseContext);
     }
 
     @Override
     public void logCode(@NonNull File file) {
-        this.logCode(file, this.context);
+        this.logCode(file, this.baseContext);
     }
 
     @Override

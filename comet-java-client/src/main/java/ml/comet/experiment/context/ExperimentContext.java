@@ -1,6 +1,7 @@
 package ml.comet.experiment.context;
 
 import lombok.Data;
+import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -45,6 +46,27 @@ public final class ExperimentContext {
      */
     public ExperimentContext(long step) {
         this(step, 0);
+    }
+
+    /**
+     * Merges not empty values from other context into this one.
+     *
+     * @param other the context to be merged into this.
+     */
+    public void mergeFrom(@NonNull ExperimentContext other) {
+        if (this == other) {
+            return;
+        }
+
+        if (other.step != null) {
+            this.step = other.step;
+        }
+        if (other.epoch != null) {
+            this.epoch = other.epoch;
+        }
+        if (StringUtils.isNotBlank(other.context)) {
+            this.context = other.context;
+        }
     }
 
     /**

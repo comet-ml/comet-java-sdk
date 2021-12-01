@@ -48,7 +48,7 @@ import static ml.comet.experiment.impl.utils.DataUtils.createTagRequest;
  * using asynchronous networking.
  */
 abstract class BaseExperimentAsync extends BaseExperiment {
-    ExperimentContext context;
+    ExperimentContext baseContext;
 
     final CompositeDisposable disposables = new CompositeDisposable();
 
@@ -60,7 +60,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         final String projectName,
                         final String workspaceName) {
         super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, projectName, workspaceName);
-        this.context = ExperimentContext.empty();
+        this.baseContext = ExperimentContext.empty();
     }
 
     @Override
@@ -77,8 +77,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.disposables.dispose();
     }
 
-    void setContext(@NonNull ExperimentContext context) {
-        this.context = context;
+    void updateContext(ExperimentContext context) {
+        this.baseContext.mergeFrom(context);
     }
 
     /**
@@ -92,11 +92,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     void logMetric(@NonNull String metricName, @NonNull Object metricValue,
                    @NonNull ExperimentContext context, Action onComplete) {
+        this.updateContext(context);
+
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logMetricAsync {} = {}, context: {}", metricName, metricValue, context);
         }
 
-        MetricRest metricRequest = createLogMetricRequest(metricName, metricValue, context);
+        MetricRest metricRequest = createLogMetricRequest(metricName, metricValue, this.baseContext);
         this.sendAsynchronously(getRestApiClient()::logMetric, metricRequest, onComplete);
     }
 
@@ -111,11 +113,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     void logParameter(@NonNull String parameterName, @NonNull Object paramValue,
                       @NonNull ExperimentContext context, Action onComplete) {
+        this.updateContext(context);
+
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logParameterAsync {} = {}, context: {}", parameterName, paramValue, context);
         }
 
-        ParameterRest paramRequest = createLogParamRequest(parameterName, paramValue, context);
+        ParameterRest paramRequest = createLogParamRequest(parameterName, paramValue, this.baseContext);
         this.sendAsynchronously(getRestApiClient()::logParameter, paramRequest, onComplete);
     }
 
@@ -272,12 +276,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
         }
+        this.updateContext(context);
 
         AtomicInteger count = new AtomicInteger();
         try {
             Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> {
-                        asset.setExperimentContext(context);
+                        asset.setExperimentContext(this.baseContext);
                         asset.setType(ASSET_TYPE_ASSET);
                         count.incrementAndGet();
                     });
@@ -299,10 +304,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                     .subscribe(
                             () -> getLogger().info(
                                     getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, count.get())),
-                            (throwable -> {
-                                getLogger().error(
-                                        getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable);
-                            }),
+                            (throwable -> getLogger().error(
+                                    getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable)),
                             disposables);
         } catch (Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
@@ -315,20 +318,20 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param file       The file asset to be stored
      * @param fileName   The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite  Whether to overwrite files of the same name in Comet
-     * @param context    the context to be associated with the asset.
      * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
     void uploadAsset(@NonNull File file, @NonNull String fileName,
                      boolean overwrite, @NonNull ExperimentContext context, Action onComplete) {
+        this.updateContext(context);
+
         Asset asset = new Asset();
         asset.setFile(file);
         asset.setFileName(fileName);
-        asset.setExperimentContext(context);
         asset.setOverwrite(overwrite);
         asset.setType(ASSET_TYPE_ASSET);
 
-        this.logAsset(asset, context, onComplete);
+        this.logAsset(asset, onComplete);
     }
 
     /**
@@ -342,13 +345,14 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     void logCode(@NonNull String code, @NonNull String fileName,
                  @NonNull ExperimentContext context, Action onComplete) {
+        this.updateContext(context);
+
         Asset asset = new Asset();
         asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
         asset.setFileName(fileName);
-        asset.setExperimentContext(context);
         asset.setType(ASSET_TYPE_SOURCE_CODE);
 
-        this.logAsset(asset, context, onComplete);
+        this.logAsset(asset, onComplete);
     }
 
     /**
@@ -360,25 +364,26 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   Can be {@code null} if not interested in completion signal.
      */
     void logCode(@NonNull File file, @NonNull ExperimentContext context, Action onComplete) {
+        this.updateContext(context);
+
         Asset asset = new Asset();
         asset.setFile(file);
         asset.setFileName(file.getName());
-        asset.setExperimentContext(context);
         asset.setType(ASSET_TYPE_SOURCE_CODE);
 
-        this.logAsset(asset, context, onComplete);
+        this.logAsset(asset, onComplete);
     }
 
     /**
      * Asynchronously logs provided asset and signals upload completion if {@code onComplete} action provided.
      *
      * @param asset      the {@link Asset} to be uploaded.
-     * @param context    the current experiment context.
      * @param onComplete the optional {@link Action} to be called upon operation completed,
      *                   either successful or failure.
      */
-    void logAsset(@NonNull final Asset asset, @NonNull ExperimentContext context, Action onComplete) {
-        asset.setExperimentContext(context);
+    void logAsset(@NonNull final Asset asset, Action onComplete) {
+        asset.setExperimentContext(this.baseContext);
+
         Single<LogDataResponse> single = this.sendAssetAsync(asset);
         if (onComplete != null) {
             single = single.doFinally(onComplete);
