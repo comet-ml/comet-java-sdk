@@ -111,7 +111,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         //
         ExperimentContext context = new ExperimentContext(123, 1042, "train");
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logAssetFolder(root.toFile(), false, true, context, onComplete);
+        experiment.logAssetFolder(root.toFile(), false, true, false, context, onComplete);
 
         awaitForCondition(onComplete, "log assets' folder timeout", 60);
 

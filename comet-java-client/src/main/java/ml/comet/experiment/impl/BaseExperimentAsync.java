@@ -257,14 +257,16 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
-     * @param folder      the folder you want to log.
-     * @param logFilePath if {@code true}, log the file path with each file.
-     * @param recursive   if {@code true}, recurse the folder.
-     * @param context     the context to be associated with logged assets.
-     * @param onComplete  onComplete The optional action to be invoked when this operation asynchronously completes.
-     *                    Can be {@code null} if not interested in completion signal.
+     * @param folder               the folder you want to log.
+     * @param logFilePath          if {@code true}, log the file path with each file.
+     * @param recursive            if {@code true}, recurse the folder.
+     * @param prefixWithFolderName if {@code true} then path of each asset file will be prefixed with folder name
+     *                             in case if {@code logFilePath} is {@code true}.
+     * @param context              the context to be associated with logged assets.
+     * @param onComplete           onComplete The optional action to be invoked when this operation
+     *                             asynchronously completes. Can be {@code null} if not interested in completion signal.
      */
-    void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive,
+    void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
                         @NonNull ExperimentContext context, Action onComplete) {
         if (!folder.isDirectory()) {
             getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
@@ -273,7 +275,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         AtomicInteger count = new AtomicInteger();
         try {
-            Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive)
+            Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> {
                         asset.setExperimentContext(context);
                         asset.setType(ASSET_TYPE_ASSET);
