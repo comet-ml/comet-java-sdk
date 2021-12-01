@@ -22,17 +22,19 @@ public class AssetUtilsTest {
     private static Path root;
     private static Path subFolderFile;
 
+    private static final String someFileExtension = "txt";
+
     @BeforeAll
     static void setup() throws IOException {
         // create temporary directory tree
         root = Files.createTempDirectory("testFileUtils");
-        Files.createTempFile(root, "a_file", ".txt");
-        Files.createTempFile(root, "b_file", ".txt");
-        Files.createTempFile(root, "c_file", ".txt");
+        Files.createTempFile(root, "a_file", "." + someFileExtension);
+        Files.createTempFile(root, "b_file", "." + someFileExtension);
+        Files.createTempFile(root, "c_file", "." + someFileExtension);
 
         Path subDir = Files.createTempDirectory(root, "subDir");
-        subFolderFile = Files.createTempFile(subDir, "d_file", ".txt");
-        Files.createTempFile(subDir, "e_file", ".txt");
+        subFolderFile = Files.createTempFile(subDir, "d_file", "." + someFileExtension);
+        Files.createTempFile(subDir, "e_file", "." + someFileExtension);
     }
 
     @AfterAll
@@ -48,7 +50,7 @@ public class AssetUtilsTest {
         assertNotNull(asset, "asset expected");
         assertEquals(asset.getFile(), subFolderFile.toFile(), "wrong asset file");
         assertEquals(asset.getFileName(), subFolderFile.getFileName().toString(), "wrong asset file name");
-        assertEquals("txt", asset.getFileExtension(), "wrong file extension");
+        assertEquals(someFileExtension, asset.getFileExtension(), "wrong file extension");
     }
 
     @Test
@@ -62,7 +64,7 @@ public class AssetUtilsTest {
         assets = AssetUtils.walkFolderAssets(root.toFile(), true, true);
         assertTrue(
                 assets.allMatch(
-                        asset -> Objects.equals(asset.getFileExtension(), "txt")
+                        asset -> Objects.equals(asset.getFileExtension(), someFileExtension)
                                 && !StringUtils.isEmpty(asset.getFileName())
                                 && asset.getFile() != null),
                 "wrong asset data");
