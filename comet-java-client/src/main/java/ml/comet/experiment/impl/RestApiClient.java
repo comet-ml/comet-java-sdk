@@ -76,6 +76,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
+import static ml.comet.experiment.impl.utils.CometUtils.putNotNull;
 
 /**
  * Represents Comet REST API client providing access to all exposed REST endpoints.
@@ -205,15 +206,15 @@ final class RestApiClient implements Disposable {
         // populate query parameters
         HashMap<QueryParamName, String> queryParams = new HashMap<QueryParamName, String>() {{
             put(EXPERIMENT_KEY, experimentKey);
-            put(FILE_NAME, asset.getFileName());
-            put(EXTENSION, asset.getFileExtension());
-            put(CONTEXT, asset.getContext());
-            put(OVERWRITE, Boolean.toString(asset.isOverwrite()));
             put(TYPE, asset.getType().type());
-            put(IS_REMOTE, Boolean.toString(asset.isRemote()));
-            put(STEP, Long.toString(asset.getStep()));
-            put(EPOCH, Long.toString(asset.getEpoch()));
         }};
+        putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
+        putNotNull(queryParams, IS_REMOTE, asset.getRemote());
+        putNotNull(queryParams, FILE_NAME, asset.getFileName());
+        putNotNull(queryParams, EXTENSION, asset.getFileExtension());
+        putNotNull(queryParams, CONTEXT, asset.getContext());
+        putNotNull(queryParams, STEP, asset.getStep());
+        putNotNull(queryParams, EPOCH, asset.getEpoch());
 
         // populate form parameters
         HashMap<FormParamName, Object> formParams = null;

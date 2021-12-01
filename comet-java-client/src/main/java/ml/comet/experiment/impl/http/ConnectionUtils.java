@@ -111,7 +111,11 @@ public class ConnectionUtils {
     static RequestBuilder createRequestBuilder(@NonNull String httpMethod, Map<QueryParamName, String> params) {
         RequestBuilder builder = new RequestBuilder(httpMethod);
         if (params != null) {
-            params.forEach((k, v) -> builder.addQueryParam(k.paramName(), v));
+            params.forEach((k, v) -> {
+                if (v != null) {
+                    builder.addQueryParam(k.paramName(), v);
+                }
+            });
         }
         return builder;
     }
@@ -131,7 +135,11 @@ public class ConnectionUtils {
         List<Part> parts = new ArrayList<>();
         parts.add(fileLikePart);
         if (formParams != null) {
-            formParams.forEach((k, v) -> parts.add(createPart(k.paramName(), v)));
+            formParams.forEach((k, v) -> {
+                if (v != null) {
+                    parts.add(createPart(k.paramName(), v));
+                }
+            });
         }
         builder
                 .setHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.MULTIPART_FORM_DATA)

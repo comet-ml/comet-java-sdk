@@ -19,15 +19,15 @@ public class Asset {
     private byte[] fileLikeData;
     private String fileName;
     private AssetType type;
-    private boolean overwrite;
-    private long step;
-    private long epoch;
+    private Boolean overwrite;
+    private Long step;
+    private Long epoch;
     private String groupingName;
     private Map<String, Object> metadata;
     private String assetId;
     private String fileExtension;
     private String context;
-    private boolean remote;
+    private Boolean remote;
 
     /**
      * Updates this asset with values from provided {@link ExperimentContext}.

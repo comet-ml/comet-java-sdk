@@ -1,9 +1,11 @@
 package ml.comet.experiment.impl.utils;
 
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.UUID;
 
 import static ml.comet.experiment.impl.utils.ResourceUtils.readCometSdkVersion;
@@ -53,5 +55,18 @@ public final class CometUtils {
     public static String generateGUID() {
         String guid = UUID.randomUUID().toString();
         return StringUtils.remove(guid, '-');
+    }
+
+    /**
+     * Puts provided value into the map as string if it is not {@code null}.
+     *
+     * @param map   the container map.
+     * @param key   the key to use.
+     * @param value the optional value.
+     */
+    public static <T> void putNotNull(@NonNull Map<T, String> map, @NonNull T key, Object value) {
+        if (value != null) {
+            map.put(key, value.toString());
+        }
     }
 }
