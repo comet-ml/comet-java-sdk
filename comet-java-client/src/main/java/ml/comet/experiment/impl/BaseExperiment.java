@@ -121,10 +121,10 @@ abstract class BaseExperiment implements Experiment {
      * @throws IllegalArgumentException if validation failed.
      */
     private void validateInitialParams() throws IllegalArgumentException {
-        if (StringUtils.isEmpty(this.apiKey)) {
+        if (StringUtils.isBlank(this.apiKey)) {
             throw new IllegalArgumentException("API key is not specified!");
         }
-        if (StringUtils.isEmpty(this.baseUrl)) {
+        if (StringUtils.isBlank(this.baseUrl)) {
             throw new IllegalArgumentException("The Comet base URL is not specified!");
         }
     }
@@ -135,7 +135,7 @@ abstract class BaseExperiment implements Experiment {
      * @throws CometGeneralException if failed to register experiment.
      */
     void registerExperiment() throws CometGeneralException {
-        if (!StringUtils.isEmpty(this.experimentKey)) {
+        if (StringUtils.isNotBlank(this.experimentKey)) {
             getLogger().debug("Not registering a new experiment. Using previous experiment key {}", this.experimentKey);
             return;
         }
@@ -149,7 +149,7 @@ abstract class BaseExperiment implements Experiment {
 
         getLogger().info(getString(EXPERIMENT_LIVE, this.experimentLink));
 
-        if (StringUtils.isEmpty(this.experimentKey)) {
+        if (StringUtils.isBlank(this.experimentKey)) {
             throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
         }
     }
@@ -590,7 +590,7 @@ abstract class BaseExperiment implements Experiment {
      *                               experiment already ended.
      */
     private void validate() throws IllegalStateException {
-        if (StringUtils.isEmpty(this.experimentKey)) {
+        if (StringUtils.isBlank(this.experimentKey)) {
             throw new IllegalStateException("Experiment key must be present!");
         }
         if (!this.alive) {
@@ -604,7 +604,7 @@ abstract class BaseExperiment implements Experiment {
      * @return the experiment key or error as {@link Single}.
      */
     Single<String> validateAndGetExperimentKey() {
-        if (StringUtils.isEmpty(this.experimentKey)) {
+        if (StringUtils.isBlank(this.experimentKey)) {
             return Single.error(new IllegalStateException("Experiment key must be present!"));
         }
         if (!this.alive) {

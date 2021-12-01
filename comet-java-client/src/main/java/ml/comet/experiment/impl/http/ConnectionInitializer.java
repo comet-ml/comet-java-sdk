@@ -20,7 +20,7 @@ public class ConnectionInitializer {
      * @return the properly initialized Connection instance.
      */
     public Connection initConnection(String apiKey, String cometBaseUrl, int maxAuthRetries, Logger logger) {
-        if (StringUtils.isEmpty(apiKey)) {
+        if (StringUtils.isBlank(apiKey)) {
             throw new IllegalArgumentException("Api key required!");
         }
         return new Connection(cometBaseUrl, apiKey, maxAuthRetries, logger);

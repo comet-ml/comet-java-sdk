@@ -65,7 +65,7 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
 
     @Override
     public Optional<String> getExperimentLink() {
-        if (StringUtils.isEmpty(experimentKey)) {
+        if (StringUtils.isBlank(experimentKey)) {
             return Optional.empty();
         }
         try {
@@ -133,7 +133,7 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
 
         @Override
         public ApiExperiment build() {
-            if (StringUtils.isEmpty(this.apiKey)) {
+            if (StringUtils.isBlank(this.apiKey)) {
                 this.apiKey = COMET_API_KEY.getString();
             }
             return new ApiExperimentImpl(

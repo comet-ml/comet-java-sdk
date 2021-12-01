@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CometUtilsTest {
 
@@ -13,13 +14,13 @@ public class CometUtilsTest {
     public void testJavaSdkVersionParsing() {
         // Tests that Comet Java SDK version was set
         assertNotNull(CometUtils.COMET_JAVA_SDK_VERSION);
-        assertFalse(StringUtils.isEmpty(CometUtils.COMET_JAVA_SDK_VERSION));
+        assertTrue(StringUtils.isNotBlank(CometUtils.COMET_JAVA_SDK_VERSION));
     }
 
     @Test
     public void testGenerateGUID() {
         String guid = CometUtils.generateGUID();
-        assertFalse(StringUtils.isEmpty(guid), "GUID expected");
+        assertTrue(StringUtils.isNotBlank(guid), "GUID expected");
         assertEquals(32, guid.length(), "wrong length");
     }
 }

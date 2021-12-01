@@ -74,7 +74,7 @@ public class AssetUtilsTest {
         assertTrue(
                 assets.allMatch(
                         asset -> Objects.equals(asset.getFileExtension(), someFileExtension)
-                                && !StringUtils.isEmpty(asset.getFileName())
+                                && StringUtils.isNotBlank(asset.getFileName())
                                 && asset.getFile() != null),
                 "wrong asset data");
 

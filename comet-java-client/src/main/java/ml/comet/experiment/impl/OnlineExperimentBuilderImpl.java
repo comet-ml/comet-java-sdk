@@ -99,16 +99,16 @@ final class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
     @Override
     public OnlineExperimentImpl build() {
 
-        if (StringUtils.isEmpty(this.apiKey)) {
+        if (StringUtils.isBlank(this.apiKey)) {
             this.apiKey = COMET_API_KEY.getString();
         }
-        if (StringUtils.isEmpty(this.projectName)) {
+        if (StringUtils.isBlank(this.projectName)) {
             this.projectName = COMET_PROJECT_NAME.getOptionalString().orElse(null);
         }
-        if (StringUtils.isEmpty(this.workspace)) {
+        if (StringUtils.isBlank(this.workspace)) {
             this.workspace = COMET_WORKSPACE_NAME.getOptionalString().orElse(null);
         }
-        if (StringUtils.isEmpty(this.baseUrl)) {
+        if (StringUtils.isBlank(this.baseUrl)) {
             this.baseUrl = COMET_BASE_URL.getString();
         }
         if (this.maxAuthRetries == -1) {

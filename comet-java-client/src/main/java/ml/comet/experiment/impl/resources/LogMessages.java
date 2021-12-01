@@ -34,7 +34,7 @@ public class LogMessages {
      */
     public static String getString(String key, Object... args) {
         String format = getString(key);
-        if (!StringUtils.isEmpty(format)) {
+        if (StringUtils.isNotBlank(format)) {
             if (args != null) {
                 try {
                     return String.format(format, args);
