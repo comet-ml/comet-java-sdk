@@ -37,7 +37,7 @@ public class AssetUtils {
     }
 
     static Asset mapToFileAsset(File folder, Path assetPath,
-                                       boolean logFilePath, boolean prefixWithFolderName) {
+                                boolean logFilePath, boolean prefixWithFolderName) {
         Asset asset = new Asset();
         asset.setFile(assetPath.toFile());
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);

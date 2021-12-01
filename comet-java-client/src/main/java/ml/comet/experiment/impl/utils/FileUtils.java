@@ -49,7 +49,7 @@ public class FileUtils {
     }
 
     static String resolveAssetFileName(File folder, Path path, boolean logFilePath,
-                                              boolean prefixWithFolderName) {
+                                       boolean prefixWithFolderName) {
         if (logFilePath) {
             // the path relative to the assets' folder root
             Path filePath = folder.toPath().relativize(path);
