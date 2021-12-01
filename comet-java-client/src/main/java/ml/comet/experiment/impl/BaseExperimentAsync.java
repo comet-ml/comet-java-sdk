@@ -29,6 +29,7 @@ import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ASSET;
 import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_ASSET_FOLDER_EMPTY;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
@@ -276,32 +277,31 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                     .peek(asset -> {
                         asset.setExperimentContext(context);
                         asset.setType(ASSET_TYPE_ASSET);
+                        count.incrementAndGet();
                     });
 
-            // create parallel execution flow
-            Observable<LogDataResponse> observable = Observable.fromStream(assets)
-                    .flatMap(asset -> Observable.fromSingle(sendAssetAsync(asset)));
+            // create parallel execution flow with errors delaying
+            // allowing processing of items even if some of them failed
+            Observable<LogDataResponse> observable =
+                    Observable.fromStream(assets)
+                            .flatMap(asset -> Observable.fromSingle(sendAssetAsync(asset)), true);
 
             // register on completion action
             if (onComplete != null) {
                 observable = observable.doFinally(onComplete);
-            } else {
-                // register default
-                observable = observable.doFinally(() ->
-                        getLogger().info(getString(ASSETS_FOLDER_UPLOAD_COMPLETED, count.get())));
             }
 
             // subscribe for processing results
-            observable.subscribe(
-                    (logDataResponse) -> {
-                        // ignore - already processed, see: sendAssetAsync
-                    },
-                    (throwable -> {
-                        // ignore - already processed, see: sendAssetAsync
-                    }),
-                    count::incrementAndGet,
-                    disposables
-            );
+            observable
+                    .ignoreElements() // ignore items which already processed, see: logAsset
+                    .subscribe(
+                            () -> getLogger().info(
+                                    getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, count.get())),
+                            (throwable -> {
+                                getLogger().error(
+                                        getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable);
+                            }),
+                            disposables);
         } catch (Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
         }
