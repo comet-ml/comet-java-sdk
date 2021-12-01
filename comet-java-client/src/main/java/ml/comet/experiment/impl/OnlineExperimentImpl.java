@@ -155,7 +155,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public long getStep() {
-        return this.context.getStep();
+        if (this.context.getStep() != null) {
+            return this.context.getStep();
+        } else {
+            return 0;
+        }
     }
 
     @Override
@@ -170,7 +174,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public long getEpoch() {
-        return this.context.getEpoch();
+        if (this.context.getEpoch() != null) {
+            return this.context.getEpoch();
+        } else {
+            return 0;
+        }
     }
 
     @Override
