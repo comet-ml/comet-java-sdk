@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,22 +68,29 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     private static Path root;
     private static Path emptyFile;
+    private static List<Path> assetFolderFiles;
 
     @BeforeAll
     static void setup() throws IOException {
+        assetFolderFiles = new ArrayList<>();
         // create temporary directory tree
         root = Files.createTempDirectory("testFileUtils");
-        PathUtils.copyFileToDirectory(
-                Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)).toPath(), root);
-        PathUtils.copyFileToDirectory(
-                Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)).toPath(), root);
+        assetFolderFiles.add(
+                PathUtils.copyFileToDirectory(
+                        Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)).toPath(), root));
+        assetFolderFiles.add(
+                PathUtils.copyFileToDirectory(
+                        Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)).toPath(), root));
         emptyFile = Files.createTempFile(root, "c_file", ".txt");
+        assetFolderFiles.add(emptyFile);
 
         Path subDir = Files.createTempDirectory(root, "subDir");
-        PathUtils.copyFileToDirectory(
-                Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)).toPath(), subDir);
-        PathUtils.copyFileToDirectory(
-                Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)).toPath(), subDir);
+        assetFolderFiles.add(
+                PathUtils.copyFileToDirectory(
+                        Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)).toPath(), subDir));
+        assetFolderFiles.add(
+                PathUtils.copyFileToDirectory(
+                        Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)).toPath(), subDir));
     }
 
     @AfterAll
@@ -109,7 +117,8 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // wait for assets become available and validate results
         //
-        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 5, "Assets was uploaded");
+        awaitForCondition(() ->
+                experiment.getAssetList(ASSET_TYPE_ALL).size() == assetFolderFiles.size(), "Assets was uploaded");
 
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
 
