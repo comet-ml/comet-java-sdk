@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -21,20 +23,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class AssetUtilsTest {
     private static Path root;
     private static Path subFolderFile;
+    private static List<Path> assetFolderFiles;
 
     private static final String someFileExtension = "txt";
 
     @BeforeAll
     static void setup() throws IOException {
+        assetFolderFiles = new ArrayList<>();
         // create temporary directory tree
         root = Files.createTempDirectory("testFileUtils");
-        Files.createTempFile(root, "a_file", "." + someFileExtension);
-        Files.createTempFile(root, "b_file", "." + someFileExtension);
-        Files.createTempFile(root, "c_file", "." + someFileExtension);
+        assetFolderFiles.add(
+                Files.createTempFile(root, "a_file", "." + someFileExtension));
+        assetFolderFiles.add(
+                Files.createTempFile(root, "b_file", "." + someFileExtension));
+        assetFolderFiles.add(
+                Files.createTempFile(root, "c_file", "." + someFileExtension));
 
         Path subDir = Files.createTempDirectory(root, "subDir");
         subFolderFile = Files.createTempFile(subDir, "d_file", "." + someFileExtension);
-        Files.createTempFile(subDir, "e_file", "." + someFileExtension);
+        assetFolderFiles.add(subFolderFile);
+        assetFolderFiles.add(
+                Files.createTempFile(subDir, "e_file", "." + someFileExtension));
     }
 
     @AfterAll
@@ -58,7 +67,7 @@ public class AssetUtilsTest {
         // tests that correct number of assets returned
         Stream<Asset> assets = AssetUtils.walkFolderAssets(
                 root.toFile(), true, true);
-        assertEquals(5, assets.count(), "wrong assets count");
+        assertEquals(assetFolderFiles.size(), assets.count(), "wrong assets count");
 
         // tests that assets has been populated
         assets = AssetUtils.walkFolderAssets(root.toFile(), true, true);
