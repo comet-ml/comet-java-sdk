@@ -16,9 +16,9 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExperimentAssetLink {
     private String fileName;
-    private long fileSize;
+    private Long fileSize;
     private String runContext;
-    private Integer step;
+    private Long step;
     private boolean remote = false;
     private String link;
     private String compressedAssetLink;
