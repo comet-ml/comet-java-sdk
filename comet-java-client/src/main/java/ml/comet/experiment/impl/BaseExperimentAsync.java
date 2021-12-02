@@ -304,8 +304,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                     .subscribe(
                             () -> getLogger().info(
                                     getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, count.get())),
-                            (throwable -> getLogger().error(
-                                    getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable)),
+                            (throwable) -> getLogger().error(
+                                    getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable),
                             disposables);
         } catch (Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
