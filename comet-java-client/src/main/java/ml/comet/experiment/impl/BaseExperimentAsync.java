@@ -277,12 +277,15 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             return;
         }
         this.updateContext(context);
+        // make deep copy of the current experiment context to avoid side effects
+        // if base experiment context become updated while operation is still in progress
+        ExperimentContext assetContext = new ExperimentContext(this.baseContext);
 
         AtomicInteger count = new AtomicInteger();
         try {
             Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> {
-                        asset.setExperimentContext(this.baseContext);
+                        asset.setExperimentContext(assetContext);
                         asset.setType(ASSET_TYPE_ASSET);
                         count.incrementAndGet();
                     });

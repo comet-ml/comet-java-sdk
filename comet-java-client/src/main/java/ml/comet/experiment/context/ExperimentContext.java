@@ -4,6 +4,8 @@ import lombok.Data;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Objects;
+
 /**
  * Describes context of the {@link ml.comet.experiment.Experiment}.
  */
@@ -49,6 +51,17 @@ public final class ExperimentContext {
     }
 
     /**
+     * The copy constructor.
+     *
+     * @param other the other {@link ExperimentContext} to be used as source.
+     */
+    public ExperimentContext(ExperimentContext other) {
+        this.step = other.step;
+        this.epoch = other.epoch;
+        this.context = other.context;
+    }
+
+    /**
      * Merges not empty values from other context into this one.
      *
      * @param other the context to be merged into this.
@@ -58,10 +71,10 @@ public final class ExperimentContext {
             return;
         }
 
-        if (other.step != null) {
+        if (Objects.nonNull(other.step)) {
             this.step = other.step;
         }
-        if (other.epoch != null) {
+        if (Objects.nonNull(other.epoch)) {
             this.epoch = other.epoch;
         }
         if (StringUtils.isNotBlank(other.context)) {
