@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 public class AssetUtils {
 
     /**
-     * Walks through th asset files in the given folder and produce stream of {@link Asset} objects holding information
+     * Walks through the asset files in the given folder and produce stream of {@link Asset} objects holding information
      * about file assets found in the folder.
      *
      * @param folder               the folder where to look for asset files
