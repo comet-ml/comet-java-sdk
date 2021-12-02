@@ -103,6 +103,7 @@ public final class CometApiImpl implements CometApi {
         private String apiKey;
         private Logger logger;
 
+        @Override
         public CometApiBuilder withConfigOverride(@NonNull File overrideConfig) {
             CometConfig.applyConfigOverride(overrideConfig);
             return this;
@@ -114,6 +115,7 @@ public final class CometApiImpl implements CometApi {
             return this;
         }
 
+        @Override
         public CometApiBuilder withApiKey(@NonNull String apiKey) {
             this.apiKey = apiKey;
             return this;
