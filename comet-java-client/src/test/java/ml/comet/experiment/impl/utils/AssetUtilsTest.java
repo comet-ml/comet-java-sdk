@@ -8,9 +8,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -18,6 +20,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import static ml.comet.experiment.impl.utils.AssetUtils.REMOTE_FILE_NAME_DEFAULT;
+import static ml.comet.experiment.impl.utils.AssetUtils.createRemoteAsset;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -69,6 +73,30 @@ public class AssetUtilsTest {
         assertEquals(asset.getFile(), file.toFile(), "wrong asset file");
         assertEquals(asset.getFileName(), file.getFileName().toString(), "wrong asset file name");
         assertEquals(someFileExtension, asset.getFileExtension(), "wrong file extension");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "s3://bucket/folder/file, file",
+            "s3://bucket/folder/file.extension, file.extension",
+            "https://some.cloud.com/123456?someQuery=7896, 123456",
+            "s3://bucket, " + REMOTE_FILE_NAME_DEFAULT,
+            "file:///someDir/someFile.extension, someFile.extension",
+            "file:///someDir/subDir, subDir"
+    })
+    public void testRemoteAssetFileName(URI uri, String expected) {
+        String fileName = AssetUtils.remoteAssetFileName(uri);
+        assertEquals(expected, fileName);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "s3://bucket/folder/file.extension, someFileName, someFileName",
+            "s3://bucket/folder/file.extension,, file.extension"
+    })
+    public void testCreateRemoteAsset_fileNameSelection(URI uri, String fileName, String expectedFileName) {
+        Asset asset = createRemoteAsset(uri, fileName, false, null);
+        assertEquals(expectedFileName, asset.getFileName());
     }
 
     @ParameterizedTest(name = "[{index}] logFilePath: {0}, recursive: {1}, prefixWithFolderName: {2}")
