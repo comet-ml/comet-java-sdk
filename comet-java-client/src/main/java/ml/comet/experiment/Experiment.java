@@ -22,7 +22,7 @@ import java.util.Optional;
  * <p>Your {@link Experiment} will automatically track and collect many things and will also
  * allow you to manually report anything.
  */
-public interface Experiment {
+public interface Experiment extends AutoCloseable {
 
     /**
      * Get the experiment key returned by Comet.

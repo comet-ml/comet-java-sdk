@@ -77,6 +77,11 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
         }
     }
 
+    @Override
+    public void close() {
+        this.end();
+    }
+
     /**
      * Returns builder to create {@link Experiment} instance.
      *
