@@ -7,12 +7,15 @@ import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.log.StdOutLogger;
 import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.GitMetadata;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -286,17 +289,18 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean logFilePath, boolean recursive, ExperimentContext context) {
+    public void logAssetFolder(@NonNull File folder, boolean logFilePath,
+                               boolean recursive, @NonNull ExperimentContext context) {
         this.logAssetFolder(folder, logFilePath, recursive, true, context, null);
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean logFilePath, boolean recursive) {
+    public void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive) {
         this.logAssetFolder(folder, logFilePath, recursive, this.baseContext);
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean logFilePath) {
+    public void logAssetFolder(@NonNull File folder, boolean logFilePath) {
         this.logAssetFolder(folder, logFilePath, false);
     }
 
@@ -307,7 +311,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void uploadAsset(File asset, boolean overwrite, ExperimentContext context) {
+    public void uploadAsset(@NonNull File asset, boolean overwrite, @NonNull ExperimentContext context) {
         this.uploadAsset(asset, asset.getName(), overwrite, context);
     }
 
@@ -330,6 +334,27 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void uploadAsset(@NonNull File asset, boolean overwrite) {
         this.uploadAsset(asset, asset.getName(), overwrite, this.baseContext);
+    }
+
+    @Override
+    public void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite,
+                        Map<String, Object> metadata, @NonNull ExperimentContext context) {
+        this.logRemoteAsset(uri, fileName, overwrite, metadata, context, null);
+    }
+
+    @Override
+    public void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite, Map<String, Object> metadata) {
+        this.logRemoteAsset(uri, fileName, overwrite, metadata, this.baseContext);
+    }
+
+    @Override
+    public void logRemoteAsset(@NonNull URI uri, @NonNull String fileName, boolean overwrite) {
+        this.logRemoteAsset(uri, fileName, overwrite, null);
+    }
+
+    @Override
+    public void logRemoteAsset(@NonNull URI uri, boolean overwrite) {
+        this.logRemoteAsset(uri, StringUtils.EMPTY, overwrite);
     }
 
     @Override

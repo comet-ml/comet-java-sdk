@@ -4,6 +4,8 @@ import ml.comet.experiment.context.ExperimentContext;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.util.Map;
 
 /**
  * The {@code OnlineExperiment} should be used to asynchronously update data of your Comet.ml experiment.
@@ -141,4 +143,26 @@ public interface OnlineExperiment extends Experiment {
     void logAssetFolder(File folder, boolean logFilePath, boolean recursive);
 
     void logAssetFolder(File folder, boolean logFilePath);
+
+    /**
+     * Logs a Remote Asset identified by a {@link URI}. A Remote Asset is an asset but its content is not uploaded
+     * and stored on Comet. Rather a link for its location is stored, so you can identify and distinguish
+     * between two experiment using different version of a dataset stored somewhere else.
+     *
+     * @param uri       the {@link URI} pointing to the remote asset location. There is no imposed format,
+     *                  and it could be a private link.
+     * @param fileName  the optional "name" of the remote asset, could be a dataset name, a model file name.
+     * @param overwrite if {@code true} will overwrite all existing assets with the same name.
+     * @param metadata  Some additional data to attach to the remote asset.
+     *                  The dictionary values must be JSON compatible.
+     * @param context   the experiment context to be associated with the logged assets.
+     */
+    void logRemoteAsset(URI uri, String fileName, boolean overwrite,
+                        Map<String, Object> metadata, ExperimentContext context);
+
+    void logRemoteAsset(URI uri, String fileName, boolean overwrite, Map<String, Object> metadata);
+
+    void logRemoteAsset(URI uri, String fileName, boolean overwrite);
+
+    void logRemoteAsset(URI uri, boolean overwrite);
 }
