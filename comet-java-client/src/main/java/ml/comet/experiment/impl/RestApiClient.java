@@ -4,7 +4,9 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
 import ml.comet.experiment.exception.CometApiException;
-import ml.comet.experiment.impl.constants.AssetType;
+import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetType;
+import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.utils.JsonUtils;
@@ -33,10 +35,12 @@ import ml.comet.experiment.model.OutputUpdate;
 import ml.comet.experiment.model.ParameterRest;
 import ml.comet.experiment.model.TagsResponse;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_ASSET;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_HTML;
@@ -61,10 +65,18 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.NEW_EXPERIMENT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_EXPERIMENT_STATUS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
+import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
+import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
+import static ml.comet.experiment.impl.constants.QueryParamName.EXTENSION;
+import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.IS_REMOTE;
+import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
+import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
+import static ml.comet.experiment.impl.utils.CometUtils.putNotNull;
 
 /**
  * Represents Comet REST API client providing access to all exposed REST endpoints.
@@ -188,6 +200,71 @@ final class RestApiClient implements Disposable {
 
     Single<CreateExperimentResponse> registerExperiment(final CreateExperimentRequest request) {
         return singleFromSyncPost(request, NEW_EXPERIMENT, true, CreateExperimentResponse.class);
+    }
+
+    Single<LogDataResponse> logAsset(final Asset asset, String experimentKey) {
+        // populate query parameters
+        HashMap<QueryParamName, String> queryParams = new HashMap<QueryParamName, String>() {{
+            put(EXPERIMENT_KEY, experimentKey);
+            put(TYPE, asset.getType().type());
+        }};
+        putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
+        putNotNull(queryParams, IS_REMOTE, asset.getRemote());
+        putNotNull(queryParams, FILE_NAME, asset.getFileName());
+        putNotNull(queryParams, EXTENSION, asset.getFileExtension());
+        putNotNull(queryParams, CONTEXT, asset.getContext());
+        putNotNull(queryParams, STEP, asset.getStep());
+        putNotNull(queryParams, EPOCH, asset.getEpoch());
+
+        // populate form parameters
+        HashMap<FormParamName, Object> formParams = null;
+        if (asset.getMetadata() != null) {
+            // encode metadata to JSON
+            formParams = new HashMap<FormParamName, Object>() {{
+                put(FormParamName.METADATA, JsonUtils.toJson(asset.getMetadata()));
+            }};
+        }
+
+        // call appropriate send method
+        if (asset.getFile() != null) {
+            return singleFromAsyncPost(asset.getFile(), ADD_ASSET, queryParams,
+                    formParams, LogDataResponse.class);
+        } else if (asset.getFileLikeData() != null) {
+            return singleFromAsyncPost(asset.getFileLikeData(), ADD_ASSET, queryParams,
+                    formParams, LogDataResponse.class);
+        }
+
+        // no data response
+        LogDataResponse response = new LogDataResponse();
+        response.setMsg("asset has no data");
+        response.setCode(-1);
+        return Single.just(response);
+    }
+
+    private <T> Single<T> singleFromAsyncPost(
+            byte[] fileLikeData, @NonNull String endpoint,
+            @NonNull HashMap<QueryParamName, String> queryParams,
+            HashMap<FormParamName, Object> formParams, @NonNull Class<T> clazz) {
+        if (isDisposed()) {
+            return Single.error(ALREADY_DISPOSED);
+        }
+
+        return Single.fromFuture(this.connection.sendPostAsync(fileLikeData, endpoint, queryParams, formParams))
+                .onTerminateDetach()
+                .map(response -> JsonUtils.fromJson(response.getResponseBody(), clazz));
+    }
+
+    private <T> Single<T> singleFromAsyncPost(
+            @NonNull File file, @NonNull String endpoint,
+            @NonNull HashMap<QueryParamName, String> queryParams,
+            HashMap<FormParamName, Object> formParams, @NonNull Class<T> clazz) {
+        if (isDisposed()) {
+            return Single.error(ALREADY_DISPOSED);
+        }
+
+        return Single.fromFuture(this.connection.sendPostAsync(file, endpoint, queryParams, formParams))
+                .onTerminateDetach()
+                .map(response -> JsonUtils.fromJson(response.getResponseBody(), clazz));
     }
 
     private <T> Single<T> singleFromAsyncPost(

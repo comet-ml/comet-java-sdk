@@ -30,6 +30,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+import static io.netty.handler.codec.http.HttpHeaderValues.APPLICATION_JSON;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.http.Connection.COMET_SDK_API_HEADER;
@@ -64,7 +66,7 @@ public class ConnectionTest {
         //
         stubFor(get(urlPathEqualTo(endpoint))
                 .withQueryParams(queryParams)
-                .willReturn(ok(responseStr).withHeader("Content-Type", ConnectionUtils.JSON_MIME_TYPE)));
+                .willReturn(ok(responseStr).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -97,7 +99,7 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(endpoint))
-                .willReturn(ok(responseStr).withHeader("Content-Type", ConnectionUtils.JSON_MIME_TYPE)));
+                .willReturn(ok(responseStr).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -128,7 +130,7 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(endpoint))
-                .willReturn(badRequest().withHeader("Content-Type", ConnectionUtils.JSON_MIME_TYPE)));
+                .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -152,7 +154,7 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(endpoint))
-                .willReturn(badRequest().withHeader("Content-Type", ConnectionUtils.JSON_MIME_TYPE)));
+                .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -176,7 +178,7 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(endpoint))
-                .willReturn(ok(responseStr).withHeader("Content-Type", ConnectionUtils.JSON_MIME_TYPE)));
+                .willReturn(ok(responseStr).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -209,7 +211,7 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(endpoint))
-                .willReturn(badRequest().withHeader("Content-Type", ConnectionUtils.JSON_MIME_TYPE)));
+                .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //

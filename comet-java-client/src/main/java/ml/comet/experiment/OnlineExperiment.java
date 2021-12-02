@@ -1,13 +1,21 @@
 package ml.comet.experiment;
 
+import ml.comet.experiment.context.ExperimentContext;
+
 import java.io.File;
 import java.io.IOException;
 
 /**
- * Describes the public contract of the online experiment which extends functionality of the Experiment by providing
- * additional methods to log various parameters in real time.
+ * The {@code OnlineExperiment} should be used to asynchronously update data of your Comet.ml experiment.
+ *
+ * <p>This experiment type allows you to automatically intercept {@code StdOut} and {@code StdErr} streams and send
+ * them to the Comet.ml. Use the {@link #setInterceptStdout()} to start automatic interception of {@code StdOut} and
+ * the {@link #stopInterceptStdout()} to stop.
+ *
+ * <p>Also, it is possible to use {@link #setStep(long)}, {@link #setEpoch(long)},
+ * and {@link #setContext(String)} which will bbe automatically associated with related logged data records.
  */
-public interface OnlineExperiment extends Experiment {
+public interface OnlineExperiment extends Experiment, AutoCloseable {
 
     /**
      * Turn on intercept of stdout and stderr and the logging of both in Comet.
@@ -62,31 +70,30 @@ public interface OnlineExperiment extends Experiment {
     long getEpoch();
 
     /**
-     * Sets the context for any logs and uploaded files.
+     * Sets the context identifier for any logs and uploaded files.
      *
-     * @param context the context to be associated with any log records, files, and assets.
+     * @param context the context identifier to be associated with any log records, files, and assets.
      */
     void setContext(String context);
 
     /**
-     * Gets the current context as recorded in the Experiment object locally.
+     * Gets the current context identifier as recorded in the {@link OnlineExperiment} object locally.
      *
      * @return the current context which associated with log records of this experiment.
      */
     String getContext();
 
     /**
-     * Logs a metric with Comet under the current experiment step.
+     * Logs a metric with Comet. For running experiment updates current step to one from param!
      * Metrics are generally values that change from step to step.
      *
      * @param metricName  The name for the metric to be logged
-     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them.
-     * @param step        The step to be associated with this metric
+     * @param metricValue The new value for the metric.  If the values for a metric are plottable we will plot them
+     * @param step        The current step for this metric, this will set the given step for this experiment
      */
     void logMetric(String metricName, Object metricValue, long step);
 
     void logMetric(String metricName, Object metricValue);
-
 
     /**
      * Logs a param with Comet under the current experiment step.
@@ -96,6 +103,15 @@ public interface OnlineExperiment extends Experiment {
      * @param paramValue    The value for the param being logged
      */
     void logParameter(String parameterName, Object paramValue);
+
+    /**
+     * Send output logs to Comet.
+     *
+     * @param line   Text to be logged
+     * @param offset Offset describes the place for current text to be inserted
+     * @param stderr the flag to indicate if this is StdErr message.
+     */
+    void logLine(String line, long offset, boolean stderr);
 
     /**
      * Upload an asset under the current experiment step to be associated with the experiment,
@@ -111,4 +127,18 @@ public interface OnlineExperiment extends Experiment {
     void uploadAsset(File asset, String fileName, boolean overwrite);
 
     void uploadAsset(File asset, boolean overwrite);
+
+    /**
+     * Logs all the files located in the given folder as assets.
+     *
+     * @param folder      the folder you want to log.
+     * @param logFilePath if {@code true}, log the file path with each file.
+     * @param recursive   if {@code true}, recurse the folder.
+     * @param context     the experiment context to be associated with the logged assets.
+     */
+    void logAssetFolder(File folder, boolean logFilePath, boolean recursive, ExperimentContext context);
+
+    void logAssetFolder(File folder, boolean logFilePath, boolean recursive);
+
+    void logAssetFolder(File folder, boolean logFilePath);
 }

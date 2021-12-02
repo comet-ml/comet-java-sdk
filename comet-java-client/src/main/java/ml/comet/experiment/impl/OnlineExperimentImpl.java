@@ -3,12 +3,10 @@ package ml.comet.experiment.impl;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.OnlineExperiment;
-import ml.comet.experiment.builder.OnlineExperimentBuilder;
-import ml.comet.experiment.impl.config.CometConfig;
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.log.StdOutLogger;
 import ml.comet.experiment.model.ExperimentStatusResponse;
 import ml.comet.experiment.model.GitMetadata;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,17 +20,13 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
-import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
-import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
-import static ml.comet.experiment.impl.config.CometConfig.COMET_PROJECT_NAME;
-import static ml.comet.experiment.impl.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
-import static ml.comet.experiment.impl.config.CometConfig.COMET_WORKSPACE_NAME;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HEARTBEAT_STOPPED_PROMPT;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
 /**
  * The implementation of the {@link OnlineExperiment} to work with Comet API asynchronously.
  */
-public final class OnlineExperimentImpl extends BaseExperiment implements OnlineExperiment {
+public final class OnlineExperimentImpl extends BaseExperimentAsync implements OnlineExperiment {
     private static final int SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC = 60;
     private static final int STD_OUT_LOGGER_FLUSH_WAIT_DELAY_MS = 2000;
 
@@ -83,7 +77,6 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
         if (logger != null) {
             this.logger = logger;
         }
-        this.init();
     }
 
     @Override
@@ -96,7 +89,7 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
             if (!heartbeatSendFuture.cancel(true)) {
                 this.logger.error("failed to stop experiment's heartbeat sender");
             } else {
-                this.logger.info("Experiment's heartbeat sender stopped");
+                this.logger.info(getString(EXPERIMENT_HEARTBEAT_STOPPED_PROMPT));
             }
             heartbeatSendFuture = null;
         }
@@ -124,6 +117,16 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
         super.end();
     }
 
+    /**
+     * Allows using {@link OnlineExperiment} with try-with-resources statement with automatic closing after usage.
+     *
+     * @throws Exception if an exception occurs.
+     */
+    @Override
+    public void close() throws Exception {
+        this.end();
+    }
+
     @Override
     public void setInterceptStdout() throws IOException {
         if (!interceptStdout) {
@@ -147,12 +150,50 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
 
     @Override
     public void nextStep() {
-        this.step++;
+        this.setStep(this.getStep() + 1);
+    }
+
+    @Override
+    public long getStep() {
+        if (this.baseContext.getStep() != null) {
+            return this.baseContext.getStep();
+        } else {
+            return 0;
+        }
+    }
+
+    @Override
+    public void setStep(long step) {
+        this.baseContext.setStep(step);
     }
 
     @Override
     public void nextEpoch() {
-        this.epoch++;
+        this.setEpoch(this.getEpoch() + 1);
+    }
+
+    @Override
+    public long getEpoch() {
+        if (this.baseContext.getEpoch() != null) {
+            return this.baseContext.getEpoch();
+        } else {
+            return 0;
+        }
+    }
+
+    @Override
+    public void setEpoch(long epoch) {
+        this.baseContext.setEpoch(epoch);
+    }
+
+    @Override
+    public void setContext(String context) {
+        this.baseContext.setContext(context);
+    }
+
+    @Override
+    public String getContext() {
+        return this.baseContext.getContext();
     }
 
     @Override
@@ -161,61 +202,71 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     }
 
     @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue) {
-        this.logMetric(metricName, metricValue, this.step, this.epoch);
+    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, @NonNull ExperimentContext context) {
+        this.logMetric(metricName, metricValue, context, null);
     }
 
     @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step) {
-        this.logMetric(metricName, metricValue, step, this.epoch);
+    public void logMetric(String metricName, Object metricValue, long step, long epoch) {
+        this.logMetric(metricName, metricValue,
+                new ExperimentContext(step, epoch, this.getContext()));
     }
 
     @Override
-    public void logMetric(@NonNull String metricName, @NonNull Object metricValue, long step, long epoch) {
-        this.setStep(step);
-        this.setEpoch(epoch);
-        this.logMetricAsync(metricName, metricValue, step, epoch, null);
+    public void logMetric(String metricName, Object metricValue, long step) {
+        this.logMetric(metricName, metricValue,
+                new ExperimentContext(step, this.getEpoch(), this.getContext()));
+    }
+
+    @Override
+    public void logMetric(String metricName, Object metricValue) {
+        this.logMetric(metricName, metricValue, this.baseContext);
     }
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
-        this.logParameter(parameterName, paramValue, this.step);
+        this.logParameter(parameterName, paramValue, this.baseContext);
     }
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue, long step) {
-        this.setStep(step);
-        this.logParameterAsync(parameterName, paramValue, step, null);
+        this.logParameter(parameterName, paramValue,
+                new ExperimentContext(step, this.getEpoch(), this.getContext()));
+    }
+
+    @Override
+    public void logParameter(String parameterName, Object paramValue, @NonNull ExperimentContext context) {
+        this.logParameter(parameterName, paramValue, context, null);
     }
 
     @Override
     public void logHtml(@NonNull String html, boolean override) {
-        this.logHtmlAsync(html, override, null);
+        this.logHtml(html, override, null);
     }
 
     @Override
     public void logOther(@NonNull String key, @NonNull Object value) {
-        this.logOtherAsync(key, value, null);
+        this.logOther(key, value, null);
     }
 
     @Override
     public void addTag(@NonNull String tag) {
-        this.addTagAsync(tag, null);
+        this.addTag(tag, null);
     }
 
     @Override
     public void logGraph(@NonNull String graph) {
-        this.logGraphAsync(graph, null);
+        this.logGraph(graph, null);
     }
 
     @Override
     public void logStartTime(long startTimeMillis) {
-        this.logStartTimeAsync(startTimeMillis, null);
+        this.logStartTime(startTimeMillis, null);
     }
 
     @Override
     public void logEndTime(long endTimeMillis) {
-        this.logEndTimeAsync(endTimeMillis, null);
+        this.logEndTime(endTimeMillis, null);
     }
 
     @Override
@@ -224,18 +275,81 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
     }
 
     @Override
-    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step) {
-        super.uploadAsset(asset, fileName, overwrite, step, this.epoch);
+    public void logLine(String line, long offset, boolean stderr) {
+        this.logLine(line, offset, stderr, this.getContext());
     }
 
     @Override
-    public void uploadAsset(@NonNull File asset, boolean overwrite) {
-        uploadAsset(asset, asset.getName(), overwrite);
+    public void logLine(String line, long offset, boolean stderr, String context) {
+        this.setContext(context);
+        this.logLine(line, offset, stderr, context, null);
+    }
+
+    @Override
+    public void logAssetFolder(File folder, boolean logFilePath, boolean recursive, ExperimentContext context) {
+        this.logAssetFolder(folder, logFilePath, recursive, true, context, null);
+    }
+
+    @Override
+    public void logAssetFolder(File folder, boolean logFilePath, boolean recursive) {
+        this.logAssetFolder(folder, logFilePath, recursive, this.baseContext);
+    }
+
+    @Override
+    public void logAssetFolder(File folder, boolean logFilePath) {
+        this.logAssetFolder(folder, logFilePath, false);
+    }
+
+    @Override
+    public void uploadAsset(@NonNull File asset, @NonNull String fileName,
+                            boolean overwrite, @NonNull ExperimentContext context) {
+        this.uploadAsset(asset, fileName, overwrite, context, null);
+    }
+
+    @Override
+    public void uploadAsset(File asset, boolean overwrite, ExperimentContext context) {
+        this.uploadAsset(asset, asset.getName(), overwrite, context);
+    }
+
+    @Override
+    public void uploadAsset(@NonNull File asset, boolean overwrite, long step, long epoch) {
+        this.uploadAsset(asset, asset.getName(), overwrite,
+                new ExperimentContext(step, epoch, getContext()));
+    }
+
+    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step) {
+        this.uploadAsset(asset, fileName, overwrite,
+                new ExperimentContext(step, this.getEpoch(), this.getContext()));
     }
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite) {
-        super.uploadAsset(asset, fileName, overwrite, this.step, this.epoch);
+        this.uploadAsset(asset, fileName, overwrite, this.baseContext);
+    }
+
+    @Override
+    public void uploadAsset(@NonNull File asset, boolean overwrite) {
+        this.uploadAsset(asset, asset.getName(), overwrite, this.baseContext);
+    }
+
+    @Override
+    public void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context) {
+        this.logCode(code, fileName, context, null);
+    }
+
+    @Override
+    public void logCode(@NonNull File file, @NonNull ExperimentContext context) {
+        this.logCode(file, context, null);
+    }
+
+    @Override
+    public void logCode(@NonNull String code, @NonNull String fileName) {
+        this.logCode(code, fileName, this.baseContext);
+    }
+
+    @Override
+    public void logCode(@NonNull File file) {
+        this.logCode(file, this.baseContext);
     }
 
     @Override
@@ -318,111 +432,5 @@ public final class OnlineExperimentImpl extends BaseExperiment implements Online
      */
     public static OnlineExperimentBuilderImpl builder() {
         return new OnlineExperimentBuilderImpl();
-    }
-
-    /**
-     * The builder to create properly configured instance of the OnlineExperimentImpl.
-     */
-    public static final class OnlineExperimentBuilderImpl implements OnlineExperimentBuilder {
-        private String projectName;
-        private String workspace;
-        private String apiKey;
-        private String baseUrl;
-        private int maxAuthRetries = -1;
-        private String experimentName;
-        private String experimentKey;
-        private Logger logger;
-        private boolean interceptStdout = false;
-
-        /**
-         * Default constructor to avoid direct initialization from the outside.
-         */
-        private OnlineExperimentBuilderImpl() {
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withProjectName(@NonNull String projectName) {
-            this.projectName = projectName;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withWorkspace(@NonNull String workspace) {
-            this.workspace = workspace;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withApiKey(@NonNull String apiKey) {
-            this.apiKey = apiKey;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withMaxAuthRetries(int maxAuthRetries) {
-            this.maxAuthRetries = maxAuthRetries;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withUrlOverride(@NonNull String urlOverride) {
-            this.baseUrl = urlOverride;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withExperimentName(@NonNull String experimentName) {
-            this.experimentName = experimentName;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withExistingExperimentKey(@NonNull String experimentKey) {
-            this.experimentKey = experimentKey;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withLogger(@NonNull Logger logger) {
-            this.logger = logger;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl withConfigOverride(@NonNull File overrideConfig) {
-            CometConfig.applyConfigOverride(overrideConfig);
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentBuilderImpl interceptStdout() {
-            this.interceptStdout = true;
-            return this;
-        }
-
-        @Override
-        public OnlineExperimentImpl build() {
-
-            if (StringUtils.isEmpty(this.apiKey)) {
-                this.apiKey = COMET_API_KEY.getString();
-            }
-            if (StringUtils.isEmpty(this.projectName)) {
-                this.projectName = COMET_PROJECT_NAME.getOptionalString().orElse(null);
-            }
-            if (StringUtils.isEmpty(this.workspace)) {
-                this.workspace = COMET_WORKSPACE_NAME.getOptionalString().orElse(null);
-            }
-            if (StringUtils.isEmpty(this.baseUrl)) {
-                this.baseUrl = COMET_BASE_URL.getString();
-            }
-            if (this.maxAuthRetries == -1) {
-                this.maxAuthRetries = COMET_MAX_AUTH_RETRIES.getInt();
-            }
-            Duration cleaningTimeout = COMET_TIMEOUT_CLEANING_SECONDS.getDuration();
-
-            return new OnlineExperimentImpl(
-                    this.apiKey, this.projectName, this.workspace, this.experimentName, this.experimentKey,
-                    this.logger, this.interceptStdout, this.baseUrl, this.maxAuthRetries, cleaningTimeout);
-        }
     }
 }

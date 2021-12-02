@@ -1,24 +1,7 @@
 package ml.comet.experiment;
 
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
-import ml.comet.experiment.builder.ApiExperimentBuilder;
-import ml.comet.experiment.impl.ApiExperimentImpl;
-
 /**
- * This is stub to support backward compatibility.
- *
- * @deprecated It would be replaced in the future with new experiment creation API.
+ * The {@code ApiExperiment} can be used to synchronously read/update data of your Comet.ml experiment.
  */
-@UtilityClass
-public final class ApiExperiment {
-    /**
-     * Returns builder to create {@link Experiment} instance.
-     *
-     * @param experimentKey the unique identifier of the existing experiment.
-     * @return the initialized ApiExperiment instance.
-     */
-    public static ApiExperimentBuilder builder(@NonNull final String experimentKey) {
-        return ApiExperimentImpl.builder(experimentKey);
-    }
+public interface ApiExperiment extends Experiment {
 }

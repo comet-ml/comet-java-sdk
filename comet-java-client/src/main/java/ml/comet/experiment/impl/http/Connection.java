@@ -4,6 +4,7 @@ import lombok.NonNull;
 import lombok.Value;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
+import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import org.asynchttpclient.AsyncCompletionHandler;
 import org.asynchttpclient.AsyncHttpClient;
@@ -126,35 +127,39 @@ public class Connection implements Closeable {
     /**
      * Allows asynchronous posting the content of the file as multipart form data to the specified endpoint.
      *
-     * @param file     the file to be included.
-     * @param endpoint the relative path to the endpoint.
-     * @param params   the request parameters
+     * @param file        the file to be included.
+     * @param endpoint    the relative path to the endpoint.
+     * @param queryParams the request query parameters
+     * @param formParams  the form parameters
      * @return the <code>ListenableFuture&lt;Response&gt;</code> which can be used to monitor status of
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull File file, @NonNull String endpoint,
-                                                    @NonNull Map<QueryParamName, String> params) {
+                                                    @NonNull Map<QueryParamName, String> queryParams,
+                                                    Map<FormParamName, Object> formParams) {
         return executeRequestAsync(
-                ConnectionUtils.createPostFileRequest(file, this.buildCometUrl(endpoint), params));
+                ConnectionUtils.createPostFileRequest(file, this.buildCometUrl(endpoint), queryParams, formParams));
     }
 
     /**
      * Allows asynchronous sending of provided byte array as POST request to the specified endpoint.
      *
-     * @param bytes    the data array
-     * @param endpoint the relative path to the endpoint.
-     * @param params   the request parameters map.
+     * @param bytes      the data array
+     * @param endpoint   the relative path to the endpoint.
+     * @param params     the request parameters map.
+     * @param formParams the form parameters
      * @return the <code>ListenableFuture&lt;Response&gt;</code> which can be used to monitor status of
      * the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(byte[] bytes, @NonNull String endpoint,
-                                                    @NonNull Map<QueryParamName, String> params) {
+                                                    @NonNull Map<QueryParamName, String> params,
+                                                    Map<FormParamName, Object> formParams) {
         String url = this.buildCometUrl(endpoint);
         if (logger.isDebugEnabled()) {
             logger.debug("sending POST bytearray with length {} to {}", bytes.length, url);
         }
 
-        return executeRequestAsync(ConnectionUtils.createPostByteArrayRequest(bytes, url, params));
+        return executeRequestAsync(ConnectionUtils.createPostByteArrayRequest(bytes, url, params, formParams));
     }
 
     /**
@@ -263,7 +268,8 @@ public class Connection implements Closeable {
                     // attempt failed - check if to retry
                     if (i < this.maxAuthRetries - 1) {
                         // sleep for a while and repeat
-                        this.logger.debug("for endpoint {} response {}, retrying\n", endpoint, response.getStatusText());
+                        this.logger.debug("for endpoint {} response {}, retrying\n",
+                                endpoint, response.getStatusText());
                         Thread.sleep((2 ^ i) * 1000L);
                     } else {
                         // maximal number of attempts exceeded - throw or return

@@ -19,11 +19,11 @@ final class EnvironmentConfig {
      * @throws IllegalStateException if optionName is
      */
     public Optional<String> getEnvVariable(String optionName) throws IllegalStateException {
-        if (StringUtils.isEmpty(optionName)) {
+        if (StringUtils.isBlank(optionName)) {
             throw new IllegalStateException("optionName is empty");
         }
         String res = System.getenv(optionName);
-        if (StringUtils.isEmpty(res)) {
+        if (StringUtils.isBlank(res)) {
             return Optional.empty();
         }
         return Optional.of(res);

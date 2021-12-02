@@ -1,22 +1,31 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.functions.Action;
+import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
+import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
+import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
@@ -24,9 +33,8 @@ import java.util.function.Function;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_ALL;
-import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_SOURCE_CODE;
-import static ml.comet.experiment.impl.constants.AssetType.ASSET_TYPE_UNKNOWN;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ALL;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -58,6 +66,71 @@ public class OnlineExperimentTest extends BaseApiTest {
     private static final String LOGGED_ERROR_LINE = "This error should also get to Comet ML.";
     private static final String NON_LOGGED_LINE = "This should not end up in Comet ML.";
 
+    private static Path root;
+    private static Path emptyFile;
+    private static List<Path> assetFolderFiles;
+
+    @BeforeAll
+    static void setup() throws IOException {
+        assetFolderFiles = new ArrayList<>();
+        // create temporary directory tree
+        root = Files.createTempDirectory("testFileUtils");
+        assetFolderFiles.add(
+                PathUtils.copyFileToDirectory(
+                        Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)).toPath(), root));
+        assetFolderFiles.add(
+                PathUtils.copyFileToDirectory(
+                        Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)).toPath(), root));
+        emptyFile = Files.createTempFile(root, "c_file", ".txt");
+        assetFolderFiles.add(emptyFile);
+
+        Path subDir = Files.createTempDirectory(root, "subDir");
+        assetFolderFiles.add(
+                PathUtils.copyFileToDirectory(
+                        Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)).toPath(), subDir));
+        assetFolderFiles.add(
+                PathUtils.copyFileToDirectory(
+                        Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)).toPath(), subDir));
+    }
+
+    @AfterAll
+    static void tearDown() throws IOException {
+        PathUtils.delete(root);
+        assertFalse(Files.exists(root), "Directory still exists");
+    }
+
+    @Test
+    public void testLogAndGetAssetsFolder() {
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+
+        // Make sure experiment has no assets
+        //
+        assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+
+        // Log assets folder nd wait for completion
+        //
+        ExperimentContext context = new ExperimentContext(123, 1042, "train");
+        OnCompleteAction onComplete = new OnCompleteAction();
+        experiment.logAssetFolder(root.toFile(), false, true, false, context, onComplete);
+
+        awaitForCondition(onComplete, "log assets' folder timeout", 60);
+
+        // wait for assets become available and validate results
+        //
+        awaitForCondition(() ->
+                experiment.getAssetList(ASSET_TYPE_ALL).size() == assetFolderFiles.size(), "Assets was uploaded");
+
+        List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
+
+        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
+        validateAsset(assets, ANOTHER_TEXT_FILE_NAME, ANOTHER_TEXT_FILE_SIZE, context);
+        validateAsset(assets, emptyFile.getFileName().toString(), 0, context);
+        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, context);
+        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, context);
+
+        experiment.end();
+    }
+
     @Test
     public void testExperimentCreatedAndShutDown() {
         OnlineExperiment experiment = createOnlineExperiment();
@@ -78,7 +151,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         experiment.end();
 
         // use REST API to check experiment status
-        ApiExperimentImpl apiExperiment = ApiExperimentImpl.builder(experimentKey).build();
+        ApiExperiment apiExperiment = ApiExperimentImpl.builder(experimentKey).build();
         awaitForCondition(() -> !apiExperiment.getMetadata().isRunning(),
                 "Experiment running status updated", 60);
         assertFalse(apiExperiment.getMetadata().isRunning(), "Experiment must have status not running");
@@ -96,7 +169,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // get previous experiment by key and check that update is working
         String experimentKey = experiment.getExperimentKey();
 
-        OnlineExperiment updatedExperiment = fetchExperiment(experimentKey);
+        OnlineExperiment updatedExperiment = onlineExperiment(experimentKey);
         updatedExperiment.setExperimentName(SOME_NAME);
 
         awaitForCondition(
@@ -131,7 +204,8 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getMetrics, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((BaseExperiment) experiment).logMetricAsync(key, value, 1, 1, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logMetric(key, value,
+                    new ExperimentContext(1, 1), onCompleteAction);
             awaitForCondition(onCompleteAction, "logMetricAsync onComplete timeout");
         });
 
@@ -144,7 +218,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((BaseExperiment) experiment).logParameterAsync(key, value, 1, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logParameter(key, value, new ExperimentContext(1), onCompleteAction);
             awaitForCondition(onCompleteAction, "logParameterAsync onComplete timeout");
         });
 
@@ -169,7 +243,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         params.forEach((key, value) -> {
             OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((BaseExperiment) experiment).logOtherAsync(key, value, onCompleteAction);
+            ((OnlineExperimentImpl) experiment).logOther(key, value, onCompleteAction);
             awaitForCondition(onCompleteAction, "logOtherAsync onComplete timeout");
         });
 
@@ -185,14 +259,14 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetHtml() {
-        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
 
         assertFalse(experiment.getHtml().isPresent());
 
         // Create first HTML record
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logHtmlAsync(SOME_HTML, true, onComplete);
+        experiment.logHtml(SOME_HTML, true, onComplete);
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -205,7 +279,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Override first HTML record
         //
         onComplete = new OnCompleteAction();
-        experiment.logHtmlAsync(ANOTHER_HTML, true, onComplete);
+        experiment.logHtml(ANOTHER_HTML, true, onComplete);
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -218,7 +292,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Check that HTML record was not overridden but appended
         //
         onComplete = new OnCompleteAction();
-        experiment.logHtmlAsync(SOME_HTML, false, onComplete);
+        experiment.logHtml(SOME_HTML, false, onComplete);
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -233,7 +307,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testAddAndGetTag() {
-        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
 
         // Check that experiment has no TAGs
         assertTrue(experiment.getTags().isEmpty());
@@ -241,11 +315,11 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Add TAGs and wait for response
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.addTagAsync(SOME_TEXT, onComplete);
+        experiment.addTag(SOME_TEXT, onComplete);
         awaitForCondition(onComplete, "onComplete timeout");
 
         onComplete = new OnCompleteAction();
-        experiment.addTagAsync(ANOTHER_TAG, onComplete);
+        experiment.addTag(ANOTHER_TAG, onComplete);
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get new TAGs and check
@@ -261,7 +335,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetGraph() {
-        BaseExperiment experiment = (BaseExperiment) createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
 
         // Check that experiment has no Graph
         //
@@ -271,7 +345,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Log Graph and wait for response
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logGraphAsync(SOME_GRAPH, onComplete);
+        experiment.logGraph(SOME_GRAPH, onComplete);
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get graph and check result
@@ -298,15 +372,15 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // fetch existing experiment and update time
         //
-        BaseExperiment existingExperiment = (BaseExperiment) fetchExperiment(experimentKey);
+        OnlineExperimentImpl existingExperiment = (OnlineExperimentImpl) onlineExperiment(experimentKey);
         long now = System.currentTimeMillis();
 
         OnCompleteAction onComplete = new OnCompleteAction();
-        existingExperiment.logStartTimeAsync(now, onComplete);
+        existingExperiment.logStartTime(now, onComplete);
         awaitForCondition(onComplete, "logStartTime onComplete timeout", 120);
 
         onComplete = new OnCompleteAction();
-        existingExperiment.logEndTimeAsync(now, onComplete);
+        existingExperiment.logEndTime(now, onComplete);
         awaitForCondition(onComplete, "logEndTime onComplete timeout", 120);
 
         // Get updated experiment metadata and check results
@@ -323,25 +397,48 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testUploadAndGetAssets() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
 
+        // Make sure experiment has no assets
+        //
         assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
 
-        experiment.uploadAsset(TestUtils.getFile(IMAGE_FILE_NAME), false);
-        experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
+        // Upload few assets and wait for completion
+        //
+        ExperimentContext context = new ExperimentContext(10, 101, "train");
+        OnCompleteAction onComplete = new OnCompleteAction();
+        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)), IMAGE_FILE_NAME,
+                false, context, onComplete);
+        awaitForCondition(onComplete, "image file onComplete timeout", 30);
 
-        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets uploaded");
+        onComplete = new OnCompleteAction();
+        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
+                false, context, onComplete);
+        awaitForCondition(onComplete, "text file onComplete timeout", 30);
+
+        // wait for assets become available and validate results
+        //
+        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
 
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
-        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE);
-        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE);
+        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, context);
+        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
 
-        experiment.uploadAsset(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME), SOME_TEXT_FILE_NAME, true);
+        // update one of the assets and validate
+        //
+        onComplete = new OnCompleteAction();
+        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)),
+                SOME_TEXT_FILE_NAME, true, context, onComplete);
+        awaitForCondition(onComplete, "update text file onComplete timeout", 30);
 
         awaitForCondition(() -> {
-            List<ExperimentAssetLink> textFiles = experiment.getAssetList(ASSET_TYPE_UNKNOWN);
-            ExperimentAssetLink file = textFiles.get(0);
-            return ANOTHER_TEXT_FILE_SIZE == file.getFileSize();
+            List<ExperimentAssetLink> assetList = experiment.getAssetList(ASSET_TYPE_ALL);
+            return assetList.stream()
+                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
+                    .anyMatch(asset ->
+                            ANOTHER_TEXT_FILE_SIZE == asset.getFileSize()
+                                    && Objects.equals(asset.getStep(), context.getStep())
+                                    && asset.getRunContext().equals(context.getContext()));
         }, "Asset was updated");
 
         experiment.end();
@@ -382,7 +479,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         OnCompleteAction onComplete = new OnCompleteAction();
         GitMetadata request = new GitMetadata(experiment.getExperimentKey(),
                 "user", "root", "branch", "parent", "origin");
-        ((BaseExperiment)experiment).logGitMetadataAsync(request, onComplete);
+        ((OnlineExperimentImpl) experiment).logGitMetadataAsync(request, onComplete);
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get GIT metadata and check results
@@ -436,23 +533,43 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetFileCode() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+
+        // check that no code was logged
+        //
         assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
-        experiment.logCode(TestUtils.getFile(CODE_FILE_NAME));
-        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(), "Experiment code from file added");
+
+        // log code and check results
+        //
+        ExperimentContext context = new ExperimentContext(10, 101, "test");
+        experiment.logCode(Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)), context);
+
+        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(),
+                "Experiment code from file added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
-        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE);
+        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, context);
+
         experiment.end();
     }
 
     @Test
     public void testLogAndGetRawCode() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+
+        // check that no code was logged
+        //
         assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
-        experiment.logCode(SOME_TEXT, CODE_FILE_NAME);
-        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(), "Experiment raw code added");
+
+        // log code and check results
+        //
+        ExperimentContext context = new ExperimentContext(10, 101, "test");
+        experiment.logCode(SOME_TEXT, CODE_FILE_NAME, context);
+
+        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(),
+                "Experiment raw code added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
-        validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE);
+        validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
+
         experiment.end();
     }
 
@@ -470,17 +587,20 @@ public class OnlineExperimentTest extends BaseApiTest {
         }
     }
 
-    static OnlineExperiment fetchExperiment(String experimentKey) {
+    static OnlineExperiment onlineExperiment(String experimentKey) {
         return OnlineExperimentImpl.builder()
                 .withApiKey(API_KEY)
                 .withExistingExperimentKey(experimentKey)
                 .build();
     }
 
-    static void validateAsset(List<ExperimentAssetLink> assets, String expectedAssetName, long expectedSize) {
+    static void validateAsset(List<ExperimentAssetLink> assets, String expectedAssetName,
+                              long expectedSize, ExperimentContext context) {
         assertTrue(assets.stream()
                 .filter(asset -> expectedAssetName.equals(asset.getFileName()))
-                .anyMatch(asset -> expectedSize == asset.getFileSize()));
+                .anyMatch(asset -> expectedSize == asset.getFileSize()
+                        && Objects.equals(context.getStep(), asset.getStep())
+                        && context.getContext().equals(asset.getRunContext())));
     }
 
     static void testLogParameters(OnlineExperiment experiment,
