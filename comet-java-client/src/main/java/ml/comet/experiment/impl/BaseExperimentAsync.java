@@ -9,6 +9,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.NonNull;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.HtmlRest;
@@ -24,6 +25,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -34,6 +36,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_ASSET_FOLDER_EMPTY;
+import static ml.comet.experiment.impl.resources.LogMessages.LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
@@ -355,6 +358,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite,
                         Map<String, Object> metadata, @NonNull ExperimentContext context, Action onComplete) {
         this.updateContext(context);
+
+        RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata);
+        asset.setExperimentContext(this.baseContext);
+        if (Objects.equals(asset.getFileName(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
+            getLogger().info(
+                    getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
+        }
         // TODO implement me
     }
 
