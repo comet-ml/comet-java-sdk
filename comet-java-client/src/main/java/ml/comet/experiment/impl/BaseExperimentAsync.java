@@ -20,8 +20,10 @@ import ml.comet.experiment.model.ParameterRest;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -267,7 +269,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param prefixWithFolderName if {@code true} then path of each asset file will be prefixed with folder name
      *                             in case if {@code logFilePath} is {@code true}.
      * @param context              the context to be associated with logged assets.
-     * @param onComplete           onComplete The optional action to be invoked when this operation
+     * @param onComplete           The optional action to be invoked when this operation
      *                             asynchronously completes. Can be {@code null} if not interested in completion signal.
      */
     void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
@@ -321,7 +323,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param file       The file asset to be stored
      * @param fileName   The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite  Whether to overwrite files of the same name in Comet
-     * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
+     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
     void uploadAsset(@NonNull File file, @NonNull String fileName,
@@ -340,10 +342,29 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
+     * @param uri        the {@link URI} pointing to the remote asset location. There is no imposed format,
+     *                   and it could be a private link.
+     * @param fileName   the optional "name" of the remote asset, could be a dataset name, a model file name.
+     * @param overwrite  if {@code true} will overwrite all existing assets with the same name.
+     * @param metadata   Some additional data to attach to the remote asset.
+     *                   The dictionary values must be JSON compatible.
+     * @param context    the experiment context to be associated with the logged assets.
+     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
+     *                   Can be {@code null} if not interested in completion signal.
+     */
+    void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite,
+                        Map<String, Object> metadata, @NonNull ExperimentContext context, Action onComplete) {
+        this.updateContext(context);
+        // TODO implement me
+    }
+
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
      * @param code       Code to be sent to Comet
      * @param fileName   Name of source file to be displayed on UI 'code' tab
      * @param context    the context to be associated with the asset.
-     * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
+     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
     void logCode(@NonNull String code, @NonNull String fileName,
@@ -363,7 +384,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *
      * @param file       Asset with source code to be sent
      * @param context    the context to be associated with the asset.
-     * @param onComplete onComplete The optional action to be invoked when this operation asynchronously completes.
+     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
     void logCode(@NonNull File file, @NonNull ExperimentContext context, Action onComplete) {
