@@ -33,7 +33,7 @@ public class AssetUtils {
             throws IOException {
         // list files in the directory and process each file as an asset
         return FileUtils.listFiles(folder, recursive)
-                .map(path -> mapToFileAsset(folder, path, logFilePath, true));
+                .map(path -> mapToFileAsset(folder, path, logFilePath, prefixWithFolderName));
     }
 
     static Asset mapToFileAsset(File folder, Path assetPath,
