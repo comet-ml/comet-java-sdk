@@ -79,10 +79,10 @@ public class AssetUtilsTest {
     @CsvSource({
             "s3://bucket/folder/file, file",
             "s3://bucket/folder/file.extension, file.extension",
-            "https://some.cloud.com/123456?someQuery=7896, 123456",
-            "s3://bucket, " + REMOTE_FILE_NAME_DEFAULT,
+            "https://some.cloud.com/someFile?someQuery=7896, someFile",
             "file:///someDir/someFile.extension, someFile.extension",
-            "file:///someDir/subDir, subDir"
+            "file:///someDir/subDir, subDir",
+            "s3://bucket, " + REMOTE_FILE_NAME_DEFAULT,
     })
     public void testRemoteAssetFileName(URI uri, String expected) {
         String fileName = AssetUtils.remoteAssetFileName(uri);
@@ -92,7 +92,8 @@ public class AssetUtilsTest {
     @ParameterizedTest
     @CsvSource({
             "s3://bucket/folder/file.extension, someFileName, someFileName",
-            "s3://bucket/folder/file.extension,, file.extension"
+            "s3://bucket/folder/file.extension,, file.extension",
+            "s3://bucket,, " + REMOTE_FILE_NAME_DEFAULT
     })
     public void testCreateRemoteAsset_fileNameSelection(URI uri, String fileName, String expectedFileName) {
         Asset asset = createRemoteAsset(uri, fileName, false, null);
