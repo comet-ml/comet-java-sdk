@@ -18,6 +18,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.File;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import static io.netty.handler.codec.http.HttpHeaderValues.APPLICATION_JSON;
@@ -25,6 +27,7 @@ import static io.netty.handler.codec.http.HttpHeaderValues.APPLICATION_OCTET_STR
 import static io.netty.handler.codec.http.HttpHeaderValues.MULTIPART_FORM_DATA;
 import static io.netty.handler.codec.http.HttpHeaderValues.TEXT_PLAIN;
 import static ml.comet.experiment.impl.constants.FormParamName.FILE;
+import static ml.comet.experiment.impl.constants.FormParamName.LINK;
 import static ml.comet.experiment.impl.constants.FormParamName.METADATA;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
@@ -55,17 +58,17 @@ public class ConnectionUtilsTest {
         // Create test data
         //
         String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
-        HashMap<QueryParamName, String> queryParams = new HashMap<QueryParamName, String>() {{
+        Map<QueryParamName, String> queryParams = new HashMap<QueryParamName, String>() {{
             put(EXPERIMENT_KEY, "someValue");
             put(OVERWRITE, Boolean.toString(true));
         }};
-        HashMap<FormParamName, Object> formParams = new HashMap<FormParamName, Object>() {{
+        Map<FormParamName, Object> formParams = new HashMap<FormParamName, Object>() {{
             put(METADATA, "some string");
         }};
         File file = TestUtils.getFile(SOME_TEXT_FILE_NAME);
         assertNotNull(file, "test file not found");
 
-        // Create request
+        // Create request with metadata
         //
         Request r = ConnectionUtils.createPostFileRequest(file, url, queryParams, formParams);
         this.validateRequest(r, url, queryParams, POST, MULTIPART_FORM_DATA.toString());
@@ -73,15 +76,29 @@ public class ConnectionUtilsTest {
         // Check body parts
         //
         assertEquals(2, r.getBodyParts().size(), "wrong number of body parts");
+        // metadata part
+        StringPart stringPart = (StringPart) r.getBodyParts().get(0);
+        assertEquals(METADATA.paramName(), stringPart.getName(), "wrong name");
+        assertEquals(formParams.get(METADATA), stringPart.getValue(), "wrong value");
         // file part
-        FilePart filePart = (FilePart) r.getBodyParts().get(0);
+        FilePart filePart = (FilePart) r.getBodyParts().get(1);
         assertEquals(FILE.paramName(), filePart.getName(), "wrong name");
         assertEquals(TEXT_PLAIN.toString(), filePart.getContentType(), "wrong content type");
         assertEquals(file, filePart.getFile(), "wrong file");
-        // metadata part
-        StringPart stringPart = (StringPart) r.getBodyParts().get(1);
-        assertEquals(METADATA.paramName(), stringPart.getName(), "wrong name");
-        assertEquals(formParams.get(METADATA), stringPart.getValue(), "wrong value");
+
+        // Create request without metadata
+        //
+        r = ConnectionUtils.createPostFileRequest(file, url, queryParams, null);
+        this.validateRequest(r, url, queryParams, POST, MULTIPART_FORM_DATA.toString());
+
+        // Check body parts
+        //
+        assertEquals(1, r.getBodyParts().size(), "wrong number of body parts");
+        // file part
+        filePart = (FilePart) r.getBodyParts().get(0);
+        assertEquals(FILE.paramName(), filePart.getName(), "wrong name");
+        assertEquals(TEXT_PLAIN.toString(), filePart.getContentType(), "wrong content type");
+        assertEquals(file, filePart.getFile(), "wrong file");
     }
 
     @Test
@@ -89,16 +106,16 @@ public class ConnectionUtilsTest {
         // Create test data
         //
         String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
-        HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
+        Map<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
             put(EXPERIMENT_KEY, "someValue");
             put(OVERWRITE, Boolean.toString(true));
         }};
-        HashMap<FormParamName, Object> formParams = new HashMap<FormParamName, Object>() {{
+        Map<FormParamName, Object> formParams = new HashMap<FormParamName, Object>() {{
             put(METADATA, "some string");
         }};
         byte[] data = "The test byte data".getBytes();
 
-        // Create request
+        // Create request with metadata
         //
         Request r = ConnectionUtils.createPostByteArrayRequest(data, url, params, formParams);
         this.validateRequest(r, url, params, POST, MULTIPART_FORM_DATA.toString());
@@ -106,15 +123,59 @@ public class ConnectionUtilsTest {
         // Check body parts
         //
         assertEquals(2, r.getBodyParts().size(), "wrong number of body parts");
+        // metadata part
+        StringPart stringPart = (StringPart) r.getBodyParts().get(0);
+        assertEquals(METADATA.paramName(), stringPart.getName(), "wrong name");
+        assertEquals(formParams.get(METADATA), stringPart.getValue(), "wrong value");
         // data part
-        ByteArrayPart part = (ByteArrayPart) r.getBodyParts().get(0);
+        ByteArrayPart part = (ByteArrayPart) r.getBodyParts().get(1);
         assertEquals(FILE.paramName(), part.getName(), "wrong name");
         assertEquals(APPLICATION_OCTET_STREAM.toString(), part.getContentType(), "wrong content type");
         assertEquals(data, part.getBytes(), "wrong data array");
-        // metadata part
-        StringPart stringPart = (StringPart) r.getBodyParts().get(1);
-        assertEquals(METADATA.paramName(), stringPart.getName(), "wrong name");
-        assertEquals(formParams.get(METADATA), stringPart.getValue(), "wrong value");
+
+        // Create request without metadata
+        //
+        r = ConnectionUtils.createPostByteArrayRequest(data, url, params, null);
+        this.validateRequest(r, url, params, POST, MULTIPART_FORM_DATA.toString());
+
+        // Check body parts
+        //
+        assertEquals(1, r.getBodyParts().size(), "wrong number of body parts");
+        // data part
+        part = (ByteArrayPart) r.getBodyParts().get(0);
+        assertEquals(FILE.paramName(), part.getName(), "wrong name");
+        assertEquals(APPLICATION_OCTET_STREAM.toString(), part.getContentType(), "wrong content type");
+        assertEquals(data, part.getBytes(), "wrong data array");
+    }
+
+    @Test
+    public void testCreatePostFormRequest() {
+        // Create test data
+        //
+        String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
+        Map<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
+            put(EXPERIMENT_KEY, "someValue");
+            put(OVERWRITE, Boolean.toString(true));
+        }};
+        Map<FormParamName, Object> formParams = new HashMap<FormParamName, Object>() {{
+            put(METADATA, "some string");
+            put(LINK, "https://some.site.com");
+        }};
+
+        // Create request
+        //
+        Request r = ConnectionUtils.createPostFormRequest(url, params, formParams);
+        this.validateRequest(r, url, params, POST, MULTIPART_FORM_DATA.toString());
+
+        // Check body parts
+        //
+        assertEquals(2, r.getBodyParts().size(), "wrong number of body parts");
+
+        assertTrue(r.getBodyParts().stream()
+                .map(part -> (StringPart) part)
+                .allMatch(stringPart -> Objects.equals(
+                        stringPart.getValue(), formParams.get(
+                                FormParamName.valueOf(stringPart.getName().toUpperCase())))));
     }
 
     @Test
@@ -142,7 +203,7 @@ public class ConnectionUtilsTest {
         assertFalse(ConnectionUtils.isResponseSuccessful(statusCode));
     }
 
-    private void validateRequest(Request r, String url, HashMap<QueryParamName, String> params,
+    private void validateRequest(Request r, String url, Map<QueryParamName, String> params,
                                  String method, String contentType) {
         StringBuilder buf = new StringBuilder(url);
         if (params != null) {
