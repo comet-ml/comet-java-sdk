@@ -88,10 +88,10 @@ public class AssetUtils {
      * @return the map with query parameters.
      */
     public static Map<QueryParamName, String> assetQueryParameters(final Asset asset, String experimentKey) {
-        Map<QueryParamName, String> queryParams = new HashMap<QueryParamName, String>() {{
-            put(EXPERIMENT_KEY, experimentKey);
-            put(TYPE, asset.getType().type());
-        }};
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(EXPERIMENT_KEY, experimentKey);
+        queryParams.put(TYPE, asset.getType().type());
+
         putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
         putNotNull(queryParams, FILE_NAME, asset.getFileName());
         putNotNull(queryParams, EXTENSION, asset.getFileExtension());
@@ -109,13 +109,12 @@ public class AssetUtils {
      * @return the map with form parameters.
      */
     public static Map<FormParamName, Object> assetFormParameters(final Asset asset) {
-        return new HashMap<FormParamName, Object>() {{
-            if (asset.getMetadata() != null) {
-                // encode metadata to JSON and store
-                put(FormParamName.METADATA, JsonUtils.toJson(asset.getMetadata()));
-
-            }
-        }};
+        Map<FormParamName, Object> map = new HashMap<>();
+        if (asset.getMetadata() != null) {
+            // encode metadata to JSON and store
+            map.put(FormParamName.METADATA, JsonUtils.toJson(asset.getMetadata()));
+        }
+        return map;
     }
 
     static String remoteAssetFileName(URI uri) {

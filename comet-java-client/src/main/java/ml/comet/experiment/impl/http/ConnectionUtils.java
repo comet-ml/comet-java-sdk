@@ -164,15 +164,14 @@ public class ConnectionUtils {
     static RequestBuilder createMultipartRequestBuilder(Map<QueryParamName, String> queryParams,
                                                         Map<FormParamName, Object> formParams) {
         RequestBuilder builder = createRequestBuilder(HttpConstants.Methods.POST, queryParams);
-        List<Part> parts = new ArrayList<Part>() {{
-            if (Objects.nonNull(formParams)) {
-                formParams.forEach((k, v) -> {
-                    if (v != null) {
-                        add(createStringPart(k.paramName(), v));
-                    }
-                });
-            }
-        }};
+        List<Part> parts = new ArrayList<>();
+        if (Objects.nonNull(formParams)) {
+            formParams.forEach((k, v) -> {
+                if (v != null) {
+                    parts.add(createStringPart(k.paramName(), v));
+                }
+            });
+        }
         builder
                 .setHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.MULTIPART_FORM_DATA)
                 .setBodyParts(parts);
