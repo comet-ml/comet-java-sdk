@@ -121,7 +121,7 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testSendPostWithRetriesException(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+    public void testSendPostWithRetries_throwsException(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test data
         //
         String endpoint = "/someEndpoint";
@@ -145,7 +145,7 @@ public class ConnectionTest {
      * Tests that empty optional returned if max retry attempts exceeded and throwOnFailure is false.
      */
     @Test
-    public void testSendPostWithRetriesEmptyOptional(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+    public void testSendPostWithRetries_returnsEmptyOptional(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test data
         //
         String endpoint = "/someEndpoint";
@@ -201,8 +201,12 @@ public class ConnectionTest {
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
     }
 
+    /**
+     * Tests that ListenableFuture returned will propagate CometApiException in case if error status code received
+     * from the endpoint.
+     */
     @Test
-    public void testSendPostAsyncErrorStatus(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+    public void testSendPostAsync_propagatesException_onErrorStatusCodeReceived(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test data
         //
         String endpoint = "/someEndpoint";

@@ -25,6 +25,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static ml.comet.experiment.impl.http.ConnectionUtils.createGetRequest;
+import static ml.comet.experiment.impl.http.ConnectionUtils.createPostByteArrayRequest;
+import static ml.comet.experiment.impl.http.ConnectionUtils.createPostFileRequest;
+import static ml.comet.experiment.impl.http.ConnectionUtils.createPostFormRequest;
+import static ml.comet.experiment.impl.http.ConnectionUtils.createPostJsonRequest;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 /**
@@ -88,7 +93,7 @@ public class Connection implements Closeable {
      */
     public Optional<String> sendGetWithRetries(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params) {
         return executeRequestSyncWithRetries(
-                ConnectionUtils.createGetRequest(this.buildCometUrl(endpoint), params), false);
+                createGetRequest(this.buildCometUrl(endpoint), params), false);
     }
 
     /**
@@ -108,7 +113,7 @@ public class Connection implements Closeable {
         if (logger.isDebugEnabled()) {
             logger.debug("sending JSON {} to {}", json, url);
         }
-        return executeRequestSyncWithRetries(ConnectionUtils.createPostJsonRequest(json, url), throwOnFailure);
+        return executeRequestSyncWithRetries(createPostJsonRequest(json, url), throwOnFailure);
     }
 
     /**
@@ -116,12 +121,11 @@ public class Connection implements Closeable {
      *
      * @param json     the JSON encoded text.
      * @param endpoint the relative path to the endpoint.
-     * @return the <code>ListenableFuture&lt;Response&gt;</code> which can be used to monitor status of
-     * the request execution.
+     * @return the {@link ListenableFuture} which can be used to monitor status of the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull String json, @NonNull String endpoint) {
         return executeRequestAsync(
-                ConnectionUtils.createPostJsonRequest(json, this.buildCometUrl(endpoint)));
+                createPostJsonRequest(json, this.buildCometUrl(endpoint)));
     }
 
     /**
@@ -131,14 +135,13 @@ public class Connection implements Closeable {
      * @param endpoint    the relative path to the endpoint.
      * @param queryParams the request query parameters
      * @param formParams  the form parameters
-     * @return the <code>ListenableFuture&lt;Response&gt;</code> which can be used to monitor status of
-     * the request execution.
+     * @return the {@link ListenableFuture} which can be used to monitor status of the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(@NonNull File file, @NonNull String endpoint,
                                                     @NonNull Map<QueryParamName, String> queryParams,
                                                     Map<FormParamName, Object> formParams) {
         return executeRequestAsync(
-                ConnectionUtils.createPostFileRequest(file, this.buildCometUrl(endpoint), queryParams, formParams));
+                createPostFileRequest(file, this.buildCometUrl(endpoint), queryParams, formParams));
     }
 
     /**
@@ -148,8 +151,7 @@ public class Connection implements Closeable {
      * @param endpoint   the relative path to the endpoint.
      * @param params     the request parameters map.
      * @param formParams the form parameters
-     * @return the <code>ListenableFuture&lt;Response&gt;</code> which can be used to monitor status of
-     * the request execution.
+     * @return the {@link ListenableFuture} which can be used to monitor status of the request execution.
      */
     public ListenableFuture<Response> sendPostAsync(byte[] bytes, @NonNull String endpoint,
                                                     @NonNull Map<QueryParamName, String> params,
@@ -159,7 +161,26 @@ public class Connection implements Closeable {
             logger.debug("sending POST bytearray with length {} to {}", bytes.length, url);
         }
 
-        return executeRequestAsync(ConnectionUtils.createPostByteArrayRequest(bytes, url, params, formParams));
+        return executeRequestAsync(createPostByteArrayRequest(bytes, url, params, formParams));
+    }
+
+    /**
+     * Allows asynchronous FORM submission to the specified endpoint.
+     *
+     * @param endpoint   the relative path to the endpoint.
+     * @param params     the request parameters map.
+     * @param formParams the form parameters
+     * @return the {@link ListenableFuture} which can be used to monitor status of the request execution.
+     */
+    public ListenableFuture<Response> sendPostAsync(@NonNull String endpoint,
+                                                    @NonNull Map<QueryParamName, String> params,
+                                                    @NonNull Map<FormParamName, Object> formParams) {
+        String url = this.buildCometUrl(endpoint);
+        if (logger.isDebugEnabled()) {
+            logger.debug("sending POST form to {}", url);
+        }
+
+        return executeRequestAsync(createPostFormRequest(url, params, formParams));
     }
 
     /**
