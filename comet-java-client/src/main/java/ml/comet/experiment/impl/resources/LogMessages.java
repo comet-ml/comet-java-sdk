@@ -22,6 +22,7 @@ public class LogMessages {
 
     public static final String FAILED_READ_DATA_FOR_EXPERIMENT = "FAILED_READ_DATA_FOR_EXPERIMENT";
     public static final String FAILED_TO_SEND_LOG_REQUEST = "FAILED_TO_SEND_LOG_REQUEST";
+    public static final String FAILED_TO_SEND_LOG_ASSET_REQUEST = "FAILED_TO_SEND_LOG_ASSET_REQUEST";
     public static final String FAILED_TO_LOG_ASSET_FOLDER = "FAILED_TO_LOG_ASSET_FOLDER";
     public static final String FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER = "FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER";
 

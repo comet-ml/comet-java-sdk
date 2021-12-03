@@ -34,6 +34,7 @@ import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_ASSET_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_ASSET_FOLDER_EMPTY;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT;
@@ -299,7 +300,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             // allowing processing of items even if some of them failed
             Observable<LogDataResponse> observable =
                     Observable.fromStream(assets)
-                            .flatMap(asset -> Observable.fromSingle(sendAssetAsync(asset)), true);
+                            .flatMap(asset -> Observable.fromSingle(
+                                    sendAssetAsync(getRestApiClient()::logAsset, asset)), true);
 
             // register on completion action
             if (onComplete != null) {
@@ -361,11 +363,27 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata);
         asset.setExperimentContext(this.baseContext);
+        asset.setType(ASSET_TYPE_ASSET);
+
         if (Objects.equals(asset.getFileName(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
             getLogger().info(
                     getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
         }
-        // TODO implement me
+
+        Single<LogDataResponse> single = this.sendAssetAsync(getRestApiClient()::logRemoteAsset, asset);
+        if (onComplete != null) {
+            single = single.doFinally(onComplete);
+        }
+
+        // subscribe to get operation completed
+        single.subscribe(
+                (logDataResponse) -> {
+                    // ignore - already logged, see: sendAssetAsync
+                },
+                (throwable) -> {
+                    // ignore - already logged, see: sendAssetAsync
+                },
+                disposables);
     }
 
     /**
@@ -418,7 +436,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     void logAsset(@NonNull final Asset asset, Action onComplete) {
         asset.setExperimentContext(this.baseContext);
 
-        Single<LogDataResponse> single = this.sendAssetAsync(asset);
+        Single<LogDataResponse> single = this.sendAssetAsync(getRestApiClient()::logAsset, asset);
         if (onComplete != null) {
             single = single.doFinally(onComplete);
         }
@@ -435,20 +453,22 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     }
 
     /**
-     * Attempts to send given {@link Asset} asynchronously.
+     * Attempts to send given {@link Asset} or its subclass asynchronously.
      * This method will wrap send operation into {@link Single} and transparently log any errors that may happen.
      *
-     * @param asset the {@link Asset} to be sent.
+     * @param asset the {@link Asset} or subclass to be sent.
+     * @param <T>   the {@link Asset} or its subclass.
      * @return the {@link Single} which can be used to subscribe for operation results.
      */
-    private Single<LogDataResponse> sendAssetAsync(@NonNull final Asset asset) {
+    private <T extends Asset> Single<LogDataResponse> sendAssetAsync(
+            final BiFunction<T, String, Single<LogDataResponse>> func, @NonNull final T asset) {
         return validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
-                .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey))
+                .concatMap(experimentKey -> func.apply(asset, experimentKey))
                 .doOnSuccess(logDataResponse ->
                         AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), asset))
                 .doOnError(throwable ->
-                        getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, asset), throwable));
+                        getLogger().error(getString(FAILED_TO_SEND_LOG_ASSET_REQUEST, asset), throwable));
     }
 
     /**

@@ -3,6 +3,8 @@ package ml.comet.experiment.impl.utils;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.impl.constants.FormParamName;
+import ml.comet.experiment.impl.constants.QueryParamName;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -10,8 +12,19 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
+import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
+import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
+import static ml.comet.experiment.impl.constants.QueryParamName.EXTENSION;
+import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
+import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
+import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
+import static ml.comet.experiment.impl.utils.CometUtils.putNotNull;
 
 /**
  * Utilities to work with assets.
@@ -65,6 +78,44 @@ public class AssetUtils {
             asset.setFileName(fileName);
         }
         return asset;
+    }
+
+    /**
+     * Extracts query parameters from the provided {@link Asset}.
+     *
+     * @param asset         the {@link Asset} to extract HTTP query parameters from.
+     * @param experimentKey the {@link ml.comet.experiment.Experiment} key.
+     * @return the map with query parameters.
+     */
+    public static Map<QueryParamName, String> assetQueryParameters(final Asset asset, String experimentKey) {
+        Map<QueryParamName, String> queryParams = new HashMap<QueryParamName, String>() {{
+            put(EXPERIMENT_KEY, experimentKey);
+            put(TYPE, asset.getType().type());
+        }};
+        putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
+        putNotNull(queryParams, FILE_NAME, asset.getFileName());
+        putNotNull(queryParams, EXTENSION, asset.getFileExtension());
+        putNotNull(queryParams, CONTEXT, asset.getContext());
+        putNotNull(queryParams, STEP, asset.getStep());
+        putNotNull(queryParams, EPOCH, asset.getEpoch());
+
+        return queryParams;
+    }
+
+    /**
+     * Extracts form parameters from the provided {@link Asset}.
+     *
+     * @param asset the {@link Asset} to extract HTTP form parameters from.
+     * @return the map with form parameters.
+     */
+    public static Map<FormParamName, Object> assetFormParameters(final Asset asset) {
+        return new HashMap<FormParamName, Object>() {{
+            if (asset.getMetadata() != null) {
+                // encode metadata to JSON and store
+                put(FormParamName.METADATA, JsonUtils.toJson(asset.getMetadata()));
+
+            }
+        }};
     }
 
     static String remoteAssetFileName(URI uri) {
