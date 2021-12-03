@@ -5,6 +5,7 @@ import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -40,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class OnlineExperimentTest extends BaseApiTest {
     private static final String SOME_NAME = "someName";
@@ -445,22 +448,66 @@ public class OnlineExperimentTest extends BaseApiTest {
     }
 
     @Test
+    public void testLogAndGetRemoteAssets() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // Make sure experiment has no assets
+            //
+            assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+
+            // Log remote assets and wait for completion
+            //
+            ExperimentContext context = new ExperimentContext(10, 101, "train");
+            OnCompleteAction onComplete = new OnCompleteAction();
+            Map<String, Object> metadata = new HashMap<String, Object>() {{
+                put("someInt", 10);
+                put("someString", "test string");
+                put("someBoolean", true);
+            }};
+            String metadataJson = JsonUtils.toJson(metadata);
+
+            URI firstAssetLink = new URI("s3://bucket/folder/firstAssetFile.extension");
+            String firstAssetFileName = "firstAssetFileName";
+            experiment.logRemoteAsset(firstAssetLink, firstAssetFileName, false, metadata, context, onComplete);
+
+            awaitForCondition(onComplete, "first remote asset onComplete timeout", 30);
+
+            String secondAssetExpectedFileName = "secondAssetFile.extension";
+            URI secondAssetLink = new URI("s3://bucket/folder/" + secondAssetExpectedFileName);
+            experiment.logRemoteAsset(secondAssetLink, null, false, metadata, context, onComplete);
+
+            awaitForCondition(onComplete, "second remote asset onComplete timeout", 30);
+
+            // wait for assets become available and validate results
+            //
+            awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
+            List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
+
+            validateRemoteAssetLink(assets, firstAssetLink, firstAssetFileName, metadataJson);
+            validateRemoteAssetLink(assets, secondAssetLink, secondAssetExpectedFileName, metadataJson);
+        } catch (Exception e) {
+            fail(e);
+        }
+    }
+
+    @Test
     public void testSetsContext() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
 
-        assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+            experiment.setContext(SOME_TEXT);
+            experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
 
-        experiment.setContext(SOME_TEXT);
-        experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
+            awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 1, "Asset uploaded");
 
-        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 1, "Asset uploaded");
-
-        Optional<ExperimentAssetLink> assetOpt = experiment.getAssetList(ASSET_TYPE_ALL)
-                .stream()
-                .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
-                .findFirst();
-        assertTrue(assetOpt.isPresent());
-        assertEquals(SOME_TEXT, assetOpt.get().getRunContext());
+            Optional<ExperimentAssetLink> assetOpt = experiment.getAssetList(ASSET_TYPE_ALL)
+                    .stream()
+                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
+                    .findFirst();
+            assertTrue(assetOpt.isPresent());
+            assertEquals(SOME_TEXT, assetOpt.get().getRunContext());
+        } catch (Exception e) {
+            fail(e);
+        }
     }
 
     @Test
@@ -498,37 +545,39 @@ public class OnlineExperimentTest extends BaseApiTest {
 
 
     @Test
-    public void testCopyStdout() throws IOException {
-        OnlineExperiment experiment = createOnlineExperiment();
-        experiment.setInterceptStdout();
+    public void testCopyStdout() {
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            experiment.setInterceptStdout();
 
-        System.out.println(experiment.getExperimentKey());
-        System.out.println(experiment.getProjectName());
-        System.out.println(LOGGED_LINE);
-        System.err.println(LOGGED_ERROR_LINE);
-        System.out.flush();
-        System.err.flush();
+            System.out.println(experiment.getExperimentKey());
+            System.out.println(experiment.getProjectName());
+            System.out.println(LOGGED_LINE);
+            System.err.println(LOGGED_ERROR_LINE);
+            System.out.flush();
+            System.err.flush();
 
-        // wait for flush to complete before stopping interception
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            // wait for flush to complete before stopping interception
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            experiment.stopInterceptStdout();
+
+            System.out.println(NON_LOGGED_LINE);
+            System.out.flush();
+
+            awaitForCondition(() -> experiment.getOutput()
+                    .filter(log -> log.contains(experiment.getExperimentKey()))
+                    .filter(log -> log.contains(experiment.getProjectName()))
+                    .filter(log -> log.contains(LOGGED_LINE))
+                    .filter(log -> log.contains(LOGGED_ERROR_LINE))
+                    .filter(log -> !log.contains(NON_LOGGED_LINE))
+                    .isPresent(), "Experiment logs added");
+        } catch (Exception e) {
+            fail(e);
         }
-
-        experiment.stopInterceptStdout();
-
-        System.out.println(NON_LOGGED_LINE);
-        System.out.flush();
-
-        awaitForCondition(() -> experiment.getOutput()
-                .filter(log -> log.contains(experiment.getExperimentKey()))
-                .filter(log -> log.contains(experiment.getProjectName()))
-                .filter(log -> log.contains(LOGGED_LINE))
-                .filter(log -> log.contains(LOGGED_ERROR_LINE))
-                .filter(log -> !log.contains(NON_LOGGED_LINE))
-                .isPresent(), "Experiment logs added");
-
     }
 
     @Test
@@ -592,6 +641,13 @@ public class OnlineExperimentTest extends BaseApiTest {
                 .withApiKey(API_KEY)
                 .withExistingExperimentKey(experimentKey)
                 .build();
+    }
+
+    static void validateRemoteAssetLink(List<ExperimentAssetLink> assets, URI uri, String fileName, String metadata) {
+        assertTrue(assets.stream()
+                .filter(asset -> uri.toString().equals(asset.getLink()))
+                .allMatch(asset -> Objects.equals(asset.getFileName(), fileName)
+                        && Objects.equals(asset.getMetadata(), metadata)));
     }
 
     static void validateAsset(List<ExperimentAssetLink> assets, String expectedAssetName,
