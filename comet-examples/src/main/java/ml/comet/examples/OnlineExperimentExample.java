@@ -6,6 +6,7 @@ import ml.comet.experiment.context.ExperimentContext;
 import org.apache.commons.io.file.PathUtils;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -53,14 +54,14 @@ public class OnlineExperimentExample {
 
         try {
             OnlineExperimentExample.run(experiment);
-        } catch (IOException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         } finally {
             experiment.end();
         }
     }
 
-    private static void run(OnlineExperiment experiment) throws IOException {
+    private static void run(OnlineExperiment experiment) throws Exception {
         experiment.setExperimentName("Java-SDK 2.0.2");
         experiment.nextStep();
 
@@ -81,15 +82,22 @@ public class OnlineExperimentExample {
         experiment.logParameter("batch_size", "500");
         experiment.logParameter("learning_rate", 12);
 
+        // upload assets
+        //
         experiment.uploadAsset(getResourceFile(CHART_IMAGE_FILE), "amazing chart.png", false);
         experiment.uploadAsset(getResourceFile(MODEL_FILE), false,
                 ExperimentContext.builder().withContext("train").build());
 
         experiment.nextStep();
 
-        // upload assets from folder
+        // upload asset files from folder
+        //
         Path assetDir = copyResourcesToTmpDir();
         experiment.logAssetFolder(assetDir.toFile(), true, true);
+
+        // log remote assets
+        //
+        experiment.logRemoteAsset(new URI("s3://bucket/folder/dataCorpus.hd5"), "modelDataCorpus", false);
 
         experiment.logOther("Parameter", 4);
 
