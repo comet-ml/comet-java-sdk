@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -96,8 +97,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logMetric(@NonNull String metricName, @NonNull Object metricValue,
-                   @NonNull ExperimentContext context, Action onComplete) {
+                   @NonNull ExperimentContext context, Optional<Action> onComplete) {
         this.updateContext(context);
 
         if (getLogger().isDebugEnabled()) {
@@ -117,8 +119,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete    The optional action to be invoked when this operation asynchronously completes.
      *                      Can be {@code null} if not interested in completion signal.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logParameter(@NonNull String parameterName, @NonNull Object paramValue,
-                      @NonNull ExperimentContext context, Action onComplete) {
+                      @NonNull ExperimentContext context, Optional<Action> onComplete) {
         this.updateContext(context);
 
         if (getLogger().isDebugEnabled()) {
@@ -138,7 +141,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logHtml(@NonNull String html, boolean override, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logHtml(@NonNull String html, boolean override, Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logHtmlAsync {}, override: {}", html, override);
         }
@@ -155,7 +159,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logOther(@NonNull String key, @NonNull Object value, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logOther(@NonNull String key, @NonNull Object value, Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logOtherAsync {} {}", key, value);
         }
@@ -171,7 +176,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    public void addTag(@NonNull String tag, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public void addTag(@NonNull String tag, Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("addTagAsync {}", tag);
         }
@@ -186,7 +192,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logGraph(@NonNull String graph, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logGraph(@NonNull String graph, Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logGraphAsync {}", graph);
         }
@@ -201,7 +208,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete      The optional action to be invoked when this operation asynchronously completes.
      *                        Can be {@code null} if not interested in completion signal.
      */
-    void logStartTime(long startTimeMillis, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logStartTime(long startTimeMillis, Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logStartTimeAsync {}", startTimeMillis);
         }
@@ -216,7 +224,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete    The optional action to be invoked when this operation asynchronously completes.
      *                      Can be {@code null} if not interested in completion signal.
      */
-    void logEndTime(long endTimeMillis, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logEndTime(long endTimeMillis, Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logEndTimeAsync {}", endTimeMillis);
         }
@@ -231,7 +240,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
-    void logGitMetadataAsync(@NonNull GitMetadata gitMetadata, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logGitMetadataAsync(@NonNull GitMetadata gitMetadata, Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logGitMetadata {}", gitMetadata);
         }
@@ -249,15 +259,16 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logLine(String line, long offset, boolean stderr, String context, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logLine(String line, long offset, boolean stderr, String context, Optional<Action> onComplete) {
         OutputUpdate request = createLogLineRequest(line, offset, stderr, context);
         Single<LogDataResponse> single = validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
                 .concatMap(experimentKey -> getRestApiClient().logOutputLine(request, experimentKey));
 
         // register notification action if provided
-        if (onComplete != null) {
-            single = single.doFinally(onComplete);
+        if (onComplete.isPresent()) {
+            single = single.doFinally(onComplete.get());
         }
 
         // subscribe to receive operation results but do not log anything
@@ -276,8 +287,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete           The optional action to be invoked when this operation
      *                             asynchronously completes. Can be {@code null} if not interested in completion signal.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
-                        @NonNull ExperimentContext context, Action onComplete) {
+                        @NonNull ExperimentContext context, Optional<Action> onComplete) {
         if (!folder.isDirectory()) {
             getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
@@ -304,8 +316,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                                     sendAssetAsync(getRestApiClient()::logAsset, asset)), true);
 
             // register on completion action
-            if (onComplete != null) {
-                observable = observable.doFinally(onComplete);
+            if (onComplete.isPresent()) {
+                observable = observable.doFinally(onComplete.get());
             }
 
             // subscribe for processing results
@@ -331,8 +343,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void uploadAsset(@NonNull File file, @NonNull String fileName,
-                     boolean overwrite, @NonNull ExperimentContext context, Action onComplete) {
+                     boolean overwrite, @NonNull ExperimentContext context, Optional<Action> onComplete) {
         this.updateContext(context);
 
         Asset asset = new Asset();
@@ -357,8 +370,10 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite,
-                        Map<String, Object> metadata, @NonNull ExperimentContext context, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
+                        Optional<Map<String, Object>> metadata, @NonNull ExperimentContext context,
+                        Optional<Action> onComplete) {
         this.updateContext(context);
 
         RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata);
@@ -371,8 +386,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         Single<LogDataResponse> single = this.sendAssetAsync(getRestApiClient()::logRemoteAsset, asset);
-        if (onComplete != null) {
-            single = single.doFinally(onComplete);
+        if (onComplete.isPresent()) {
+            single = single.doFinally(onComplete.get());
         }
 
         // subscribe to get operation completed
@@ -395,8 +410,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logCode(@NonNull String code, @NonNull String fileName,
-                 @NonNull ExperimentContext context, Action onComplete) {
+                 @NonNull ExperimentContext context, Optional<Action> onComplete) {
         this.updateContext(context);
 
         Asset asset = new Asset();
@@ -415,7 +431,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete The optional action to be invoked when this operation asynchronously completes.
      *                   Can be {@code null} if not interested in completion signal.
      */
-    void logCode(@NonNull File file, @NonNull ExperimentContext context, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logCode(@NonNull File file, @NonNull ExperimentContext context, Optional<Action> onComplete) {
         this.updateContext(context);
 
         Asset asset = new Asset();
@@ -433,12 +450,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param onComplete the optional {@link Action} to be called upon operation completed,
      *                   either successful or failure.
      */
-    void logAsset(@NonNull final Asset asset, Action onComplete) {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logAsset(@NonNull final Asset asset, Optional<Action> onComplete) {
         asset.setExperimentContext(this.baseContext);
 
         Single<LogDataResponse> single = this.sendAssetAsync(getRestApiClient()::logAsset, asset);
-        if (onComplete != null) {
-            single = single.doFinally(onComplete);
+        if (onComplete.isPresent()) {
+            single = single.doFinally(onComplete.get());
         }
 
         // subscribe to get operation completed
@@ -481,15 +499,16 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   successfully or erroneously.
      * @param <T>        the type of the request data object.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T> void sendAsynchronously(final BiFunction<T, String, Single<LogDataResponse>> func,
-                                        final T request, final Action onComplete) {
+                                        final T request, final Optional<Action> onComplete) {
         Single<LogDataResponse> single = validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
                 .concatMap(experimentKey -> func.apply(request, experimentKey));
 
         // register notification action if provided
-        if (onComplete != null) {
-            single = single.doFinally(onComplete);
+        if (onComplete.isPresent()) {
+            single = single.doFinally(onComplete.get());
         }
 
         // subscribe to receive operation results

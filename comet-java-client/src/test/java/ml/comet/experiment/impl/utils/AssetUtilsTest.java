@@ -18,8 +18,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
 import static ml.comet.experiment.impl.utils.AssetUtils.REMOTE_FILE_NAME_DEFAULT;
 import static ml.comet.experiment.impl.utils.AssetUtils.createRemoteAsset;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -96,7 +99,7 @@ public class AssetUtilsTest {
             "s3://bucket,, " + REMOTE_FILE_NAME_DEFAULT
     })
     public void testCreateRemoteAsset_fileNameSelection(URI uri, String fileName, String expectedFileName) {
-        Asset asset = createRemoteAsset(uri, fileName, false, null);
+        Asset asset = createRemoteAsset(uri, ofNullable(fileName), false, empty());
         assertEquals(expectedFileName, asset.getFileName());
     }
 
