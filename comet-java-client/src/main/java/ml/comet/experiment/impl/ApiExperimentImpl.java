@@ -38,9 +38,6 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
         if (logger != null) {
             this.logger = logger;
         }
-
-        // initialize this experiment
-        this.init();
     }
 
     @Override
@@ -141,11 +138,20 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
             if (StringUtils.isBlank(this.apiKey)) {
                 this.apiKey = COMET_API_KEY.getString();
             }
-            return new ApiExperimentImpl(
+            ApiExperimentImpl experiment = new ApiExperimentImpl(
                     this.apiKey, this.experimentKey, this.logger,
                     COMET_BASE_URL.getString(),
                     COMET_MAX_AUTH_RETRIES.getInt(),
                     COMET_TIMEOUT_CLEANING_SECONDS.getDuration());
+            try {
+                // initialize experiment
+                experiment.init();
+            } catch (Throwable ex) {
+                // release hold resources and signal to user about failure
+                experiment.end();
+                throw ex;
+            }
+            return experiment;
         }
     }
 }
