@@ -1,6 +1,7 @@
 package ml.comet.experiment.impl;
 
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import ml.comet.experiment.CometApi;
 import ml.comet.experiment.builder.BaseCometBuilder;
 import ml.comet.experiment.builder.CometApiBuilder;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
@@ -27,16 +29,21 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES
  */
 public final class CometApiImpl implements CometApi {
     private Logger logger = LoggerFactory.getLogger(CometApiImpl.class);
-    private final RestApiClient restApiClient;
-    private final Connection connection;
+    private final String apiKey;
+    private final String baseUrl;
+    private final int maxAuthRetries;
+
+    private RestApiClient restApiClient;
+    private Connection connection;
 
     CometApiImpl(@NonNull String apiKey, @NonNull String baseUrl, int maxAuthRetries, Logger logger) {
+        this.apiKey = apiKey;
+        this.baseUrl = baseUrl;
+        this.maxAuthRetries = maxAuthRetries;
+
         if (logger != null) {
             this.logger = logger;
         }
-        this.connection = ConnectionInitializer.initConnection(apiKey, baseUrl, maxAuthRetries, this.logger);
-        this.restApiClient = new RestApiClient(this.connection);
-        CometUtils.printCometSdkVersion();
     }
 
     @Override
@@ -82,9 +89,23 @@ public final class CometApiImpl implements CometApi {
      */
     @Override
     public void close() throws IOException {
-        this.restApiClient.dispose();
+        if (Objects.nonNull(this.restApiClient)) {
+            this.restApiClient.dispose();
+        }
         // no need to wait for asynchronous requests to proceed because this class use only synchronous requests
-        this.connection.close();
+        if (Objects.nonNull(this.connection)) {
+            this.connection.close();
+        }
+    }
+
+    /**
+     * Initializes this instance with connection and REST API client.
+     */
+    void init() {
+        CometUtils.printCometSdkVersion();
+        this.connection = ConnectionInitializer.initConnection(
+                this.apiKey, this.baseUrl, this.maxAuthRetries, this.logger);
+        this.restApiClient = new RestApiClient(this.connection);
     }
 
     /**
@@ -126,12 +147,21 @@ public final class CometApiImpl implements CometApi {
          *
          * @return the fully initialized instance of the CometApiImpl.
          */
+        @SneakyThrows
+        @Override
         public CometApi build() {
             if (StringUtils.isBlank(this.apiKey)) {
                 this.apiKey = COMET_API_KEY.getString();
             }
-            return new CometApiImpl(
+            CometApiImpl api = new CometApiImpl(
                     this.apiKey, COMET_BASE_URL.getString(), COMET_MAX_AUTH_RETRIES.getInt(), this.logger);
+            try {
+                api.init();
+            } catch (Throwable throwable) {
+                api.close();
+                throw throwable;
+            }
+            return api;
         }
     }
 }
