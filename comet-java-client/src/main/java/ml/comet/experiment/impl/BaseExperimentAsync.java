@@ -313,12 +313,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             Observable<LogDataResponse> observable =
                     Observable.fromStream(assets)
                             .flatMap(asset -> Observable.fromSingle(
-                                    sendAssetAsync(getRestApiClient()::logAsset, asset)), true);
-
-            // register on completion action
-            if (onComplete.isPresent()) {
-                observable = observable.doFinally(onComplete.get());
-            }
+                                    sendAssetAsync(getRestApiClient()::logAsset, asset, onComplete)), true);
 
             // subscribe for processing results
             observable
@@ -385,20 +380,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                     getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
         }
 
-        Single<LogDataResponse> single = this.sendAssetAsync(getRestApiClient()::logRemoteAsset, asset);
-        if (onComplete.isPresent()) {
-            single = single.doFinally(onComplete.get());
-        }
-
-        // subscribe to get operation completed
-        single.subscribe(
-                (logDataResponse) -> {
-                    // ignore - already logged, see: sendAssetAsync
-                },
-                (throwable) -> {
-                    // ignore - already logged, see: sendAssetAsync
-                },
-                disposables);
+        this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
     }
 
     /**
@@ -453,11 +435,22 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logAsset(@NonNull final Asset asset, Optional<Action> onComplete) {
         asset.setExperimentContext(this.baseContext);
+        this.logAsset(getRestApiClient()::logAsset, asset, onComplete);
+    }
 
-        Single<LogDataResponse> single = this.sendAssetAsync(getRestApiClient()::logAsset, asset);
-        if (onComplete.isPresent()) {
-            single = single.doFinally(onComplete.get());
-        }
+    /**
+     * Attempts to log provided {@link Asset} or its subclass asynchronously using specified log function.
+     *
+     * @param func       the function to be invoked to send asset to the backend.
+     * @param asset      the {@link Asset} or subclass to be sent.
+     * @param onComplete The optional action to be invoked when this operation
+     *                   asynchronously completes. Can be {@code null} if not interested in completion signal.
+     * @param <T>        the {@link Asset} or its subclass.
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private <T extends Asset> void logAsset(final BiFunction<T, String, Single<LogDataResponse>> func,
+                                            @NonNull final T asset, Optional<Action> onComplete) {
+        Single<LogDataResponse> single = this.sendAssetAsync(func, asset, onComplete);
 
         // subscribe to get operation completed
         single.subscribe(
@@ -474,19 +467,30 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * Attempts to send given {@link Asset} or its subclass asynchronously.
      * This method will wrap send operation into {@link Single} and transparently log any errors that may happen.
      *
-     * @param asset the {@link Asset} or subclass to be sent.
-     * @param <T>   the {@link Asset} or its subclass.
+     * @param func       the function to be invoked to send asset to the backend.
+     * @param asset      the {@link Asset} or subclass to be sent.
+     * @param onComplete The optional action to be invoked when this operation
+     *                   asynchronously completes. Can be {@code null} if not interested in completion signal.
+     * @param <T>        the {@link Asset} or its subclass.
      * @return the {@link Single} which can be used to subscribe for operation results.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T extends Asset> Single<LogDataResponse> sendAssetAsync(
-            final BiFunction<T, String, Single<LogDataResponse>> func, @NonNull final T asset) {
-        return validateAndGetExperimentKey()
+            final BiFunction<T, String, Single<LogDataResponse>> func,
+            @NonNull final T asset, Optional<Action> onComplete) {
+
+        Single<LogDataResponse> single = validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
                 .concatMap(experimentKey -> func.apply(asset, experimentKey))
                 .doOnSuccess(logDataResponse ->
                         AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), asset))
                 .doOnError(throwable ->
                         getLogger().error(getString(FAILED_TO_SEND_LOG_ASSET_REQUEST, asset), throwable));
+
+        if (onComplete.isPresent()) {
+            return single.doFinally(onComplete.get());
+        }
+        return single;
     }
 
     /**
