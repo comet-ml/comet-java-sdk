@@ -531,7 +531,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             if (logDataResponse.hasFailed()) {
                 logger.error("failed to log {}, reason: {}", request, logDataResponse.getMsg());
             } else if (logger.isDebugEnabled()) {
-                logger.debug("success {}", logDataResponse);
+                logger.debug("successful response {} received for request {}", logDataResponse, request);
             }
         }
     }
