@@ -400,12 +400,12 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch) {
+    public void uploadAsset(@NonNull File asset, String fileName, boolean overwrite, long step, long epoch) {
         this.uploadAsset(asset, fileName, overwrite, new ExperimentContext(step, epoch));
     }
 
     @Override
-    public void uploadAsset(File asset, boolean overwrite, ExperimentContext context) {
+    public void uploadAsset(@NonNull File asset, boolean overwrite, @NonNull ExperimentContext context) {
         this.uploadAsset(asset, asset.getName(), overwrite, context);
     }
 

@@ -13,21 +13,19 @@ import java.util.Map;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Asset {
     private File file;
     private byte[] fileLikeData;
-    private String fileName;
-    private AssetType type;
-    private Boolean overwrite;
-    private Long step;
-    private Long epoch;
-    private String groupingName;
-    private Map<String, Object> metadata;
-    private String assetId;
     private String fileExtension;
-    private String context;
-    private Boolean remote;
+
+    String fileName;
+    AssetType type;
+    Boolean overwrite;
+    Long step;
+    Long epoch;
+    String context;
+    String groupingName;
+    Map<String, Object> metadata;
 
     /**
      * Updates this asset with values from provided {@link ExperimentContext}.

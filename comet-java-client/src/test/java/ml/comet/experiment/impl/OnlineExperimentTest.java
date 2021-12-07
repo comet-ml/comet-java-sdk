@@ -2,9 +2,9 @@ package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.ApiExperiment;
-import ml.comet.experiment.Experiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentAssetLink;
 import ml.comet.experiment.model.ExperimentMetadataRest;
@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -27,19 +28,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
-import java.util.function.Function;
 
+import static java.util.Optional.empty;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ALL;
 import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
+import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class OnlineExperimentTest extends BaseApiTest {
     private static final String SOME_NAME = "someName";
@@ -65,6 +67,11 @@ public class OnlineExperimentTest extends BaseApiTest {
     private static final String LOGGED_LINE = "This should end up in Comet ML.";
     private static final String LOGGED_ERROR_LINE = "This error should also get to Comet ML.";
     private static final String NON_LOGGED_LINE = "This should not end up in Comet ML.";
+
+    private static final ExperimentContext SOME_FULL_CONTEXT =
+            new ExperimentContext(10, 101, "train");
+    private static final ExperimentContext SOME_PARTIAL_CONTEXT =
+            new ExperimentContext(10, 101);
 
     private static Path root;
     private static Path emptyFile;
@@ -109,9 +116,10 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // Log assets folder nd wait for completion
         //
-        ExperimentContext context = new ExperimentContext(123, 1042, "train");
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logAssetFolder(root.toFile(), false, true, false, context, onComplete);
+        experiment.logAssetFolder(
+                root.toFile(), false, true, false,
+                SOME_FULL_CONTEXT, Optional.of(onComplete));
 
         awaitForCondition(onComplete, "log assets' folder timeout", 60);
 
@@ -122,11 +130,11 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
 
-        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
-        validateAsset(assets, ANOTHER_TEXT_FILE_NAME, ANOTHER_TEXT_FILE_SIZE, context);
-        validateAsset(assets, emptyFile.getFileName().toString(), 0, context);
-        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, context);
-        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, context);
+        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
+        validateAsset(assets, ANOTHER_TEXT_FILE_NAME, ANOTHER_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
+        validateAsset(assets, emptyFile.getFileName().toString(), 0, SOME_FULL_CONTEXT);
+        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, SOME_FULL_CONTEXT);
+        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, SOME_FULL_CONTEXT);
 
         experiment.end();
     }
@@ -200,29 +208,62 @@ public class OnlineExperimentTest extends BaseApiTest {
 
     @Test
     public void testLogAndGetMetric() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // Test metric with full context (including context ID)
+            //
+            OnCompleteAction onComplete = new OnCompleteAction();
+            experiment.logMetric(
+                    SOME_PARAMETER, SOME_PARAMETER_VALUE, SOME_FULL_CONTEXT, Optional.of(onComplete));
+            awaitForCondition(onComplete, "logMetricAsync onComplete timeout");
 
-        testLogParameters(experiment, Experiment::getMetrics, (key, value) -> {
-            OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logMetric(key, value,
-                    new ExperimentContext(1, 1), onCompleteAction);
-            awaitForCondition(onCompleteAction, "logMetricAsync onComplete timeout");
-        });
+            // Test metric with partial context (without context ID)
+            //
+            experiment.setContext(StringUtils.EMPTY);
+            onComplete = new OnCompleteAction();
+            experiment.logMetric(
+                    ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE, SOME_PARTIAL_CONTEXT, Optional.of(onComplete));
+            awaitForCondition(onComplete, "logMetricAsync onComplete timeout");
 
-        experiment.end();
+            // Wait for metrics to become available and check results
+            //
+            awaitForCondition(() -> experiment.getMetrics().size() == 2, "experiment metrics get timeout");
+
+            List<ValueMinMaxDto> metrics = experiment.getMetrics();
+            validateMetrics(metrics, fullMetricName(SOME_PARAMETER, SOME_FULL_CONTEXT), SOME_PARAMETER_VALUE);
+            validateMetrics(metrics, fullMetricName(ANOTHER_PARAMETER, SOME_PARTIAL_CONTEXT), ANOTHER_PARAMETER_VALUE);
+        } catch (Throwable throwable) {
+            fail(throwable);
+        }
     }
 
     @Test
     public void testLogAndGetParameter() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
 
-        testLogParameters(experiment, Experiment::getParameters, (key, value) -> {
-            OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logParameter(key, value, new ExperimentContext(1), onCompleteAction);
-            awaitForCondition(onCompleteAction, "logParameterAsync onComplete timeout");
-        });
+            // Test log parameter with full context
+            //
+            OnCompleteAction onComplete = new OnCompleteAction();
+            experiment.logParameter(
+                    SOME_PARAMETER, SOME_PARAMETER_VALUE, SOME_FULL_CONTEXT, Optional.of(onComplete));
+            awaitForCondition(onComplete, "logParameterAsync onComplete timeout");
 
-        experiment.end();
+            // Test log parameter with partial context
+            //
+            onComplete = new OnCompleteAction();
+            experiment.logParameter(
+                    ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE, SOME_PARTIAL_CONTEXT, Optional.of(onComplete));
+            awaitForCondition(onComplete, "logParameterAsync onComplete timeout");
+
+            // Wait for parameters to become available and check results
+            //
+            awaitForCondition(() -> experiment.getParameters().size() == 2, "experiment parameters get timeout");
+            List<ValueMinMaxDto> params = experiment.getParameters();
+            validateMetrics(params, SOME_PARAMETER, SOME_PARAMETER_VALUE);
+            validateMetrics(params, ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
+
+        } catch (Throwable throwable) {
+            fail(throwable);
+        }
     }
 
     @Test
@@ -242,9 +283,9 @@ public class OnlineExperimentTest extends BaseApiTest {
         params.put(ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
 
         params.forEach((key, value) -> {
-            OnCompleteAction onCompleteAction = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logOther(key, value, onCompleteAction);
-            awaitForCondition(onCompleteAction, "logOtherAsync onComplete timeout");
+            OnCompleteAction onComplete = new OnCompleteAction();
+            ((OnlineExperimentImpl) experiment).logOther(key, value, Optional.of(onComplete));
+            awaitForCondition(onComplete, "logOtherAsync onComplete timeout");
         });
 
         // Get saved other data and check
@@ -266,7 +307,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Create first HTML record
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logHtml(SOME_HTML, true, onComplete);
+        experiment.logHtml(SOME_HTML, true, Optional.of(onComplete));
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -279,7 +320,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Override first HTML record
         //
         onComplete = new OnCompleteAction();
-        experiment.logHtml(ANOTHER_HTML, true, onComplete);
+        experiment.logHtml(ANOTHER_HTML, true, Optional.of(onComplete));
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -292,7 +333,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Check that HTML record was not overridden but appended
         //
         onComplete = new OnCompleteAction();
-        experiment.logHtml(SOME_HTML, false, onComplete);
+        experiment.logHtml(SOME_HTML, false, Optional.of(onComplete));
 
         // sleep to make sure the request was sent
         awaitForCondition(onComplete, "onComplete timeout");
@@ -315,11 +356,11 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Add TAGs and wait for response
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.addTag(SOME_TEXT, onComplete);
+        experiment.addTag(SOME_TEXT, Optional.of(onComplete));
         awaitForCondition(onComplete, "onComplete timeout");
 
         onComplete = new OnCompleteAction();
-        experiment.addTag(ANOTHER_TAG, onComplete);
+        experiment.addTag(ANOTHER_TAG, Optional.of(onComplete));
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get new TAGs and check
@@ -345,7 +386,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         // Log Graph and wait for response
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logGraph(SOME_GRAPH, onComplete);
+        experiment.logGraph(SOME_GRAPH, Optional.of(onComplete));
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get graph and check result
@@ -376,11 +417,11 @@ public class OnlineExperimentTest extends BaseApiTest {
         long now = System.currentTimeMillis();
 
         OnCompleteAction onComplete = new OnCompleteAction();
-        existingExperiment.logStartTime(now, onComplete);
+        existingExperiment.logStartTime(now, Optional.of(onComplete));
         awaitForCondition(onComplete, "logStartTime onComplete timeout", 120);
 
         onComplete = new OnCompleteAction();
-        existingExperiment.logEndTime(now, onComplete);
+        existingExperiment.logEndTime(now, Optional.of(onComplete));
         awaitForCondition(onComplete, "logEndTime onComplete timeout", 120);
 
         // Get updated experiment metadata and check results
@@ -405,15 +446,14 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // Upload few assets and wait for completion
         //
-        ExperimentContext context = new ExperimentContext(10, 101, "train");
         OnCompleteAction onComplete = new OnCompleteAction();
         experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)), IMAGE_FILE_NAME,
-                false, context, onComplete);
+                false, SOME_FULL_CONTEXT, Optional.of(onComplete));
         awaitForCondition(onComplete, "image file onComplete timeout", 30);
 
         onComplete = new OnCompleteAction();
         experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
-                false, context, onComplete);
+                false, SOME_FULL_CONTEXT, Optional.of(onComplete));
         awaitForCondition(onComplete, "text file onComplete timeout", 30);
 
         // wait for assets become available and validate results
@@ -421,14 +461,14 @@ public class OnlineExperimentTest extends BaseApiTest {
         awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
 
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
-        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, context);
-        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
+        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, SOME_FULL_CONTEXT);
+        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
 
         // update one of the assets and validate
         //
         onComplete = new OnCompleteAction();
         experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)),
-                SOME_TEXT_FILE_NAME, true, context, onComplete);
+                SOME_TEXT_FILE_NAME, true, SOME_FULL_CONTEXT, Optional.of(onComplete));
         awaitForCondition(onComplete, "update text file onComplete timeout", 30);
 
         awaitForCondition(() -> {
@@ -437,30 +477,75 @@ public class OnlineExperimentTest extends BaseApiTest {
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
                     .anyMatch(asset ->
                             ANOTHER_TEXT_FILE_SIZE == asset.getFileSize()
-                                    && Objects.equals(asset.getStep(), context.getStep())
-                                    && asset.getRunContext().equals(context.getContext()));
+                                    && Objects.equals(asset.getStep(), SOME_FULL_CONTEXT.getStep())
+                                    && asset.getRunContext().equals(SOME_FULL_CONTEXT.getContext()));
         }, "Asset was updated");
 
         experiment.end();
     }
 
     @Test
+    public void testLogAndGetRemoteAssets() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // Make sure experiment has no assets
+            //
+            assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+
+            // Log remote assets and wait for completion
+            //
+            OnCompleteAction onComplete = new OnCompleteAction();
+            Map<String, Object> metadata = new HashMap<String, Object>() {{
+                put("someInt", 10);
+                put("someString", "test string");
+                put("someBoolean", true);
+            }};
+
+            URI firstAssetLink = new URI("s3://bucket/folder/firstAssetFile.extension");
+            String firstAssetFileName = "firstAssetFileName";
+            experiment.logRemoteAsset(
+                    firstAssetLink, Optional.of(firstAssetFileName), false, Optional.of(metadata),
+                    SOME_FULL_CONTEXT, Optional.of(onComplete));
+
+            awaitForCondition(onComplete, "first remote asset onComplete timeout", 30);
+
+            String secondAssetExpectedFileName = "secondAssetFile.extension";
+            URI secondAssetLink = new URI("s3://bucket/folder/" + secondAssetExpectedFileName);
+            experiment.logRemoteAsset(secondAssetLink, empty(), false, empty(),
+                    SOME_FULL_CONTEXT, Optional.of(onComplete));
+
+            awaitForCondition(onComplete, "second remote asset onComplete timeout", 30);
+
+            // wait for assets become available and validate results
+            //
+            awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
+            List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
+
+            validateRemoteAssetLink(assets, firstAssetLink, firstAssetFileName, metadata);
+            validateRemoteAssetLink(assets, secondAssetLink, secondAssetExpectedFileName, null);
+        } catch (Exception e) {
+            fail(e);
+        }
+    }
+
+    @Test
     public void testSetsContext() {
-        OnlineExperiment experiment = createOnlineExperiment();
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
 
-        assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+            experiment.setContext(SOME_TEXT);
+            experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
 
-        experiment.setContext(SOME_TEXT);
-        experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
+            awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 1, "Asset uploaded");
 
-        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 1, "Asset uploaded");
-
-        Optional<ExperimentAssetLink> assetOpt = experiment.getAssetList(ASSET_TYPE_ALL)
-                .stream()
-                .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
-                .findFirst();
-        assertTrue(assetOpt.isPresent());
-        assertEquals(SOME_TEXT, assetOpt.get().getRunContext());
+            Optional<ExperimentAssetLink> assetOpt = experiment.getAssetList(ASSET_TYPE_ALL)
+                    .stream()
+                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
+                    .findFirst();
+            assertTrue(assetOpt.isPresent());
+            assertEquals(SOME_TEXT, assetOpt.get().getRunContext());
+        } catch (Exception e) {
+            fail(e);
+        }
     }
 
     @Test
@@ -479,7 +564,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         OnCompleteAction onComplete = new OnCompleteAction();
         GitMetadata request = new GitMetadata(experiment.getExperimentKey(),
                 "user", "root", "branch", "parent", "origin");
-        ((OnlineExperimentImpl) experiment).logGitMetadataAsync(request, onComplete);
+        ((OnlineExperimentImpl) experiment).logGitMetadataAsync(request, Optional.of(onComplete));
         awaitForCondition(onComplete, "onComplete timeout");
 
         // Get GIT metadata and check results
@@ -498,37 +583,39 @@ public class OnlineExperimentTest extends BaseApiTest {
 
 
     @Test
-    public void testCopyStdout() throws IOException {
-        OnlineExperiment experiment = createOnlineExperiment();
-        experiment.setInterceptStdout();
+    public void testCopyStdout() {
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            experiment.setInterceptStdout();
 
-        System.out.println(experiment.getExperimentKey());
-        System.out.println(experiment.getProjectName());
-        System.out.println(LOGGED_LINE);
-        System.err.println(LOGGED_ERROR_LINE);
-        System.out.flush();
-        System.err.flush();
+            System.out.println(experiment.getExperimentKey());
+            System.out.println(experiment.getProjectName());
+            System.out.println(LOGGED_LINE);
+            System.err.println(LOGGED_ERROR_LINE);
+            System.out.flush();
+            System.err.flush();
 
-        // wait for flush to complete before stopping interception
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            // wait for flush to complete before stopping interception
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            experiment.stopInterceptStdout();
+
+            System.out.println(NON_LOGGED_LINE);
+            System.out.flush();
+
+            awaitForCondition(() -> experiment.getOutput()
+                    .filter(log -> log.contains(experiment.getExperimentKey()))
+                    .filter(log -> log.contains(experiment.getProjectName()))
+                    .filter(log -> log.contains(LOGGED_LINE))
+                    .filter(log -> log.contains(LOGGED_ERROR_LINE))
+                    .filter(log -> !log.contains(NON_LOGGED_LINE))
+                    .isPresent(), "Experiment logs added");
+        } catch (Exception e) {
+            fail(e);
         }
-
-        experiment.stopInterceptStdout();
-
-        System.out.println(NON_LOGGED_LINE);
-        System.out.flush();
-
-        awaitForCondition(() -> experiment.getOutput()
-                .filter(log -> log.contains(experiment.getExperimentKey()))
-                .filter(log -> log.contains(experiment.getProjectName()))
-                .filter(log -> log.contains(LOGGED_LINE))
-                .filter(log -> log.contains(LOGGED_ERROR_LINE))
-                .filter(log -> !log.contains(NON_LOGGED_LINE))
-                .isPresent(), "Experiment logs added");
-
     }
 
     @Test
@@ -541,13 +628,12 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // log code and check results
         //
-        ExperimentContext context = new ExperimentContext(10, 101, "test");
-        experiment.logCode(Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)), context);
+        experiment.logCode(Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)), SOME_FULL_CONTEXT);
 
         awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(),
                 "Experiment code from file added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
-        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, context);
+        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, SOME_FULL_CONTEXT);
 
         experiment.end();
     }
@@ -562,13 +648,12 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // log code and check results
         //
-        ExperimentContext context = new ExperimentContext(10, 101, "test");
-        experiment.logCode(SOME_TEXT, CODE_FILE_NAME, context);
+        experiment.logCode(SOME_TEXT, CODE_FILE_NAME, SOME_PARTIAL_CONTEXT);
 
         awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(),
                 "Experiment raw code added");
         List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
-        validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, context);
+        validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_PARTIAL_CONTEXT);
 
         experiment.end();
     }
@@ -594,45 +679,48 @@ public class OnlineExperimentTest extends BaseApiTest {
                 .build();
     }
 
+    static void validateRemoteAssetLink(List<ExperimentAssetLink> assets, URI uri,
+                                        String fileName, Map<String, Object> metadata) {
+        if (Objects.nonNull(metadata)) {
+            String metadataJson = JsonUtils.toJson(metadata);
+            assertTrue(assets.stream()
+                    .filter(asset -> uri.toString().equals(asset.getLink()))
+                    .allMatch(asset -> asset.isRemote()
+                            && Objects.equals(asset.getFileName(), fileName)
+                            && Objects.equals(asset.getMetadata(), metadataJson)));
+        } else {
+            assertTrue(assets.stream()
+                    .filter(asset -> uri.toString().equals(asset.getLink()))
+                    .allMatch(asset -> asset.isRemote()
+                            && Objects.equals(asset.getFileName(), fileName)
+                            && StringUtils.isEmpty(asset.getMetadata())));
+        }
+    }
+
     static void validateAsset(List<ExperimentAssetLink> assets, String expectedAssetName,
                               long expectedSize, ExperimentContext context) {
         assertTrue(assets.stream()
                 .filter(asset -> expectedAssetName.equals(asset.getFileName()))
-                .anyMatch(asset -> expectedSize == asset.getFileSize()
-                        && Objects.equals(context.getStep(), asset.getStep())
-                        && context.getContext().equals(asset.getRunContext())));
-    }
-
-    static void testLogParameters(OnlineExperiment experiment,
-                                  Function<Experiment, List<ValueMinMaxDto>> supplierFunction,
-                                  BiConsumer<String, Object> updateFunction) {
-
-        List<ValueMinMaxDto> parameters = supplierFunction.apply(experiment);
-        assertTrue(parameters.isEmpty(), "no experiment parameters expected");
-
-        Map<String, Object> params = new HashMap<>();
-        params.put(SOME_PARAMETER, SOME_PARAMETER_VALUE);
-        params.put(ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
-
-        params.forEach(updateFunction);
-
-        awaitForCondition(() -> supplierFunction.apply(
-                experiment).size() == 2, "experiment parameters get timeout");
-
-        List<ValueMinMaxDto> updatedParameters = supplierFunction.apply(experiment);
-        params.forEach((k, v) -> validateMetrics(updatedParameters, k, v));
-
+                .anyMatch(asset -> {
+                    boolean res = expectedSize == asset.getFileSize()
+                            && Objects.equals(context.getStep(), asset.getStep());
+                    if (StringUtils.isNotBlank(context.getContext())) {
+                        res = res & context.getContext().equals(asset.getRunContext());
+                    }
+                    return res;
+                }));
     }
 
     static void validateMetrics(List<ValueMinMaxDto> metrics, String name, Object value) {
         String stringValue = value.toString();
+        System.out.println(name + ":" + value);
         assertTrue(metrics.stream()
+                .peek(System.out::println)
                 .filter(m -> name.equals(m.getName()))
                 .filter(m -> stringValue.equals(m.getValueMax()))
                 .filter(m -> stringValue.equals(m.getValueMin()))
                 .anyMatch(m -> stringValue.equals(m.getValueCurrent())));
     }
-
 
     static void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias) {
         Awaitility.await(conditionAlias).atMost(30, SECONDS)

@@ -12,7 +12,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -20,6 +22,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HEARTBEAT_STOPPED_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
@@ -198,12 +202,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public Optional<String> getExperimentLink() {
-        return Optional.ofNullable(this.experimentLink);
+        return ofNullable(this.experimentLink);
     }
 
     @Override
     public void logMetric(@NonNull String metricName, @NonNull Object metricValue, @NonNull ExperimentContext context) {
-        this.logMetric(metricName, metricValue, context, null);
+        this.logMetric(metricName, metricValue, context, empty());
     }
 
     @Override
@@ -236,42 +240,42 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logParameter(String parameterName, Object paramValue, @NonNull ExperimentContext context) {
-        this.logParameter(parameterName, paramValue, context, null);
+        this.logParameter(parameterName, paramValue, context, empty());
     }
 
     @Override
     public void logHtml(@NonNull String html, boolean override) {
-        this.logHtml(html, override, null);
+        this.logHtml(html, override, empty());
     }
 
     @Override
     public void logOther(@NonNull String key, @NonNull Object value) {
-        this.logOther(key, value, null);
+        this.logOther(key, value, empty());
     }
 
     @Override
     public void addTag(@NonNull String tag) {
-        this.addTag(tag, null);
+        this.addTag(tag, empty());
     }
 
     @Override
     public void logGraph(@NonNull String graph) {
-        this.logGraph(graph, null);
+        this.logGraph(graph, empty());
     }
 
     @Override
     public void logStartTime(long startTimeMillis) {
-        this.logStartTime(startTimeMillis, null);
+        this.logStartTime(startTimeMillis, empty());
     }
 
     @Override
     public void logEndTime(long endTimeMillis) {
-        this.logEndTime(endTimeMillis, null);
+        this.logEndTime(endTimeMillis, empty());
     }
 
     @Override
     public void logGitMetadata(GitMetadata gitMetadata) {
-        this.logGitMetadataAsync(gitMetadata, null);
+        this.logGitMetadataAsync(gitMetadata, empty());
     }
 
     @Override
@@ -282,32 +286,33 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logLine(String line, long offset, boolean stderr, String context) {
         this.setContext(context);
-        this.logLine(line, offset, stderr, context, null);
+        this.logLine(line, offset, stderr, context, empty());
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean logFilePath, boolean recursive, ExperimentContext context) {
-        this.logAssetFolder(folder, logFilePath, recursive, true, context, null);
+    public void logAssetFolder(@NonNull File folder, boolean logFilePath,
+                               boolean recursive, @NonNull ExperimentContext context) {
+        this.logAssetFolder(folder, logFilePath, recursive, true, context, empty());
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean logFilePath, boolean recursive) {
+    public void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive) {
         this.logAssetFolder(folder, logFilePath, recursive, this.baseContext);
     }
 
     @Override
-    public void logAssetFolder(File folder, boolean logFilePath) {
+    public void logAssetFolder(@NonNull File folder, boolean logFilePath) {
         this.logAssetFolder(folder, logFilePath, false);
     }
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName,
                             boolean overwrite, @NonNull ExperimentContext context) {
-        this.uploadAsset(asset, fileName, overwrite, context, null);
+        this.uploadAsset(asset, fileName, overwrite, context, empty());
     }
 
     @Override
-    public void uploadAsset(File asset, boolean overwrite, ExperimentContext context) {
+    public void uploadAsset(@NonNull File asset, boolean overwrite, @NonNull ExperimentContext context) {
         this.uploadAsset(asset, asset.getName(), overwrite, context);
     }
 
@@ -333,13 +338,35 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
+    public void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite,
+                               Map<String, Object> metadata, @NonNull ExperimentContext context) {
+        this.logRemoteAsset(
+                uri, ofNullable(fileName), overwrite, ofNullable(metadata), context, empty());
+    }
+
+    @Override
+    public void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite, Map<String, Object> metadata) {
+        this.logRemoteAsset(uri, fileName, overwrite, metadata, this.baseContext);
+    }
+
+    @Override
+    public void logRemoteAsset(@NonNull URI uri, @NonNull String fileName, boolean overwrite) {
+        this.logRemoteAsset(uri, fileName, overwrite, null);
+    }
+
+    @Override
+    public void logRemoteAsset(@NonNull URI uri, boolean overwrite) {
+        this.logRemoteAsset(uri, null, overwrite, null, this.baseContext);
+    }
+
+    @Override
     public void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context) {
-        this.logCode(code, fileName, context, null);
+        this.logCode(code, fileName, context, empty());
     }
 
     @Override
     public void logCode(@NonNull File file, @NonNull ExperimentContext context) {
-        this.logCode(file, context, null);
+        this.logCode(file, context, empty());
     }
 
     @Override

@@ -6,9 +6,11 @@ import lombok.NonNull;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetType;
+import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
+import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.model.AddExperimentTagsRest;
 import ml.comet.experiment.model.AddGraphRest;
@@ -65,18 +67,12 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.NEW_EXPERIMENT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_EXPERIMENT_STATUS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
-import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
-import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
+import static ml.comet.experiment.impl.constants.FormParamName.LINK;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
-import static ml.comet.experiment.impl.constants.QueryParamName.EXTENSION;
-import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.IS_REMOTE;
-import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
-import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
-import static ml.comet.experiment.impl.utils.CometUtils.putNotNull;
 
 /**
  * Represents Comet REST API client providing access to all exposed REST endpoints.
@@ -203,27 +199,8 @@ final class RestApiClient implements Disposable {
     }
 
     Single<LogDataResponse> logAsset(final Asset asset, String experimentKey) {
-        // populate query parameters
-        HashMap<QueryParamName, String> queryParams = new HashMap<QueryParamName, String>() {{
-            put(EXPERIMENT_KEY, experimentKey);
-            put(TYPE, asset.getType().type());
-        }};
-        putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
-        putNotNull(queryParams, IS_REMOTE, asset.getRemote());
-        putNotNull(queryParams, FILE_NAME, asset.getFileName());
-        putNotNull(queryParams, EXTENSION, asset.getFileExtension());
-        putNotNull(queryParams, CONTEXT, asset.getContext());
-        putNotNull(queryParams, STEP, asset.getStep());
-        putNotNull(queryParams, EPOCH, asset.getEpoch());
-
-        // populate form parameters
-        HashMap<FormParamName, Object> formParams = null;
-        if (asset.getMetadata() != null) {
-            // encode metadata to JSON
-            formParams = new HashMap<FormParamName, Object>() {{
-                put(FormParamName.METADATA, JsonUtils.toJson(asset.getMetadata()));
-            }};
-        }
+        Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
+        Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
 
         // call appropriate send method
         if (asset.getFile() != null) {
@@ -241,10 +218,32 @@ final class RestApiClient implements Disposable {
         return Single.just(response);
     }
 
+    Single<LogDataResponse> logRemoteAsset(final RemoteAsset asset, String experimentKey) {
+        Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
+        queryParams.put(IS_REMOTE, Boolean.valueOf(true).toString());
+
+        Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
+        formParams.put(LINK, asset.getLink().toASCIIString());
+
+        return singleFromAsyncPost(ADD_ASSET, queryParams, formParams, LogDataResponse.class);
+    }
+
+    private <T> Single<T> singleFromAsyncPost(@NonNull String endpoint,
+                                              @NonNull Map<QueryParamName, String> queryParams,
+                                              @NonNull Map<FormParamName, Object> formParams,
+                                              @NonNull Class<T> clazz) {
+        if (isDisposed()) {
+            return Single.error(ALREADY_DISPOSED);
+        }
+        return Single.fromFuture(this.connection.sendPostAsync(endpoint, queryParams, formParams))
+                .onTerminateDetach()
+                .map(response -> JsonUtils.fromJson(response.getResponseBody(), clazz));
+    }
+
     private <T> Single<T> singleFromAsyncPost(
             byte[] fileLikeData, @NonNull String endpoint,
-            @NonNull HashMap<QueryParamName, String> queryParams,
-            HashMap<FormParamName, Object> formParams, @NonNull Class<T> clazz) {
+            @NonNull Map<QueryParamName, String> queryParams, Map<FormParamName, Object> formParams,
+            @NonNull Class<T> clazz) {
         if (isDisposed()) {
             return Single.error(ALREADY_DISPOSED);
         }
@@ -256,8 +255,8 @@ final class RestApiClient implements Disposable {
 
     private <T> Single<T> singleFromAsyncPost(
             @NonNull File file, @NonNull String endpoint,
-            @NonNull HashMap<QueryParamName, String> queryParams,
-            HashMap<FormParamName, Object> formParams, @NonNull Class<T> clazz) {
+            @NonNull Map<QueryParamName, String> queryParams, Map<FormParamName, Object> formParams,
+            @NonNull Class<T> clazz) {
         if (isDisposed()) {
             return Single.error(ALREADY_DISPOSED);
         }

@@ -2,6 +2,7 @@ package ml.comet.experiment.impl.utils;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import ml.comet.experiment.context.ExperimentContext;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
@@ -67,6 +68,22 @@ public final class CometUtils {
     public static <T> void putNotNull(@NonNull Map<T, String> map, @NonNull T key, Object value) {
         if (value != null) {
             map.put(key, value.toString());
+        }
+    }
+
+    /**
+     * Creates full name of the metric as it is returned by backend.
+     *
+     * @param name    the short name of the metric
+     * @param context the experiment context associated with metric
+     * @return the full name of the metric, which can be prefixed by context ID if present in the
+     * provided {@code context} parameter.
+     */
+    public static String fullMetricName(@NonNull String name, @NonNull ExperimentContext context) {
+        if (StringUtils.isEmpty(context.getContext())) {
+            return name;
+        } else {
+            return String.format("%s_%s", context.getContext(), name);
         }
     }
 }
