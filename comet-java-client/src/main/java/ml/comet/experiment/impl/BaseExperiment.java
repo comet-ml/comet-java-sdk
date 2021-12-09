@@ -32,8 +32,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ASSET;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
@@ -353,7 +353,7 @@ abstract class BaseExperiment implements Experiment {
         asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
         asset.setFileName(fileName);
         asset.setExperimentContext(context);
-        asset.setType(ASSET_TYPE_SOURCE_CODE);
+        asset.setType(SOURCE_CODE);
 
         sendSynchronously(restApiClient::logAsset, asset);
     }
@@ -372,7 +372,7 @@ abstract class BaseExperiment implements Experiment {
         asset.setFile(file);
         asset.setFileName(file.getName());
         asset.setExperimentContext(context);
-        asset.setType(ASSET_TYPE_SOURCE_CODE);
+        asset.setType(SOURCE_CODE);
 
         sendSynchronously(restApiClient::logAsset, asset);
     }
@@ -394,7 +394,7 @@ abstract class BaseExperiment implements Experiment {
         asset.setFileName(fileName);
         asset.setExperimentContext(context);
         asset.setOverwrite(overwrite);
-        asset.setType(ASSET_TYPE_ASSET);
+        asset.setType(ASSET);
 
         sendSynchronously(restApiClient::logAsset, asset);
     }

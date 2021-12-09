@@ -33,8 +33,8 @@ import java.util.function.BooleanSupplier;
 import static java.util.Optional.empty;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ALL;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
+import static ml.comet.experiment.impl.asset.AssetType.ALL;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -112,7 +112,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // Make sure experiment has no assets
         //
-        assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+        assertTrue(experiment.getAssetList(ALL).isEmpty());
 
         // Log assets folder nd wait for completion
         //
@@ -126,9 +126,9 @@ public class OnlineExperimentTest extends BaseApiTest {
         // wait for assets become available and validate results
         //
         awaitForCondition(() ->
-                experiment.getAssetList(ASSET_TYPE_ALL).size() == assetFolderFiles.size(), "Assets was uploaded");
+                experiment.getAssetList(ALL).size() == assetFolderFiles.size(), "Assets was uploaded");
 
-        List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
+        List<ExperimentAssetLink> assets = experiment.getAssetList(ALL);
 
         validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
         validateAsset(assets, ANOTHER_TEXT_FILE_NAME, ANOTHER_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
@@ -442,7 +442,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // Make sure experiment has no assets
         //
-        assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+        assertTrue(experiment.getAssetList(ALL).isEmpty());
 
         // Upload few assets and wait for completion
         //
@@ -458,9 +458,9 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // wait for assets become available and validate results
         //
-        awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
+        awaitForCondition(() -> experiment.getAssetList(ALL).size() == 2, "Assets was uploaded");
 
-        List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
+        List<ExperimentAssetLink> assets = experiment.getAssetList(ALL);
         validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, SOME_FULL_CONTEXT);
         validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
 
@@ -472,7 +472,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         awaitForCondition(onComplete, "update text file onComplete timeout", 30);
 
         awaitForCondition(() -> {
-            List<ExperimentAssetLink> assetList = experiment.getAssetList(ASSET_TYPE_ALL);
+            List<ExperimentAssetLink> assetList = experiment.getAssetList(ALL);
             return assetList.stream()
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
                     .anyMatch(asset ->
@@ -489,7 +489,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
             // Make sure experiment has no assets
             //
-            assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+            assertTrue(experiment.getAssetList(ALL).isEmpty());
 
             // Log remote assets and wait for completion
             //
@@ -517,8 +517,8 @@ public class OnlineExperimentTest extends BaseApiTest {
 
             // wait for assets become available and validate results
             //
-            awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 2, "Assets was uploaded");
-            List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_ALL);
+            awaitForCondition(() -> experiment.getAssetList(ALL).size() == 2, "Assets was uploaded");
+            List<ExperimentAssetLink> assets = experiment.getAssetList(ALL);
 
             validateRemoteAssetLink(assets, firstAssetLink, firstAssetFileName, metadata);
             validateRemoteAssetLink(assets, secondAssetLink, secondAssetExpectedFileName, null);
@@ -530,14 +530,14 @@ public class OnlineExperimentTest extends BaseApiTest {
     @Test
     public void testSetsContext() {
         try (OnlineExperiment experiment = createOnlineExperiment()) {
-            assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+            assertTrue(experiment.getAssetList(ALL).isEmpty());
 
             experiment.setContext(SOME_TEXT);
             experiment.uploadAsset(TestUtils.getFile(SOME_TEXT_FILE_NAME), false);
 
-            awaitForCondition(() -> experiment.getAssetList(ASSET_TYPE_ALL).size() == 1, "Asset uploaded");
+            awaitForCondition(() -> experiment.getAssetList(ALL).size() == 1, "Asset uploaded");
 
-            Optional<ExperimentAssetLink> assetOpt = experiment.getAssetList(ASSET_TYPE_ALL)
+            Optional<ExperimentAssetLink> assetOpt = experiment.getAssetList(ALL)
                     .stream()
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
                     .findFirst();
@@ -624,15 +624,15 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // check that no code was logged
         //
-        assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+        assertTrue(experiment.getAssetList(ALL).isEmpty());
 
         // log code and check results
         //
         experiment.logCode(Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)), SOME_FULL_CONTEXT);
 
-        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(),
+        awaitForCondition(() -> !experiment.getAssetList(SOURCE_CODE).isEmpty(),
                 "Experiment code from file added");
-        List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
+        List<ExperimentAssetLink> assets = experiment.getAssetList(SOURCE_CODE);
         validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, SOME_FULL_CONTEXT);
 
         experiment.end();
@@ -644,15 +644,15 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         // check that no code was logged
         //
-        assertTrue(experiment.getAssetList(ASSET_TYPE_ALL).isEmpty());
+        assertTrue(experiment.getAssetList(ALL).isEmpty());
 
         // log code and check results
         //
         experiment.logCode(SOME_TEXT, CODE_FILE_NAME, SOME_PARTIAL_CONTEXT);
 
-        awaitForCondition(() -> !experiment.getAssetList(ASSET_TYPE_SOURCE_CODE).isEmpty(),
+        awaitForCondition(() -> !experiment.getAssetList(SOURCE_CODE).isEmpty(),
                 "Experiment raw code added");
-        List<ExperimentAssetLink> assets = experiment.getAssetList(ASSET_TYPE_SOURCE_CODE);
+        List<ExperimentAssetLink> assets = experiment.getAssetList(SOURCE_CODE);
         validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_PARTIAL_CONTEXT);
 
         experiment.end();
