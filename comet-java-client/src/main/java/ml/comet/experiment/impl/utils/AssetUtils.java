@@ -3,6 +3,7 @@ package ml.comet.experiment.impl.utils;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
@@ -66,18 +67,63 @@ public class AssetUtils {
      * @param overwrite if {@code true} will overwrite all existing assets with the same name.
      * @param metadata  Some additional data to attach to the remote asset.
      *                  The dictionary values must be JSON compatible.
+     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
+     *                  will be assigned.
      * @return the initialized {@link RemoteAsset} instance.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static RemoteAsset createRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
-                                                Optional<Map<String, Object>> metadata) {
+                                                Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
         RemoteAsset asset = new RemoteAsset();
         asset.setLink(uri);
-        asset.setOverwrite(overwrite);
-        metadata.ifPresent(asset::setMetadata);
-        asset.setFileName(
-                fileName.orElse(remoteAssetFileName(uri)));
-        return asset;
+        asset.setFileName(fileName.orElse(remoteAssetFileName(uri)));
+
+        return (RemoteAsset) updateAsset(asset, overwrite, metadata, type);
+    }
+
+    /**
+     * Creates the {@link Asset} from the local file.
+     *
+     * @param file      the asset file.
+     * @param fileName  the logical name for the asset file.
+     * @param overwrite if {@code true} mark as override
+     * @param metadata  the metadata to associate with asset. The dictionary values must be JSON compatible.
+     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
+     *                  will be assigned.
+     * @return the instance of the {@link Asset} from the local file.
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static Asset createAssetFromFile(@NonNull File file, Optional<String> fileName, boolean overwrite,
+                                            Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+        String logicalFileName = fileName.orElse(file.getName());
+        Asset asset = new Asset();
+        asset.setFile(file);
+        asset.setFileName(logicalFileName);
+        asset.setFileExtension(FilenameUtils.getExtension(logicalFileName));
+
+        return updateAsset(asset, overwrite, metadata, type);
+    }
+
+    /**
+     * Creates the {@link Asset} from the file-like data.
+     *
+     * @param data      the asset's data.
+     * @param fileName  the logical name for the asset file.
+     * @param overwrite if {@code true} mark as override
+     * @param metadata  the metadata to associate with asset. The dictionary values must be JSON compatible.
+     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
+     *                  will be assigned.
+     * @return the instance of the {@link Asset} from the file-like data.
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static Asset createAssetFromData(byte[] data, @NonNull String fileName, boolean overwrite,
+                                            Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+        Asset asset = new Asset();
+        asset.setFileLikeData(data);
+        asset.setFileName(fileName);
+        asset.setFileExtension(FilenameUtils.getExtension(fileName));
+
+        return updateAsset(asset, overwrite, metadata, type);
     }
 
     /**
@@ -116,6 +162,27 @@ public class AssetUtils {
             map.put(FormParamName.METADATA, JsonUtils.toJson(asset.getMetadata()));
         }
         return map;
+    }
+
+    /**
+     * Updates provided {@link Asset} with values from optionals or with defaults.
+     *
+     * @param asset     the {@link Asset} to be updated.
+     * @param overwrite if {@code true} will overwrite all existing assets with the same name.
+     * @param metadata  Some additional data to attach to the remote asset.
+     *                  The dictionary values must be JSON compatible.
+     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
+     *                  will be assigned.
+     * @return the updated {@link Asset} with values from optionals or with defaults.
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static Asset updateAsset(Asset asset, boolean overwrite,
+                                    Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+        asset.setOverwrite(overwrite);
+        metadata.ifPresent(asset::setMetadata);
+        asset.setType(type.orElse(AssetType.ASSET));
+
+        return asset;
     }
 
     static String remoteAssetFileName(URI uri) {

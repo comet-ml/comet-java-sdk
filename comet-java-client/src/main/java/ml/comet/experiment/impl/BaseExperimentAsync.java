@@ -30,8 +30,9 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ASSET;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
+import static java.util.Optional.empty;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER;
@@ -40,6 +41,8 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_ASSET_FOLDER_EMPTY;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
 import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogHtmlRequest;
@@ -304,7 +307,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> {
                         asset.setExperimentContext(assetContext);
-                        asset.setType(ASSET_TYPE_ASSET);
+                        asset.setType(ASSET);
                         count.incrementAndGet();
                     });
 
@@ -347,12 +350,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                      boolean overwrite, @NonNull ExperimentContext context, Optional<Action> onComplete) {
         this.updateContext(context);
 
-        Asset asset = new Asset();
-        asset.setFile(file);
-        asset.setFileName(fileName);
-        asset.setOverwrite(overwrite);
-        asset.setType(ASSET_TYPE_ASSET);
-
+        Asset asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
         this.logAsset(asset, onComplete);
     }
 
@@ -375,16 +373,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         Optional<Action> onComplete) {
         this.updateContext(context);
 
-        RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata);
-        asset.setExperimentContext(this.baseContext);
-        asset.setType(ASSET_TYPE_ASSET);
+        RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata, empty());
+        this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
 
         if (Objects.equals(asset.getFileName(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
             getLogger().info(
                     getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
         }
-
-        this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
     }
 
     /**
@@ -401,11 +396,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                  @NonNull ExperimentContext context, Optional<Action> onComplete) {
         this.updateContext(context);
 
-        Asset asset = new Asset();
-        asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
-        asset.setFileName(fileName);
-        asset.setType(ASSET_TYPE_SOURCE_CODE);
-
+        Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
+                empty(), Optional.of(SOURCE_CODE));
         this.logAsset(asset, onComplete);
     }
 
@@ -421,11 +413,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     void logCode(@NonNull File file, @NonNull ExperimentContext context, Optional<Action> onComplete) {
         this.updateContext(context);
 
-        Asset asset = new Asset();
-        asset.setFile(file);
-        asset.setFileName(file.getName());
-        asset.setType(ASSET_TYPE_SOURCE_CODE);
-
+        Asset asset = createAssetFromFile(file, empty(), false,
+                empty(), Optional.of(SOURCE_CODE));
         this.logAsset(asset, onComplete);
     }
 
@@ -438,7 +427,6 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logAsset(@NonNull final Asset asset, Optional<Action> onComplete) {
-        asset.setExperimentContext(this.baseContext);
         this.logAsset(getRestApiClient()::logAsset, asset, onComplete);
     }
 
@@ -454,6 +442,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T extends Asset> void logAsset(final BiFunction<T, String, Single<LogDataResponse>> func,
                                             @NonNull final T asset, Optional<Action> onComplete) {
+        asset.setExperimentContext(this.baseContext);
         Single<LogDataResponse> single = this.sendAssetAsync(func, asset);
 
         if (onComplete.isPresent()) {

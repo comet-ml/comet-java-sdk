@@ -32,12 +32,14 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
-import static ml.comet.experiment.impl.asset.AssetType.ASSET;
+import static java.util.Optional.empty;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
 import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogHtmlRequest;
@@ -349,13 +351,9 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("log raw source code, file name: {}", fileName);
         }
 
-        Asset asset = new Asset();
-        asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
-        asset.setFileName(fileName);
-        asset.setExperimentContext(context);
-        asset.setType(SOURCE_CODE);
-
-        sendSynchronously(restApiClient::logAsset, asset);
+        Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
+                empty(), Optional.of(SOURCE_CODE));
+        this.logAsset(asset, context);
     }
 
     @Override
@@ -368,13 +366,9 @@ abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("log source code from file {}", file.getName());
         }
-        Asset asset = new Asset();
-        asset.setFile(file);
-        asset.setFileName(file.getName());
-        asset.setExperimentContext(context);
-        asset.setType(SOURCE_CODE);
-
-        sendSynchronously(restApiClient::logAsset, asset);
+        Asset asset = createAssetFromFile(file, empty(), false,
+                empty(), Optional.of(SOURCE_CODE));
+        this.logAsset(asset, context);
     }
 
     @Override
@@ -389,14 +383,8 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("uploadAsset from file {}, name {}, override {}, context {}",
                     file.getName(), fileName, overwrite, context);
         }
-        Asset asset = new Asset();
-        asset.setFile(file);
-        asset.setFileName(fileName);
-        asset.setExperimentContext(context);
-        asset.setOverwrite(overwrite);
-        asset.setType(ASSET);
-
-        sendSynchronously(restApiClient::logAsset, asset);
+        Asset asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
+        this.logAsset(asset, context);
     }
 
     @Override
@@ -412,6 +400,17 @@ abstract class BaseExperiment implements Experiment {
     @Override
     public void uploadAsset(@NonNull File asset, boolean overwrite, long step, long epoch) {
         this.uploadAsset(asset, overwrite, new ExperimentContext(step, epoch));
+    }
+
+    /**
+     * Synchronously logs provided asset.
+     *
+     * @param asset the {@link Asset} to be uploaded
+     */
+    void logAsset(@NonNull final Asset asset, @NonNull ExperimentContext context) {
+        asset.setExperimentContext(context);
+
+        sendSynchronously(restApiClient::logAsset, asset);
     }
 
     @Override
