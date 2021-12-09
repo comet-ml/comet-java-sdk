@@ -95,7 +95,7 @@ public class ArtifactTest extends AssetsBaseTest {
 
         @Test
         @DisplayName("artifact has no assets")
-        void noAssets() {
+        void hasNoAssets() {
             assertEquals(0, this.artifact.getAssets().size());
         }
 
