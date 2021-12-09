@@ -11,18 +11,13 @@ import ml.comet.experiment.model.ExperimentMetadataRest;
 import ml.comet.experiment.model.GitMetadata;
 import ml.comet.experiment.model.GitMetadataRest;
 import ml.comet.experiment.model.ValueMinMaxDto;
-import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +28,8 @@ import java.util.function.BooleanSupplier;
 import static java.util.Optional.empty;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
+import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.asset.AssetType.ALL;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
@@ -43,7 +40,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-public class OnlineExperimentTest extends BaseApiTest {
+/**
+ * The integration tests to test {@link OnlineExperiment} implementation by sending/retrieving data from the backend.
+ */
+@DisplayName("OnlineExperimentTest INTEGRATION")
+@Tag("integration")
+public class OnlineExperimentTest extends AssetsBaseTest {
     private static final String SOME_NAME = "someName";
     private static final String SOME_PARAMETER = "someParameter";
     private static final String SOME_PARAMETER_VALUE = "122.0";
@@ -56,14 +58,6 @@ public class OnlineExperimentTest extends BaseApiTest {
     private static final String ANOTHER_TAG = "Another tag";
     private static final String SOME_GRAPH = "{\"keras_version\": \"2.1.2\",\"backend\": \"tensorflow\"}";
 
-    private static final String IMAGE_FILE_NAME = "someChart.png";
-    private static final String CODE_FILE_NAME = "code_sample.py";
-    private static final long IMAGE_FILE_SIZE = 31451L;
-    private static final long CODE_FILE_SIZE = 19L;
-    private static final String SOME_TEXT_FILE_NAME = "someTextFile.txt";
-    private static final String ANOTHER_TEXT_FILE_NAME = "anotherTextFile.txt";
-    private static final long SOME_TEXT_FILE_SIZE = 9L;
-    private static final long ANOTHER_TEXT_FILE_SIZE = 12L;
     private static final String LOGGED_LINE = "This should end up in Comet ML.";
     private static final String LOGGED_ERROR_LINE = "This error should also get to Comet ML.";
     private static final String NON_LOGGED_LINE = "This should not end up in Comet ML.";
@@ -72,39 +66,6 @@ public class OnlineExperimentTest extends BaseApiTest {
             new ExperimentContext(10, 101, "train");
     private static final ExperimentContext SOME_PARTIAL_CONTEXT =
             new ExperimentContext(10, 101);
-
-    private static Path root;
-    private static Path emptyFile;
-    private static List<Path> assetFolderFiles;
-
-    @BeforeAll
-    static void setup() throws IOException {
-        assetFolderFiles = new ArrayList<>();
-        // create temporary directory tree
-        root = Files.createTempDirectory("testFileUtils");
-        assetFolderFiles.add(
-                PathUtils.copyFileToDirectory(
-                        Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)).toPath(), root));
-        assetFolderFiles.add(
-                PathUtils.copyFileToDirectory(
-                        Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)).toPath(), root));
-        emptyFile = Files.createTempFile(root, "c_file", ".txt");
-        assetFolderFiles.add(emptyFile);
-
-        Path subDir = Files.createTempDirectory(root, "subDir");
-        assetFolderFiles.add(
-                PathUtils.copyFileToDirectory(
-                        Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)).toPath(), subDir));
-        assetFolderFiles.add(
-                PathUtils.copyFileToDirectory(
-                        Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)).toPath(), subDir));
-    }
-
-    @AfterAll
-    static void tearDown() throws IOException {
-        PathUtils.delete(root);
-        assertFalse(Files.exists(root), "Directory still exists");
-    }
 
     @Test
     public void testLogAndGetAssetsFolder() {
@@ -118,7 +79,7 @@ public class OnlineExperimentTest extends BaseApiTest {
         //
         OnCompleteAction onComplete = new OnCompleteAction();
         experiment.logAssetFolder(
-                root.toFile(), false, true, false,
+                assetsFolder.toFile(), false, true, false,
                 SOME_FULL_CONTEXT, Optional.of(onComplete));
 
         awaitForCondition(onComplete, "log assets' folder timeout", 60);
@@ -132,7 +93,7 @@ public class OnlineExperimentTest extends BaseApiTest {
 
         validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
         validateAsset(assets, ANOTHER_TEXT_FILE_NAME, ANOTHER_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
-        validateAsset(assets, emptyFile.getFileName().toString(), 0, SOME_FULL_CONTEXT);
+        validateAsset(assets, emptyAssetFile.getFileName().toString(), 0, SOME_FULL_CONTEXT);
         validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, SOME_FULL_CONTEXT);
         validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, SOME_FULL_CONTEXT);
 

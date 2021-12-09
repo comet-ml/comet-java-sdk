@@ -1,7 +1,7 @@
 package ml.comet.experiment.artifact;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * The factory to properly create initialized {@link Artifact} instances.
@@ -9,12 +9,12 @@ import java.util.Set;
 public interface ArtifactBuilder {
 
     /**
-     * Allows providing set of aliases to attach to the {@link Artifact}.
+     * Allows to attach the provided list of aliases to the {@link Artifact}.
      *
-     * @param aliases the set of aliases.
+     * @param aliases the list of aliases.
      * @return the builder instance.
      */
-    ArtifactBuilder withAliases(Set<String> aliases);
+    ArtifactBuilder withAliases(List<String> aliases);
 
     /**
      * Allows linking the metadata with the {@link Artifact} instance.

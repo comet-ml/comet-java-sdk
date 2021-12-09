@@ -4,21 +4,28 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactBuilder;
+import ml.comet.experiment.artifact.ConflictingArtifactAssetName;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Optional.empty;
+import static ml.comet.experiment.impl.resources.LogMessages.CONFLICTING_ARTIFACT_ASSET_NAME;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
 import static ml.comet.experiment.impl.utils.AssetUtils.createRemoteAsset;
+import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
 
 /**
  * The implementation of the {@link Artifact}.
@@ -32,13 +39,16 @@ public final class ArtifactImpl implements Artifact {
     private Set<String> artifactAliases;
     @Getter
     private Map<String, Object> artifactMetadata;
-
+    @Getter
     private final List<Asset> assets;
+
+    private final boolean prefixWithFolderName;
 
     ArtifactImpl(String name, String type) {
         this.name = name;
         this.type = type;
         this.assets = new ArrayList<>();
+        this.prefixWithFolderName = true;
     }
 
     @Override
@@ -60,7 +70,7 @@ public final class ArtifactImpl implements Artifact {
     private void addAsset(@NonNull File file, @NonNull String name,
                           boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
         Asset asset = createAssetFromFile(file, Optional.of(name), overwrite, metadata, empty());
-        this.assets.add(asset);
+        this.appendAsset(asset);
     }
 
     @Override
@@ -73,11 +83,16 @@ public final class ArtifactImpl implements Artifact {
         this.addAsset(data, name, overwrite, Optional.empty());
     }
 
+    @Override
+    public void addAsset(byte[] data, String name) throws ConflictingArtifactAssetName {
+        this.addAsset(data, name, false);
+    }
+
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private void addAsset(byte[] data, @NonNull String name,
                           boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
         Asset asset = createAssetFromData(data, name, overwrite, metadata, empty());
-        this.assets.add(asset);
+        this.appendAsset(asset);
     }
 
     @Override
@@ -100,6 +115,51 @@ public final class ArtifactImpl implements Artifact {
     private void addRemoteAsset(@NonNull URI uri, @NonNull String name,
                                 boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
         RemoteAsset asset = createRemoteAsset(uri, Optional.of(name), overwrite, metadata, empty());
+        this.appendAsset(asset);
+    }
+
+    @Override
+    public void addAssetFolder(@NonNull File folder, boolean logFilePath,
+                               boolean recursive, @NonNull Map<String, Object> metadata)
+            throws ConflictingArtifactAssetName, IOException {
+        this.addAssetFolder(folder, logFilePath, recursive, Optional.of(metadata));
+    }
+
+    @Override
+    public void addAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive)
+            throws ConflictingArtifactAssetName, IOException {
+        this.addAssetFolder(folder, logFilePath, recursive, empty());
+    }
+
+    @Override
+    public void addAssetFolder(@NonNull File folder, boolean logFilePath)
+            throws ConflictingArtifactAssetName, IOException {
+        this.addAssetFolder(folder, false, false);
+    }
+
+    @Override
+    public void addAssetFolder(@NonNull File folder) throws ConflictingArtifactAssetName, IOException {
+        this.addAssetFolder(folder, false);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private void addAssetFolder(@NonNull File folder, boolean logFilePath,
+                                boolean recursive, Optional<Map<String, Object>> metadata)
+            throws ConflictingArtifactAssetName, IOException {
+
+        walkFolderAssets(folder, logFilePath, recursive, this.prefixWithFolderName)
+                .peek(asset -> asset.setMetadata(metadata.orElse(null)))
+                .forEach(this::appendAsset);
+    }
+
+    private void appendAsset(Asset asset) throws ConflictingArtifactAssetName {
+        this.assets.forEach(a -> {
+            if (Objects.equals(a.getFileName(), asset.getFileName())) {
+                throw new ConflictingArtifactAssetName(
+                        getString(CONFLICTING_ARTIFACT_ASSET_NAME, asset, asset.getFileName(), a));
+            }
+        });
+
         this.assets.add(asset);
     }
 
@@ -121,16 +181,19 @@ public final class ArtifactImpl implements Artifact {
             this.artifact = new ArtifactImpl(name, type);
         }
 
-        public ArtifactBuilderImpl withAliases(@NonNull Set<String> aliases) {
-            this.artifact.artifactAliases = aliases;
+        @Override
+        public ArtifactBuilderImpl withAliases(@NonNull List<String> aliases) {
+            this.artifact.artifactAliases = new HashSet<>(aliases);
             return this;
         }
 
+        @Override
         public ArtifactBuilderImpl withMetadata(@NonNull Map<String, Object> metadata) {
             this.artifact.artifactMetadata = metadata;
             return this;
         }
 
+        @Override
         public Artifact build() {
             return this.artifact;
         }

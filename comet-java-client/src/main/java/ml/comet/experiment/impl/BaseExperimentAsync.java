@@ -294,7 +294,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
                         @NonNull ExperimentContext context, Optional<Action> onComplete) {
         if (!folder.isDirectory()) {
-            getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
+            getLogger().warn(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
         }
         this.updateContext(context);
@@ -377,7 +377,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
 
         if (Objects.equals(asset.getFileName(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
-            getLogger().info(
+            getLogger().warn(
                     getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
         }
     }

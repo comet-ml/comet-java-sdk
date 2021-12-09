@@ -3,12 +3,23 @@ package ml.comet.experiment.impl;
 import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.exception.CometGeneralException;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
+import static ml.comet.experiment.impl.ExperimentTestFactory.PROJECT_NAME;
+import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
+import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ApiExperimentImplTest extends BaseApiTest {
+/**
+ * The integration tests to test {@link ApiExperiment} implementation by sending/retrieving data from the backend.
+ */
+@DisplayName("ApiExperimentTest INTEGRATION")
+@Tag("integration")
+public class ApiExperimentTest {
 
     @Test
     public void testApiExperimentInitializedWithInvalidValues() {

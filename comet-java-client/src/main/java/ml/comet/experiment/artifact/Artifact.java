@@ -4,6 +4,7 @@ import lombok.NonNull;
 import ml.comet.experiment.impl.ArtifactImpl;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 
@@ -26,12 +27,14 @@ public interface Artifact {
      *                  provided the filename from the {@code file} argument will be used.
      * @param overwrite if {@code true} will overwrite all existing assets with the same name.
      * @param metadata  Some additional data to attach to the asset. Must be a map with JSON-encodable values.
+     * @throws ConflictingArtifactAssetName is name of the asset is not unique within this artifact.
      */
-    void addAsset(File file, String name, boolean overwrite, Map<String, Object> metadata);
+    void addAsset(File file, String name, boolean overwrite, Map<String, Object> metadata)
+            throws ConflictingArtifactAssetName;
 
-    void addAsset(File file, boolean overwrite, Map<String, Object> metadata);
+    void addAsset(File file, boolean overwrite, Map<String, Object> metadata) throws ConflictingArtifactAssetName;
 
-    void addAsset(File file, boolean overwrite);
+    void addAsset(File file, boolean overwrite) throws ConflictingArtifactAssetName;
 
     /**
      * Adds a local asset data to the current pending artifact object.
@@ -40,10 +43,14 @@ public interface Artifact {
      * @param name      the custom asset name to be displayed.
      * @param overwrite if {@code true} will overwrite all existing assets with the same name.
      * @param metadata  some additional data to attach to the asset. Must be a map with JSON-encodable values.
+     * @throws ConflictingArtifactAssetName is name of the asset is not unique within this artifact.
      */
-    void addAsset(byte[] data, String name, boolean overwrite, Map<String, Object> metadata);
+    void addAsset(byte[] data, String name, boolean overwrite, Map<String, Object> metadata)
+            throws ConflictingArtifactAssetName;
 
-    void addAsset(byte[] data, String name, boolean overwrite);
+    void addAsset(byte[] data, String name, boolean overwrite) throws ConflictingArtifactAssetName;
+
+    void addAsset(byte[] data, String name) throws ConflictingArtifactAssetName;
 
     /**
      * Adds remote asses to the current pending artifact object. A Remote Asset is an asset but
@@ -55,12 +62,34 @@ public interface Artifact {
      * @param name      the "name" of the remote asset, could be a dataset name, a model file name.
      * @param overwrite if {@code true} will overwrite all existing assets with the same name.
      * @param metadata  some additional data to attach to the asset. Must be a map with JSON-encodable values.
+     * @throws ConflictingArtifactAssetName is name of the asset is not unique within this artifact.
      */
-    void addRemoteAsset(URI uri, String name, boolean overwrite, Map<String, Object> metadata);
+    void addRemoteAsset(URI uri, String name, boolean overwrite, Map<String, Object> metadata)
+            throws ConflictingArtifactAssetName;
 
-    void addRemoteAsset(URI uri, String name, boolean overwrite);
+    void addRemoteAsset(URI uri, String name, boolean overwrite) throws ConflictingArtifactAssetName;
 
-    void addRemoteAsset(URI uri, String name);
+    void addRemoteAsset(URI uri, String name) throws ConflictingArtifactAssetName;
+
+    /**
+     * Adds all asset files located in the given folder to this artifact.
+     *
+     * @param folder      the folder you want to log.
+     * @param logFilePath if {@code true}, log the file path with each file.
+     * @param recursive   if {@code true}, recurse the folder.
+     * @param metadata    some additional data to attach to the asset. Must be a map with JSON-encodable values.
+     * @throws ConflictingArtifactAssetName is name of some asset is not unique within this artifact.
+     * @throws IOException                  if an I/O exception occurred when walking through the folder.
+     */
+    void addAssetFolder(File folder, boolean logFilePath, boolean recursive, Map<String, Object> metadata)
+            throws ConflictingArtifactAssetName, IOException;
+
+    void addAssetFolder(File folder, boolean logFilePath, boolean recursive)
+            throws ConflictingArtifactAssetName, IOException;
+
+    void addAssetFolder(File folder, boolean logFilePath) throws ConflictingArtifactAssetName, IOException;
+
+    void addAssetFolder(File folder) throws ConflictingArtifactAssetName, IOException;
 
     /**
      * Creates new {@link ArtifactBuilder} instance which can be used to create properly initialized instances of the
