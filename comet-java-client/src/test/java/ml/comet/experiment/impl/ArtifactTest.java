@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import com.vdurmont.semver4j.SemverException;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetName;
@@ -38,6 +39,10 @@ public class ArtifactTest extends AssetsBaseTest {
     static String SOME_ARTIFACT_TYPE = "artifactType";
     static List<String> SOME_ALIASES = Arrays.asList("one", "two", "three", "three");
     static Set<String> UNIQUE_ALIASES = new HashSet<>(SOME_ALIASES);
+    static List<String> SOME_TAGS = Arrays.asList("tag_1", "tag_2", "tag_3", "tag_3");
+    static Set<String> UNIQUE_TAGS = new HashSet<>(SOME_TAGS);
+    static String SOME_VERSION = "1.2.3-beta.4+sha899d8g79f87";
+    static String INVALID_VERSION = "1.2";
     static Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
         put("someString", "string");
         put("someInt", 10);
@@ -72,6 +77,38 @@ public class ArtifactTest extends AssetsBaseTest {
                 .build();
         assertNotNull(artifact);
         assertEquals(SOME_METADATA, artifact.getArtifactMetadata());
+    }
+
+    @Test
+    @DisplayName("is created with newArtifact().withVersionTags()")
+    void isCreatedWithNewArtifact_withVersionTags() {
+        ArtifactImpl artifact = (ArtifactImpl) Artifact
+                .newArtifact(SOME_ARTIFACT_NAME, SOME_ARTIFACT_TYPE)
+                .withVersionTags(SOME_TAGS)
+                .build();
+        assertNotNull(artifact);
+        assertEquals(UNIQUE_TAGS, artifact.getVersionTags());
+    }
+
+    @Test
+    @DisplayName("is created with newArtifact().withVersion()")
+    void isCreatedWithNewArtifact_withVersion() {
+        ArtifactImpl artifact = (ArtifactImpl) Artifact
+                .newArtifact(SOME_ARTIFACT_NAME, SOME_ARTIFACT_TYPE)
+                .withVersion(SOME_VERSION)
+                .build();
+        assertNotNull(artifact);
+        assertTrue(artifact.getVersion().isEqualTo(SOME_VERSION));
+    }
+
+    @Test
+    @DisplayName("is created with newArtifact().withVersion() throws exception with wrong version format")
+    void isCreatedWithNewArtifact_withVersion_throwsException_wrongVersion() {
+        assertThrows(SemverException.class, () -> Artifact
+                .newArtifact(SOME_ARTIFACT_NAME, SOME_ARTIFACT_TYPE)
+                .withVersion(INVALID_VERSION)
+                .build()
+        );
     }
 
     @Nested
