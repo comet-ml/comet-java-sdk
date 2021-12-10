@@ -6,11 +6,11 @@ import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.model.ExperimentAssetLink;
 import ml.comet.experiment.impl.model.GitMetadataRest;
-import ml.comet.experiment.impl.model.ValueMinMaxDto;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
@@ -190,9 +190,9 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             //
             awaitForCondition(() -> experiment.getMetrics().size() == 2, "experiment metrics get timeout");
 
-            List<ValueMinMaxDto> metrics = experiment.getMetrics();
-            validateMetrics(metrics, fullMetricName(SOME_PARAMETER, SOME_FULL_CONTEXT), SOME_PARAMETER_VALUE);
-            validateMetrics(metrics, fullMetricName(ANOTHER_PARAMETER, SOME_PARTIAL_CONTEXT), ANOTHER_PARAMETER_VALUE);
+            List<Value> metrics = experiment.getMetrics();
+            validateValues(metrics, fullMetricName(SOME_PARAMETER, SOME_FULL_CONTEXT), SOME_PARAMETER_VALUE);
+            validateValues(metrics, fullMetricName(ANOTHER_PARAMETER, SOME_PARTIAL_CONTEXT), ANOTHER_PARAMETER_VALUE);
         } catch (Throwable throwable) {
             fail(throwable);
         }
@@ -219,9 +219,9 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             // Wait for parameters to become available and check results
             //
             awaitForCondition(() -> experiment.getParameters().size() == 2, "experiment parameters get timeout");
-            List<ValueMinMaxDto> params = experiment.getParameters();
-            validateMetrics(params, SOME_PARAMETER, SOME_PARAMETER_VALUE);
-            validateMetrics(params, ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
+            List<Value> params = experiment.getParameters();
+            validateValues(params, SOME_PARAMETER, SOME_PARAMETER_VALUE);
+            validateValues(params, ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
 
         } catch (Throwable throwable) {
             fail(throwable);
@@ -234,7 +234,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
         // Check that experiment has no extra other data yet
         //
-        List<ValueMinMaxDto> parameters = experiment.getLogOther();
+        List<Value> parameters = experiment.getLogOther();
         assertEquals(1, parameters.size());
         assertTrue(parameters.stream().anyMatch(p -> "Name".equals(p.getName())));
 
@@ -254,8 +254,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         //
         awaitForCondition(() -> experiment.getLogOther().size() == 3, "get other timeout");
 
-        List<ValueMinMaxDto> updatedParameters = experiment.getLogOther();
-        params.forEach((k, v) -> validateMetrics(updatedParameters, k, v));
+        List<Value> updatedParameters = experiment.getLogOther();
+        params.forEach((k, v) -> validateValues(updatedParameters, k, v));
 
         experiment.end();
     }
@@ -673,15 +673,15 @@ public class OnlineExperimentTest extends AssetsBaseTest {
                 }));
     }
 
-    static void validateMetrics(List<ValueMinMaxDto> metrics, String name, Object value) {
+    static void validateValues(List<Value> valueList, String name, Object value) {
         String stringValue = value.toString();
         System.out.println(name + ":" + value);
-        assertTrue(metrics.stream()
+        assertTrue(valueList.stream()
                 .peek(System.out::println)
                 .filter(m -> name.equals(m.getName()))
-                .filter(m -> stringValue.equals(m.getValueMax()))
-                .filter(m -> stringValue.equals(m.getValueMin()))
-                .anyMatch(m -> stringValue.equals(m.getValueCurrent())));
+                .filter(m -> stringValue.equals(m.getMax()))
+                .filter(m -> stringValue.equals(m.getMin()))
+                .anyMatch(m -> stringValue.equals(m.getCurrent())));
     }
 
     static void awaitForCondition(BooleanSupplier booleanSupplier, String conditionAlias) {

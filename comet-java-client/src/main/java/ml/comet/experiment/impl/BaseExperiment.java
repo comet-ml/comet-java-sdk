@@ -19,16 +19,18 @@ import ml.comet.experiment.impl.model.ExperimentAssetLink;
 import ml.comet.experiment.impl.model.ExperimentStatusResponse;
 import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.impl.model.LogDataResponse;
-import ml.comet.experiment.impl.model.ValueMinMaxDto;
+import ml.comet.experiment.impl.model.MinMaxResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -460,30 +462,30 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<ValueMinMaxDto> getParameters() {
+    public List<Value> getParameters() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get params for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getParameters, "PARAMETERS").getValues();
+        return loadRemoteValues(restApiClient::getParameters, "PARAMETERS");
     }
 
     @Override
-    public List<ValueMinMaxDto> getMetrics() {
+    public List<Value> getMetrics() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get metrics summary for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getMetrics, "METRICS").getValues();
+        return loadRemoteValues(restApiClient::getMetrics, "METRICS");
     }
 
     @Override
-    public List<ValueMinMaxDto> getLogOther() {
+    public List<Value> getLogOther() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get log other for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getLogOther, "OTHER PARAMETERS").getValues();
+        return loadRemoteValues(restApiClient::getLogOther, "OTHER PARAMETERS");
     }
 
     @Override
@@ -545,6 +547,22 @@ abstract class BaseExperiment implements Experiment {
                 .concatMap(experimentKey -> restApiClient.sendExperimentStatus(experimentKey))
                 .onErrorComplete()
                 .blockingGet());
+    }
+
+    /**
+     * Synchronously loads remote data values.
+     *
+     * @param loadFunc the function to be applied to load remote data.
+     * @param alias    the data type alias used for logging.
+     * @return the list of values returned by REST API endpoint.
+     */
+    private List<Value> loadRemoteValues(final Function<String, Single<MinMaxResponse>> loadFunc, String alias) {
+        return this.loadRemote(loadFunc, alias)
+                .getValues()
+                .stream()
+                .collect(ArrayList::new,
+                        (values, valueMinMaxRest) -> values.add(valueMinMaxRest.toValue()),
+                        ArrayList::addAll);
     }
 
     /**

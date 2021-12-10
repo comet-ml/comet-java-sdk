@@ -4,9 +4,9 @@ import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.model.ExperimentAssetLink;
 import ml.comet.experiment.impl.model.GitMetadataRest;
-import ml.comet.experiment.impl.model.ValueMinMaxDto;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.Value;
 
 import java.io.File;
 import java.util.List;
@@ -100,21 +100,21 @@ public interface Experiment extends AutoCloseable {
      *
      * @return the parameters logged by experiment.
      */
-    List<ValueMinMaxDto> getParameters();
+    List<Value> getParameters();
 
     /**
      * Get experiment metrics.
      *
      * @return the metrics logged by experiment.
      */
-    List<ValueMinMaxDto> getMetrics();
+    List<Value> getMetrics();
 
     /**
      * Get experiment log other data.
      *
      * @return the other data logged with experiment.
      */
-    List<ValueMinMaxDto> getLogOther();
+    List<Value> getLogOther();
 
     /**
      * Get experiment tags.
