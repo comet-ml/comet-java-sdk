@@ -2,6 +2,7 @@ package ml.comet.experiment;
 
 import ml.comet.experiment.impl.model.ExperimentMetadataRest;
 import ml.comet.experiment.impl.model.RestProject;
+import ml.comet.experiment.model.Project;
 
 import java.io.Closeable;
 import java.util.List;
@@ -26,7 +27,7 @@ public interface CometApi extends Closeable {
      * @param workspaceName workspace name
      * @return List of project DTOs
      */
-    List<RestProject> getAllProjects(String workspaceName);
+    List<Project> getAllProjects(String workspaceName);
 
     /**
      * Gets all experiment DTOs under specified project id.
