@@ -1,4 +1,4 @@
-package ml.comet.experiment.impl.model;
+package ml.comet.experiment.impl.rest;
 
 import lombok.Data;
 

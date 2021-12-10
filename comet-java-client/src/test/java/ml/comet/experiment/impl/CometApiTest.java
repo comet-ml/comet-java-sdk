@@ -2,8 +2,7 @@ package ml.comet.experiment.impl;
 
 import ml.comet.experiment.CometApi;
 import ml.comet.experiment.OnlineExperiment;
-import ml.comet.experiment.impl.model.ExperimentMetadataRest;
-import ml.comet.experiment.impl.model.RestProject;
+import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -63,12 +62,14 @@ public class CometApiTest {
     public void testGetsAllExperiments() {
         List<Project> projects = COMET_API.getAllProjects(WORKSPACE_NAME);
         assertFalse(projects.isEmpty());
-        Optional<List<ExperimentMetadataRest>> experimentsOpt = projects.stream()
+
+        Optional<List<ExperimentMetadata>> experimentsOpt = projects.stream()
                 .filter(project -> PROJECT_NAME.equals(project.getProjectName()))
                 .findFirst()
                 .map(project -> COMET_API.getAllExperiments(project.getProjectId()));
         assertTrue(experimentsOpt.isPresent());
-        List<ExperimentMetadataRest> experiments = experimentsOpt.get();
+
+        List<ExperimentMetadata> experiments = experimentsOpt.get();
         assertFalse(experiments.isEmpty());
         boolean experimentExists = experiments.stream()
                 .anyMatch(experiment -> SHARED_EXPERIMENT.getExperimentKey().equals(experiment.getExperimentKey()));

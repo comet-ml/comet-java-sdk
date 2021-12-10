@@ -2,8 +2,6 @@ package ml.comet.experiment;
 
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.model.AssetType;
-import ml.comet.experiment.impl.model.ExperimentAssetLink;
-import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.model.ExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
@@ -73,7 +71,7 @@ public interface Experiment extends AutoCloseable {
      *
      * @return the GIT metadata for this experiment.
      */
-    GitMetadataRest getGitMetadata();
+    GitMetaData getGitMetadata();
 
     /**
      * Get experiment html.

@@ -3,7 +3,7 @@ package ml.comet.experiment.impl.http;
 import ml.comet.experiment.impl.constants.ApiEndpoints;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
-import ml.comet.experiment.impl.model.HtmlRest;
+import ml.comet.experiment.impl.rest.HtmlRest;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
 import org.asynchttpclient.Request;

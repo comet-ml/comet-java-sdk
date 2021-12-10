@@ -6,7 +6,7 @@ import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.log.StdOutLogger;
-import ml.comet.experiment.impl.model.ExperimentStatusResponse;
+import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
 import ml.comet.experiment.model.GitMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

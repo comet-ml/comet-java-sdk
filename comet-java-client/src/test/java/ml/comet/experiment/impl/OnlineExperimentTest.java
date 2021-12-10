@@ -4,7 +4,6 @@ import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentAsset;
@@ -516,7 +515,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
         // Get GIT metadata and check that it is not set
         //
-        GitMetadataRest gitMetadata = experiment.getGitMetadata();
+        GitMetaData gitMetadata = experiment.getGitMetadata();
         assertNull(gitMetadata.getUser());
         assertNull(gitMetadata.getBranch());
         assertNull(gitMetadata.getOrigin());
@@ -534,7 +533,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         awaitForCondition(() -> request.getUser().equals(experiment.getGitMetadata().getUser()),
                 "Git metadata user timeout");
 
-        GitMetadataRest updatedMetadata = experiment.getGitMetadata();
+        GitMetaData updatedMetadata = experiment.getGitMetadata();
         assertEquals(updatedMetadata.getOrigin(), request.getOrigin());
         assertEquals(updatedMetadata.getBranch(), request.getBranch());
         assertEquals(updatedMetadata.getRoot(), request.getRoot());

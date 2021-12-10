@@ -12,12 +12,11 @@ import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
-import ml.comet.experiment.impl.model.CreateExperimentRequest;
-import ml.comet.experiment.impl.model.CreateExperimentResponse;
-import ml.comet.experiment.impl.model.ExperimentStatusResponse;
-import ml.comet.experiment.impl.model.GitMetadataRest;
-import ml.comet.experiment.impl.model.LogDataResponse;
-import ml.comet.experiment.impl.model.MinMaxResponse;
+import ml.comet.experiment.impl.rest.CreateExperimentRequest;
+import ml.comet.experiment.impl.rest.CreateExperimentResponse;
+import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
+import ml.comet.experiment.impl.rest.LogDataResponse;
+import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.model.ExperimentAsset;
@@ -426,12 +425,12 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public GitMetadataRest getGitMetadata() {
+    public GitMetaData getGitMetadata() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get git metadata for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getGitMetadata, "GIT METADATA");
+        return loadRemote(restApiClient::getGitMetadata, "GIT METADATA").toGitMetaData();
     }
 
     @Override

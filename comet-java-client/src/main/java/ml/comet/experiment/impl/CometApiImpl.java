@@ -8,8 +8,8 @@ import ml.comet.experiment.builder.CometApiBuilder;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
-import ml.comet.experiment.impl.model.ExperimentMetadataRest;
 import ml.comet.experiment.impl.utils.CometUtils;
+import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -76,7 +76,7 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public List<ExperimentMetadataRest> getAllExperiments(@NonNull String projectId) {
+    public List<ExperimentMetadata> getAllExperiments(@NonNull String projectId) {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllExperiments invoked");
         }
@@ -84,7 +84,11 @@ public final class CometApiImpl implements CometApi {
         return restApiClient.getAllExperiments(projectId)
                 .doOnError(ex -> this.logger.error("Failed to read experiments found in the project {}", projectId, ex))
                 .blockingGet()
-                .getExperiments();
+                .getExperiments()
+                .stream()
+                .collect(ArrayList::new,
+                        (metadataList, metadataRest) -> metadataList.add(metadataRest.toExperimentMetadata()),
+                        ArrayList::addAll);
     }
 
     /**
