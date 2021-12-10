@@ -60,7 +60,7 @@ public class ArtifactTest extends AssetsBaseTest {
                 .withAliases(SOME_ALIASES)
                 .build();
         assertNotNull(artifact);
-        assertEquals(UNIQUE_ALIASES, artifact.getArtifactAliases());
+        assertEquals(UNIQUE_ALIASES, artifact.getAliases());
     }
 
     @Test

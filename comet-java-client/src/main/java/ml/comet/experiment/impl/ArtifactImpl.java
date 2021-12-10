@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import com.vdurmont.semver4j.Semver;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
@@ -36,9 +37,13 @@ public final class ArtifactImpl implements Artifact {
     @Getter
     private final String type;
     @Getter
-    private Set<String> artifactAliases;
+    private Set<String> aliases;
     @Getter
     private Map<String, Object> artifactMetadata;
+    @Getter
+    private Semver version;
+    @Getter
+    private Set<String> versionTags;
     @Getter
     private final List<Asset> assets;
 
@@ -183,13 +188,25 @@ public final class ArtifactImpl implements Artifact {
 
         @Override
         public ArtifactBuilderImpl withAliases(@NonNull List<String> aliases) {
-            this.artifact.artifactAliases = new HashSet<>(aliases);
+            this.artifact.aliases = new HashSet<>(aliases);
             return this;
         }
 
         @Override
         public ArtifactBuilderImpl withMetadata(@NonNull Map<String, Object> metadata) {
             this.artifact.artifactMetadata = metadata;
+            return this;
+        }
+
+        @Override
+        public ArtifactBuilderImpl withVersion(String version) {
+            this.artifact.version = new Semver(version);
+            return this;
+        }
+
+        @Override
+        public ArtifactBuilderImpl withVersionTags(List<String> tags) {
+            this.artifact.versionTags = new HashSet<>(tags);
             return this;
         }
 
