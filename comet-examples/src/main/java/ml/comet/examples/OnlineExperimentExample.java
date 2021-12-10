@@ -39,7 +39,7 @@ public class OnlineExperimentExample {
      *
      * @param args the command line arguments if any.
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         //this will take configs from /comet-java-sdk/comet-examples/src/main/resources/application.conf
         //be sure you have set up apiKey, project, workspace in defaults.conf before you start!
@@ -54,8 +54,6 @@ public class OnlineExperimentExample {
 
         try {
             OnlineExperimentExample.run(experiment);
-        } catch (Throwable e) {
-            e.printStackTrace();
         } finally {
             experiment.end();
         }
