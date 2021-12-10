@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.model.ExperimentMetadata;
 
@@ -12,12 +13,12 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ExperimentMetadataRest {
-    private String experimentKey;
+public class ExperimentMetadataRest extends BaseExperimentObject {
     private String experimentName;
     private String optimizationId;
     private String userName;

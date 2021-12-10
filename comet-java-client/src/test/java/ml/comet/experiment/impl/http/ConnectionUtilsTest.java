@@ -3,9 +3,9 @@ package ml.comet.experiment.impl.http;
 import ml.comet.experiment.impl.constants.ApiEndpoints;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
+import ml.comet.experiment.impl.model.HtmlRest;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.impl.model.HtmlRest;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.request.body.multipart.ByteArrayPart;
 import org.asynchttpclient.request.body.multipart.FilePart;
@@ -181,7 +181,7 @@ public class ConnectionUtilsTest {
     @Test
     public void testCreatePostJsonRequest() {
         String url = "http://test.com" + ApiEndpoints.ADD_ASSET;
-        HtmlRest html = new HtmlRest("<html><body></body></html", "test_key",
+        HtmlRest html = new HtmlRest("<html><body></body></html",
                 false, System.currentTimeMillis());
         String json = JsonUtils.toJson(html);
 
