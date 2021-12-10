@@ -3,11 +3,10 @@ package ml.comet.experiment;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.model.ExperimentAssetLink;
-import ml.comet.experiment.impl.model.ExperimentMetadataRest;
-import ml.comet.experiment.impl.model.GitMetadata;
 import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.impl.model.ValueMinMaxDto;
 import ml.comet.experiment.model.ExperimentMetadata;
+import ml.comet.experiment.model.GitMetaData;
 
 import java.io.File;
 import java.util.List;
@@ -317,7 +316,7 @@ public interface Experiment extends AutoCloseable {
      *
      * @param gitMetadata The Git Metadata for the experiment
      */
-    void logGitMetadata(GitMetadata gitMetadata);
+    void logGitMetadata(GitMetaData gitMetadata);
 
     /**
      * Tells Comet that the Experiment is complete and release all associated resources.

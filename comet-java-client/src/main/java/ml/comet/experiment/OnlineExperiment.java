@@ -1,5 +1,6 @@
 package ml.comet.experiment;
 
+import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.context.ExperimentContext;
 
 import java.io.File;
@@ -165,4 +166,12 @@ public interface OnlineExperiment extends Experiment {
     void logRemoteAsset(URI uri, String fileName, boolean overwrite);
 
     void logRemoteAsset(URI uri, boolean overwrite);
+
+    /**
+     * Logs an {@link Artifact} object. First, it creates a new version of the artifact. After that, it uploads
+     * asynchronously all the local and remote assets attached to the artifact object.
+     *
+     * @param artifact the {@link Artifact} instance.
+     */
+    void logArtifact(Artifact artifact);
 }

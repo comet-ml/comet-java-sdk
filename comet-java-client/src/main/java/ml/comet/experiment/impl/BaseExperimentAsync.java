@@ -10,14 +10,14 @@ import lombok.NonNull;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
-import ml.comet.experiment.impl.utils.AssetUtils;
-import ml.comet.experiment.impl.model.GitMetadata;
 import ml.comet.experiment.impl.model.HtmlRest;
 import ml.comet.experiment.impl.model.LogDataResponse;
 import ml.comet.experiment.impl.model.LogOtherRest;
 import ml.comet.experiment.impl.model.MetricRest;
 import ml.comet.experiment.impl.model.OutputUpdate;
 import ml.comet.experiment.impl.model.ParameterRest;
+import ml.comet.experiment.impl.utils.AssetUtils;
+import ml.comet.experiment.model.GitMetaData;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -43,6 +43,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.LOG_REMOTE_ASSET_UR
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
+import static ml.comet.experiment.impl.utils.DataUtils.createGitMetadataRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogHtmlRequest;
@@ -239,17 +240,17 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
-     * @param gitMetadata The Git Metadata for the experiment.
+     * @param gitMetaData The Git Metadata for the experiment.
      * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logGitMetadataAsync(@NonNull GitMetadata gitMetadata, Optional<Action> onComplete) {
+    void logGitMetadataAsync(@NonNull GitMetaData gitMetaData, Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logGitMetadata {}", gitMetadata);
+            getLogger().debug("logGitMetadata {}", gitMetaData);
         }
 
-        sendAsynchronously(getRestApiClient()::logGitMetadata, gitMetadata, onComplete);
+        sendAsynchronously(getRestApiClient()::logGitMetadata, createGitMetadataRequest(gitMetaData), onComplete);
     }
 
     /**

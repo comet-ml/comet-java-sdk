@@ -10,8 +10,6 @@ import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
-import ml.comet.experiment.impl.utils.AssetUtils;
-import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.model.AddExperimentTagsRest;
 import ml.comet.experiment.impl.model.AddGraphRest;
 import ml.comet.experiment.impl.model.CreateExperimentRequest;
@@ -26,7 +24,6 @@ import ml.comet.experiment.impl.model.GetHtmlResponse;
 import ml.comet.experiment.impl.model.GetOutputResponse;
 import ml.comet.experiment.impl.model.GetProjectsResponse;
 import ml.comet.experiment.impl.model.GetWorkspacesResponse;
-import ml.comet.experiment.impl.model.GitMetadata;
 import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.impl.model.HtmlRest;
 import ml.comet.experiment.impl.model.LogDataResponse;
@@ -36,6 +33,8 @@ import ml.comet.experiment.impl.model.MinMaxResponse;
 import ml.comet.experiment.impl.model.OutputUpdate;
 import ml.comet.experiment.impl.model.ParameterRest;
 import ml.comet.experiment.impl.model.TagsResponse;
+import ml.comet.experiment.impl.utils.AssetUtils;
+import ml.comet.experiment.impl.utils.JsonUtils;
 
 import java.io.File;
 import java.util.Collections;
@@ -189,7 +188,7 @@ final class RestApiClient implements Disposable {
         return singleFromAsyncPost(request, ADD_START_END_TIME, LogDataResponse.class);
     }
 
-    Single<LogDataResponse> logGitMetadata(final GitMetadata request, String experimentKey) {
+    Single<LogDataResponse> logGitMetadata(final GitMetadataRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
         return singleFromAsyncPost(request, ADD_GIT_METADATA, LogDataResponse.class);
     }

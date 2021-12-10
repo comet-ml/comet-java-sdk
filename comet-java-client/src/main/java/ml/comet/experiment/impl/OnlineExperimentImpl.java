@@ -3,10 +3,11 @@ package ml.comet.experiment.impl;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.log.StdOutLogger;
-import ml.comet.experiment.model.ExperimentStatusResponse;
-import ml.comet.experiment.model.GitMetadata;
+import ml.comet.experiment.impl.model.ExperimentStatusResponse;
+import ml.comet.experiment.model.GitMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -274,7 +275,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logGitMetadata(GitMetadata gitMetadata) {
+    public void logGitMetadata(GitMetaData gitMetadata) {
         this.logGitMetadataAsync(gitMetadata, empty());
     }
 
@@ -377,6 +378,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logCode(@NonNull File file) {
         this.logCode(file, this.baseContext);
+    }
+
+    @Override
+    public void logArtifact(Artifact artifact) {
+        //TODO logArtifact
     }
 
     @Override

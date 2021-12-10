@@ -13,17 +13,16 @@ import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
-import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.model.CreateExperimentRequest;
 import ml.comet.experiment.impl.model.CreateExperimentResponse;
 import ml.comet.experiment.impl.model.ExperimentAssetLink;
-import ml.comet.experiment.impl.model.ExperimentMetadataRest;
 import ml.comet.experiment.impl.model.ExperimentStatusResponse;
-import ml.comet.experiment.impl.model.GitMetadata;
 import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.impl.model.LogDataResponse;
 import ml.comet.experiment.impl.model.ValueMinMaxDto;
+import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
+import ml.comet.experiment.model.GitMetaData;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -41,6 +40,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FO
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
+import static ml.comet.experiment.impl.utils.DataUtils.createGitMetadataRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogHtmlRequest;
@@ -335,15 +335,15 @@ abstract class BaseExperiment implements Experiment {
     /**
      * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
      *
-     * @param gitMetadata The Git Metadata for the experiment.
+     * @param gitMetaData The Git Metadata for the experiment.
      */
     @Override
-    public void logGitMetadata(GitMetadata gitMetadata) {
+    public void logGitMetadata(GitMetaData gitMetaData) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logGitMetadata {}", gitMetadata);
+            getLogger().debug("logGitMetadata {}", gitMetaData);
         }
 
-        sendSynchronously(restApiClient::logGitMetadata, gitMetadata);
+        sendSynchronously(restApiClient::logGitMetadata, createGitMetadataRequest(gitMetaData));
     }
 
     @Override

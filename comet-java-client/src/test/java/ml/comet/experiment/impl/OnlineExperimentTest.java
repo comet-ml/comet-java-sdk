@@ -5,12 +5,12 @@ import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.model.ExperimentAssetLink;
-import ml.comet.experiment.impl.model.GitMetadata;
 import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.impl.model.ValueMinMaxDto;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
+import ml.comet.experiment.model.GitMetaData;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
@@ -524,7 +524,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         // Create and update GIT metadata and wait for response
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        GitMetadata request = new GitMetadata(experiment.getExperimentKey(),
+        GitMetaData request = new GitMetaData(
                 "user", "root", "branch", "parent", "origin");
         ((OnlineExperimentImpl) experiment).logGitMetadataAsync(request, Optional.of(onComplete));
         awaitForCondition(onComplete, "onComplete timeout");

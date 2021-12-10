@@ -6,12 +6,14 @@ import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.model.AddExperimentTagsRest;
 import ml.comet.experiment.impl.model.AddGraphRest;
 import ml.comet.experiment.impl.model.ExperimentTimeRequest;
+import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.impl.model.HtmlRest;
 import ml.comet.experiment.impl.model.LogOtherRest;
 import ml.comet.experiment.impl.model.MetricRest;
 import ml.comet.experiment.impl.model.OutputLine;
 import ml.comet.experiment.impl.model.OutputUpdate;
 import ml.comet.experiment.impl.model.ParameterRest;
+import ml.comet.experiment.model.GitMetaData;
 
 import java.util.Collections;
 
@@ -157,5 +159,21 @@ public class DataUtils {
         ExperimentTimeRequest request = new ExperimentTimeRequest();
         request.setEndTimeMillis(endTimeMillis);
         return request;
+    }
+
+    /**
+     * The factory to create {@link GitMetadataRest} request instance.
+     *
+     * @param metaData the {@link GitMetaData} model object from public API.
+     * @return the initialized {@link GitMetadataRest} instance.
+     */
+    public static GitMetadataRest createGitMetadataRequest(GitMetaData metaData) {
+        GitMetadataRest g = new GitMetadataRest();
+        g.setUser(metaData.getUser());
+        g.setOrigin(metaData.getOrigin());
+        g.setBranch(metaData.getBranch());
+        g.setParent(metaData.getParent());
+        g.setRoot(metaData.getRoot());
+        return g;
     }
 }
