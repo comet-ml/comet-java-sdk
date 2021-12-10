@@ -14,15 +14,16 @@ import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.utils.CometUtils;
-import ml.comet.experiment.model.CreateExperimentRequest;
-import ml.comet.experiment.model.CreateExperimentResponse;
-import ml.comet.experiment.model.ExperimentAssetLink;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.ExperimentStatusResponse;
-import ml.comet.experiment.model.GitMetadata;
-import ml.comet.experiment.model.GitMetadataRest;
-import ml.comet.experiment.model.LogDataResponse;
-import ml.comet.experiment.model.ValueMinMaxDto;
+import ml.comet.experiment.impl.model.CreateExperimentRequest;
+import ml.comet.experiment.impl.model.CreateExperimentResponse;
+import ml.comet.experiment.impl.model.ExperimentAssetLink;
+import ml.comet.experiment.impl.model.ExperimentMetadataRest;
+import ml.comet.experiment.impl.model.ExperimentStatusResponse;
+import ml.comet.experiment.impl.model.GitMetadata;
+import ml.comet.experiment.impl.model.GitMetadataRest;
+import ml.comet.experiment.impl.model.LogDataResponse;
+import ml.comet.experiment.impl.model.ValueMinMaxDto;
+import ml.comet.experiment.model.ExperimentMetadata;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -414,12 +415,12 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public ExperimentMetadataRest getMetadata() {
+    public ExperimentMetadata getMetadata() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get metadata for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getMetadata, "METADATA");
+        return loadRemote(restApiClient::getMetadata, "METADATA").toExperimentMetadata();
     }
 
     @Override

@@ -2,8 +2,8 @@ package ml.comet.experiment.impl;
 
 import ml.comet.experiment.CometApi;
 import ml.comet.experiment.OnlineExperiment;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.RestProject;
+import ml.comet.experiment.impl.model.ExperimentMetadataRest;
+import ml.comet.experiment.impl.model.RestProject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;

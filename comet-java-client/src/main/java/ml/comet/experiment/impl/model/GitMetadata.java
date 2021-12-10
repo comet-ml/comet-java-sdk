@@ -1,4 +1,4 @@
-package ml.comet.experiment.model;
+package ml.comet.experiment.impl.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -11,6 +11,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GetOutputResponse {
-    private String output;
+public class GitMetadata {
+    private String experimentKey;
+    private String user;
+    private String root;
+    private String branch;
+    private String parent;
+    private String origin;
 }

@@ -1,4 +1,4 @@
-package ml.comet.experiment.model;
+package ml.comet.experiment.impl.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -6,13 +6,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ExperimentAssetListResponse {
-    private List<ExperimentAssetLink> assets;
+public class LogOtherRest {
+    private String key;
+    private String value;
+    private String experimentKey;
+    private Long timestamp;
 }

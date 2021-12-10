@@ -1,4 +1,4 @@
-package ml.comet.experiment.model;
+package ml.comet.experiment.impl.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -22,15 +22,4 @@ public class RestProject {
     private boolean isPublic;
     private int numberOfExperiments;
     private Long lastUpdated;
-
-    public RestProject(GetProject getProject) {
-        this.projectId = getProject.getProjectId();
-        this.projectName = getProject.getProjectName();
-        this.ownerUserName = getProject.getUserName();
-        this.projectDescription = getProject.getProjectDesc();
-        this.workspaceName = getProject.getTeamName();
-        this.isPublic = getProject.isPublic();
-        this.numberOfExperiments = getProject.getNumOfExperiments();
-        this.lastUpdated = getProject.getLastUpdated();
-    }
 }

@@ -3,15 +3,15 @@ package ml.comet.experiment.impl.utils;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.model.AddExperimentTagsRest;
-import ml.comet.experiment.model.AddGraphRest;
-import ml.comet.experiment.model.ExperimentTimeRequest;
-import ml.comet.experiment.model.HtmlRest;
-import ml.comet.experiment.model.LogOtherRest;
-import ml.comet.experiment.model.MetricRest;
-import ml.comet.experiment.model.OutputLine;
-import ml.comet.experiment.model.OutputUpdate;
-import ml.comet.experiment.model.ParameterRest;
+import ml.comet.experiment.impl.model.AddExperimentTagsRest;
+import ml.comet.experiment.impl.model.AddGraphRest;
+import ml.comet.experiment.impl.model.ExperimentTimeRequest;
+import ml.comet.experiment.impl.model.HtmlRest;
+import ml.comet.experiment.impl.model.LogOtherRest;
+import ml.comet.experiment.impl.model.MetricRest;
+import ml.comet.experiment.impl.model.OutputLine;
+import ml.comet.experiment.impl.model.OutputUpdate;
+import ml.comet.experiment.impl.model.ParameterRest;
 
 import java.util.Collections;
 

@@ -1,4 +1,4 @@
-package ml.comet.experiment.model;
+package ml.comet.experiment.impl.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -6,15 +6,17 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OutputUpdate {
+public class MetricRest {
     private String experimentKey;
-    private String runContext;
-    private List<OutputLine> outputLines;
+    private String metricName;
+    private String metricValue;
+    private String context;
+    private Long step;
+    private Long epoch;
+    private Long timestamp;
 }

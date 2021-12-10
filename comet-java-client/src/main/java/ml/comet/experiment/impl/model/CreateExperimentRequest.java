@@ -1,4 +1,4 @@
-package ml.comet.experiment.model;
+package ml.comet.experiment.impl.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -21,13 +21,5 @@ public class CreateExperimentRequest {
         this.workspaceName = workspaceName;
         this.projectName = projectName;
         this.experimentName = experimentName;
-    }
-
-    public Boolean getDisableHeartBeat() {
-        if (disableHeartBeat == null) {
-            return false;
-        } else {
-            return disableHeartBeat;
-        }
     }
 }

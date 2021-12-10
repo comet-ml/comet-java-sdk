@@ -1,7 +1,7 @@
 package ml.comet.experiment;
 
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.RestProject;
+import ml.comet.experiment.impl.model.ExperimentMetadataRest;
+import ml.comet.experiment.impl.model.RestProject;
 
 import java.io.Closeable;
 import java.util.List;

@@ -4,13 +4,13 @@ import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.model.ExperimentAssetLink;
+import ml.comet.experiment.impl.model.GitMetadata;
+import ml.comet.experiment.impl.model.GitMetadataRest;
+import ml.comet.experiment.impl.model.ValueMinMaxDto;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.model.ExperimentAssetLink;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.GitMetadata;
-import ml.comet.experiment.model.GitMetadataRest;
-import ml.comet.experiment.model.ValueMinMaxDto;
+import ml.comet.experiment.model.ExperimentMetadata;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +113,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
         awaitForCondition(() -> experiment.getMetadata().isRunning(), "Experiment must become running");
 
-        ExperimentMetadataRest metadata = experiment.getMetadata();
+        ExperimentMetadata metadata = experiment.getMetadata();
         assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
         assertEquals(experiment.getWorkspaceName(), metadata.getWorkspaceName());
         assertEquals(experiment.getProjectName(), metadata.getProjectName());
@@ -151,7 +152,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     public void testSetAndGetExperimentName() {
         OnlineExperiment experiment = createOnlineExperiment();
 
-        ExperimentMetadataRest metadata = experiment.getMetadata();
+        ExperimentMetadata metadata = experiment.getMetadata();
         String generatedExperimentName = metadata.getExperimentName();
         assertTrue(StringUtils.isNoneEmpty(generatedExperimentName));
 
@@ -160,7 +161,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()),
                 "Experiment name update timeout");
 
-        ExperimentMetadataRest updatedMetadata = experiment.getMetadata();
+        ExperimentMetadata updatedMetadata = experiment.getMetadata();
         assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
         assertEquals(SOME_NAME, updatedMetadata.getExperimentName());
 
@@ -366,9 +367,9 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
         // Get experiment metadata
         //
-        ExperimentMetadataRest metadata = experiment.getMetadata();
-        Long startTimeMillis = metadata.getStartTimeMillis();
-        Long endTimeMillis = metadata.getEndTimeMillis();
+        ExperimentMetadata metadata = experiment.getMetadata();
+        Instant startTimeMillis = metadata.getStartTime();
+        Instant endTimeMillis = metadata.getEndTime();
         String experimentKey = experiment.getExperimentKey();
         experiment.end();
 
@@ -388,13 +389,13 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         // Get updated experiment metadata and check results
         //
         awaitForCondition(() -> {
-            ExperimentMetadataRest data = existingExperiment.getMetadata();
-            return data.getStartTimeMillis() == now && data.getEndTimeMillis() == now;
+            ExperimentMetadata data = existingExperiment.getMetadata();
+            return data.getStartTime().toEpochMilli() == now && data.getEndTime().toEpochMilli() == now;
         }, "Experiment get start/stop time timeout", 240);
 
-        ExperimentMetadataRest updatedMetadata = existingExperiment.getMetadata();
-        assertNotEquals(startTimeMillis, updatedMetadata.getStartTimeMillis());
-        assertNotEquals(endTimeMillis, updatedMetadata.getEndTimeMillis());
+        ExperimentMetadata updatedMetadata = existingExperiment.getMetadata();
+        assertNotEquals(startTimeMillis, updatedMetadata.getStartTime());
+        assertNotEquals(endTimeMillis, updatedMetadata.getEndTime());
     }
 
     @Test
