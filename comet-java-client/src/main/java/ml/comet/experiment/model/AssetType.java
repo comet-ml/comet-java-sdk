@@ -1,4 +1,4 @@
-package ml.comet.experiment.impl.asset;
+package ml.comet.experiment.model;
 
 /**
  * Represents known types of the assets.

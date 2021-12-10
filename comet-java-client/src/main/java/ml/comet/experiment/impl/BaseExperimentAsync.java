@@ -31,8 +31,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET;
-import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.model.AssetType.ASSET;
+import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER;

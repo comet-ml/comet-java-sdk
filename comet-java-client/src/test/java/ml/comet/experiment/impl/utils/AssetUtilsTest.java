@@ -1,7 +1,7 @@
 package ml.comet.experiment.impl.utils;
 
 import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.impl.asset.AssetType;
+import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.file.PathUtils;
@@ -31,9 +31,9 @@ import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET;
-import static ml.comet.experiment.impl.asset.AssetType.NOTEBOOK;
-import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.model.AssetType.ASSET;
+import static ml.comet.experiment.model.AssetType.NOTEBOOK;
+import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.utils.AssetUtils.REMOTE_FILE_NAME_DEFAULT;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;

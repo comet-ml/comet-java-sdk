@@ -3,6 +3,7 @@ package ml.comet.experiment.impl.asset;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.model.AssetType;
 
 import java.io.File;
 import java.util.Map;

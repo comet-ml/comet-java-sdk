@@ -10,17 +10,17 @@ import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.model.CreateExperimentRequest;
 import ml.comet.experiment.impl.model.CreateExperimentResponse;
-import ml.comet.experiment.impl.model.ExperimentAssetLink;
 import ml.comet.experiment.impl.model.ExperimentStatusResponse;
 import ml.comet.experiment.impl.model.GitMetadataRest;
 import ml.comet.experiment.impl.model.LogDataResponse;
 import ml.comet.experiment.impl.model.MinMaxResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
+import ml.comet.experiment.model.AssetType;
+import ml.comet.experiment.model.ExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
-import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
@@ -52,6 +51,7 @@ import static ml.comet.experiment.impl.utils.DataUtils.createLogOtherRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogParamRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createLogStartTimeRequest;
 import static ml.comet.experiment.impl.utils.DataUtils.createTagRequest;
+import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 
 /**
  * The base class for all synchronous experiment implementations providing implementation of common routines
@@ -498,7 +498,7 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<ExperimentAssetLink> getAssetList(@NonNull AssetType type) {
+    public List<ExperimentAsset> getAssetList(@NonNull AssetType type) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get assets with type {} for experiment {}", type, this.experimentKey);
         }
@@ -508,7 +508,11 @@ abstract class BaseExperiment implements Experiment {
                 .doOnError(ex -> getLogger().error("Failed to read ASSETS list for the experiment, experiment key: {}",
                         this.experimentKey, ex))
                 .blockingGet()
-                .getAssets();
+                .getAssets()
+                .stream()
+                .collect(ArrayList::new,
+                        (assets, experimentAssetLink) -> assets.add(experimentAssetLink.toExperimentAsset()),
+                        ArrayList::addAll);
     }
 
     @Override

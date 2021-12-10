@@ -5,7 +5,7 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.impl.asset.AssetType;
+import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;

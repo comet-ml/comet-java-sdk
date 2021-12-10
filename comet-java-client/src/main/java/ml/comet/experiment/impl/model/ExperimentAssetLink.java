@@ -5,8 +5,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ml.comet.experiment.model.ExperimentAsset;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -35,4 +37,25 @@ public class ExperimentAssetLink {
     private List<String> tags;
     private String curlDownload;
 
+    /**
+     * Converts this into {@link ExperimentAsset} exposed by public API.
+     *
+     * @return the initialized {@link ExperimentAsset} instance.
+     */
+    public ExperimentAsset toExperimentAsset() {
+        ExperimentAsset a = new ExperimentAsset();
+        a.setAssetId(this.assetId);
+        a.setFileName(this.fileName);
+        a.setLink(this.link);
+        a.setRemote(this.remote);
+        a.setFileSize(this.fileSize);
+        a.setStep(this.step);
+        if (this.createdAt != null) {
+            a.setCreatedAt(Instant.ofEpochMilli(this.createdAt.getTime()));
+        }
+        a.setType(this.type);
+        a.setMetadataJson(this.metadata);
+        a.setCurlDownload(this.curlDownload);
+        return a;
+    }
 }
