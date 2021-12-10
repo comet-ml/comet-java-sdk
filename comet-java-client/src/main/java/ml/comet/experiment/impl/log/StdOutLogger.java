@@ -54,6 +54,7 @@ public class StdOutLogger implements Runnable, Closeable {
      *
      * @throws IOException if I/O exception occurs.
      */
+    @Override
     public void close() throws IOException {
         this.restoreOriginalAndStop();
 
