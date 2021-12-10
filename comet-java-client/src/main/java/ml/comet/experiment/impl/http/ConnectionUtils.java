@@ -19,6 +19,7 @@ import org.asynchttpclient.util.HttpConstants;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +106,7 @@ public class ConnectionUtils {
         return new RequestBuilder()
                 .setUrl(url)
                 .setHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .setBody(new ByteArrayBodyGenerator(body.getBytes()))
+                .setBody(new ByteArrayBodyGenerator(body.getBytes(StandardCharsets.UTF_8)))
                 .setMethod(HttpConstants.Methods.POST)
                 .build();
     }
