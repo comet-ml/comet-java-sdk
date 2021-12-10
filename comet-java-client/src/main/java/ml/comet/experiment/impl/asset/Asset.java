@@ -1,6 +1,5 @@
 package ml.comet.experiment.impl.asset;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.context.ExperimentContext;
