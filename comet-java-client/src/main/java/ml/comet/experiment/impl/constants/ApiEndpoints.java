@@ -8,6 +8,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public final class ApiEndpoints {
     public static final String UPDATE_API_URL = "/api/rest/v2/write";
+    public static final String SET_EXPERIMENT_STATUS = UPDATE_API_URL + "/experiment/set-status";
+    public static final String NEW_EXPERIMENT = UPDATE_API_URL + "/experiment/create";
     public static final String ADD_OUTPUT = UPDATE_API_URL + "/experiment/output";
     public static final String ADD_TAG = UPDATE_API_URL + "/experiment/tags";
     public static final String ADD_GIT_METADATA = UPDATE_API_URL + "/experiment/git/metadata";
@@ -18,9 +20,9 @@ public final class ApiEndpoints {
     public static final String ADD_HTML = UPDATE_API_URL + "/experiment/html";
     public static final String ADD_PARAMETER = UPDATE_API_URL + "/experiment/parameter";
     public static final String ADD_METRIC = UPDATE_API_URL + "/experiment/metric";
+    public static final String UPSERT_ARTIFACT = UPDATE_API_URL + "/artifacts/upsert";
+    public static final String UPDATE_ARTIFACT_STATE = UPDATE_API_URL + "/artifacts/state";
 
-    public static final String SET_EXPERIMENT_STATUS = UPDATE_API_URL + "/experiment/set-status";
-    public static final String NEW_EXPERIMENT = UPDATE_API_URL + "/experiment/create";
     public static final String READ_API_URL = "/api/rest/v2";
     public static final String GET_ASSET_INFO = READ_API_URL + "/experiment/asset/list";
     public static final String GET_TAGS = READ_API_URL + "/experiment/tags";
@@ -35,4 +37,6 @@ public final class ApiEndpoints {
     public static final String EXPERIMENTS = READ_API_URL + "/experiments";
     public static final String PROJECTS = READ_API_URL + "/projects";
     public static final String WORKSPACES = READ_API_URL + "/workspaces";
+    public static final String GET_ARTIFACT = READ_API_URL + "/artifacts/get";
+    public static final String GET_ARTIFACT_VERSION_DETAIL = READ_API_URL + "/artifacts/version";
 }

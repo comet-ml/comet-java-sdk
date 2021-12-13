@@ -5,13 +5,14 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.rest.AddExperimentTagsRest;
 import ml.comet.experiment.impl.rest.AddGraphRest;
+import ml.comet.experiment.impl.rest.ArtifactEntry;
+import ml.comet.experiment.impl.rest.ArtifactRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentResponse;
 import ml.comet.experiment.impl.rest.ExperimentAssetListResponse;
@@ -35,6 +36,7 @@ import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.impl.rest.TagsResponse;
 import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.impl.utils.JsonUtils;
+import ml.comet.experiment.model.AssetType;
 
 import java.io.File;
 import java.util.Collections;
@@ -65,6 +67,8 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_TAGS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.NEW_EXPERIMENT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_EXPERIMENT_STATUS;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.UPDATE_ARTIFACT_STATE;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.UPSERT_ARTIFACT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
 import static ml.comet.experiment.impl.constants.FormParamName.LINK;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
@@ -225,6 +229,16 @@ final class RestApiClient implements Disposable {
         formParams.put(LINK, asset.getLink().toASCIIString());
 
         return singleFromAsyncPost(ADD_ASSET, queryParams, formParams, LogDataResponse.class);
+    }
+
+    Single<ArtifactEntry> upsertArtifact(final ArtifactRequest request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
+        return singleFromSyncPost(request, UPSERT_ARTIFACT, true, ArtifactEntry.class);
+    }
+
+    Single<LogDataResponse> updateArtifactState(final ArtifactRequest request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
+        return singleFromSyncPost(request, UPDATE_ARTIFACT_STATE, true, LogDataResponse.class);
     }
 
     private <T> Single<T> singleFromAsyncPost(@NonNull String endpoint,

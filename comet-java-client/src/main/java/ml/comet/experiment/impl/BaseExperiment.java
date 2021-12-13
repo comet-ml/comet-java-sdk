@@ -6,12 +6,17 @@ import io.reactivex.rxjava3.functions.Function;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
+import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
+import ml.comet.experiment.impl.rest.ArtifactEntry;
+import ml.comet.experiment.impl.rest.ArtifactRequest;
+import ml.comet.experiment.impl.rest.ArtifactVersionState;
 import ml.comet.experiment.impl.rest.CreateExperimentRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentResponse;
 import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
@@ -34,12 +39,16 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITH_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createArtifactUpsertRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createArtifactVersionStateRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createGitMetadataRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createGraphRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogEndTimeRequest;
@@ -415,6 +424,55 @@ abstract class BaseExperiment implements Experiment {
         sendSynchronously(restApiClient::logAsset, asset);
     }
 
+    /**
+     * Synchronously upsert provided Comet artifact into Comet backend.
+     *
+     * @param artifact the {@link ArtifactImpl} instance.
+     * @return the {@link ArtifactEntry} describing saved artifact.
+     */
+    ArtifactEntry upsertArtifact(@NonNull final Artifact artifact) {
+        ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
+        ArtifactRequest request = createArtifactUpsertRequest(artifactImpl);
+        ArtifactEntry response = validateAndGetExperimentKey()
+                .concatMap(experimentKey -> getRestApiClient().upsertArtifact(request, experimentKey))
+                .blockingGet();
+
+        if (StringUtils.isBlank(response.getPreviousVersion())) {
+            getLogger().info(
+                    getString(ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS,
+                            artifactImpl.getName(), response.getCurrentVersion()));
+        } else {
+            getLogger().info(
+                    getString(ARTIFACT_VERSION_CREATED_WITH_PREVIOUS,
+                            artifactImpl.getName(), response.getCurrentVersion(), response.getPreviousVersion())
+            );
+        }
+        return response;
+    }
+
+    /**
+     * Synchronously updates the state associated with Comet artifact version.
+     *
+     * @param artifactVersionId the artifact version identifier.
+     * @param state             the state to be associated.
+     * @throws CometApiException is operation failed.
+     */
+    void updateArtifactVersionState(@NonNull String artifactVersionId, @NonNull ArtifactVersionState state)
+            throws CometApiException {
+        ArtifactRequest request = createArtifactVersionStateRequest(artifactVersionId, state);
+        sendSynchronously(getRestApiClient()::updateArtifactState, request);
+    }
+
+    LoggedArtifact getArtifact() {
+        // TODO getArtifact
+
+//        if (this.artifact == null) {
+//            logger.error("no artifact data found");
+//            return;
+//        }
+        return null;
+    }
+
     @Override
     public ExperimentMetadata getMetadata() {
         if (getLogger().isDebugEnabled()) {
@@ -600,7 +658,8 @@ abstract class BaseExperiment implements Experiment {
                 .blockingGet();
 
         if (response.hasFailed()) {
-            throw new CometApiException("Failed to log {}, reason: %s", request, response.getMsg());
+            throw new CometApiException("Failed to log {}, reason: %s, sdk error code: %d",
+                    request, response.getMsg(), response.getSdkErrorCode());
         }
     }
 
