@@ -50,6 +50,7 @@ public class ExperimentAssetLink {
         a.setRemote(this.remote);
         a.setFileSize(this.fileSize);
         a.setStep(this.step);
+        a.setContext(this.runContext);
         if (this.createdAt != null) {
             a.setCreatedAt(Instant.ofEpochMilli(this.createdAt.getTime()));
         }
