@@ -98,7 +98,7 @@ public class ArtifactTest extends AssetsBaseTest {
                 .withVersion(SOME_VERSION)
                 .build();
         assertNotNull(artifact);
-        assertTrue(artifact.getVersion().isEqualTo(SOME_VERSION));
+        assertTrue(artifact.getSemanticVersion().isEqualTo(SOME_VERSION));
     }
 
     @Test

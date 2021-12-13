@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 import static java.util.Optional.empty;
 import static ml.comet.experiment.impl.resources.LogMessages.CONFLICTING_ARTIFACT_ASSET_NAME;
@@ -31,27 +30,15 @@ import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
 /**
  * The implementation of the {@link Artifact}.
  */
-public final class ArtifactImpl implements Artifact {
-    @Getter
-    private final String name;
-    @Getter
-    private final String type;
-    @Getter
-    private Set<String> aliases;
-    @Getter
-    private Map<String, Object> artifactMetadata;
-    @Getter
-    private Semver version;
-    @Getter
-    private Set<String> versionTags;
+public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
+
     @Getter
     private final List<Asset> assets;
 
     private final boolean prefixWithFolderName;
 
     ArtifactImpl(String name, String type) {
-        this.name = name;
-        this.type = type;
+        super(name, type);
         this.assets = new ArrayList<>();
         this.prefixWithFolderName = true;
     }
@@ -200,7 +187,7 @@ public final class ArtifactImpl implements Artifact {
 
         @Override
         public ArtifactBuilderImpl withVersion(String version) {
-            this.artifact.version = new Semver(version);
+            this.artifact.semanticVersion = new Semver(version);
             return this;
         }
 
