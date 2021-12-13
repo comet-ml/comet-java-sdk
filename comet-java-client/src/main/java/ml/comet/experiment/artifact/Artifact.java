@@ -96,7 +96,8 @@ public interface Artifact {
      * {@link Artifact}.
      *
      * @param name the name of the artifact.
-     * @param type the type of the artifact.
+     * @param type the type of the artifact. Typical artifact types could be "dataset", "image", "training-data",
+     *             "validation-data", "testing-data", etc.
      * @return the {@link ArtifactBuilder} instance to create properly initialized instances of the {@link Artifact}.
      */
     static ArtifactBuilder newArtifact(@NonNull String name, @NonNull String type) {
