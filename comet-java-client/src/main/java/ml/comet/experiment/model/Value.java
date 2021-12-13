@@ -10,6 +10,7 @@ import java.time.Instant;
  */
 @Data
 @NoArgsConstructor
+@SuppressWarnings("unused")
 public class Value {
     private String name;
     private String max;

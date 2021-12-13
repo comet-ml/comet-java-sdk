@@ -10,6 +10,7 @@ import java.time.Instant;
  */
 @Data
 @NoArgsConstructor
+@SuppressWarnings("unused")
 public class ExperimentAsset {
     private String assetId;
     private String type;

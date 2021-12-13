@@ -17,6 +17,7 @@ import static ml.comet.experiment.impl.utils.CometUtils.instantOrNull;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class RestProject {
     private String projectId;
     private String projectName;

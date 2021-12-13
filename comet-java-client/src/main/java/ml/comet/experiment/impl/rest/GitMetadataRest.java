@@ -14,6 +14,7 @@ import ml.comet.experiment.model.GitMetaData;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class GitMetadataRest extends BaseExperimentObject {
     private String user;
     private String root;

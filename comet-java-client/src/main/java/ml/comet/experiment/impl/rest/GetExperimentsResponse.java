@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class GetExperimentsResponse {
     List<ExperimentMetadataRest> experiments;
 }

@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class ExperimentAssetListResponse {
     private List<ExperimentAssetLink> assets;
 }

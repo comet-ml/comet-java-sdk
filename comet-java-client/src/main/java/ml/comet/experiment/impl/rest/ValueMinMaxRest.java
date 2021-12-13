@@ -14,6 +14,7 @@ import static ml.comet.experiment.impl.utils.CometUtils.instantOrNull;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class ValueMinMaxRest {
     private String name;
     private String valueMax;

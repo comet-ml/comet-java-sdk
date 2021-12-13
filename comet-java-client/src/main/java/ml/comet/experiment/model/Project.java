@@ -10,6 +10,7 @@ import java.time.Instant;
  */
 @Data
 @NoArgsConstructor
+@SuppressWarnings("unused")
 public class Project {
     private String projectId;
     private String projectName;

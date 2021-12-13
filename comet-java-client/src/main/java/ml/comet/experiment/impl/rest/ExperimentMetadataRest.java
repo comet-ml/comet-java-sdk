@@ -21,6 +21,7 @@ import static ml.comet.experiment.impl.utils.CometUtils.instantOrNull;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class ExperimentMetadataRest extends BaseExperimentObject {
     private String experimentName;
     private String optimizationId;

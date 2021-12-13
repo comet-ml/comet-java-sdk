@@ -15,6 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class OutputUpdate extends BaseExperimentObject {
     private String runContext;
     private List<OutputLine> outputLines;

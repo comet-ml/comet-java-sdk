@@ -11,6 +11,7 @@ import java.time.Instant;
  */
 @Data
 @NoArgsConstructor
+@SuppressWarnings("unused")
 public class ExperimentMetadata {
     private String experimentKey;
     private String experimentName;
