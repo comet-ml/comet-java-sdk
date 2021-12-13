@@ -10,6 +10,8 @@ import ml.comet.experiment.model.Project;
 
 import java.time.Instant;
 
+import static ml.comet.experiment.impl.utils.CometUtils.instantOrNull;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -23,7 +25,7 @@ public class RestProject {
     private String workspaceName;
     @JsonProperty("public")
     private boolean isPublic;
-    private int numberOfExperiments;
+    private Integer numberOfExperiments;
     private Long lastUpdated;
 
     /**
@@ -40,7 +42,7 @@ public class RestProject {
         p.setWorkspaceName(this.workspaceName);
         p.setPublic(this.isPublic);
         p.setNumberOfExperiments(this.numberOfExperiments);
-        p.setLastUpdated(Instant.ofEpochMilli(this.lastUpdated));
+        p.setLastUpdated(instantOrNull(this.lastUpdated));
         return p;
     }
 }

@@ -18,10 +18,10 @@ import ml.comet.experiment.model.GitMetaData;
 import java.util.Collections;
 
 /**
- * The common factory methods to create initialized DTO instances.
+ * The common factory methods to create initialized model DTO instances.
  */
 @UtilityClass
-public class DataUtils {
+public class DataModelUtils {
     /**
      * The factory to create {@link MetricRest} instance.
      *

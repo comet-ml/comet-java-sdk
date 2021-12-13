@@ -12,6 +12,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+import static ml.comet.experiment.impl.utils.CometUtils.durationOrNull;
+import static ml.comet.experiment.impl.utils.CometUtils.instantOrNull;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
@@ -47,9 +50,9 @@ public class ExperimentMetadataRest extends BaseExperimentObject {
         data.setProjectId(this.projectId);
         data.setProjectName(this.projectName);
         data.setWorkspaceName(this.workspaceName);
-        data.setDuration(Duration.of(this.durationMillis, ChronoUnit.MILLIS));
-        data.setStartTime(Instant.ofEpochMilli(this.startTimeMillis));
-        data.setEndTime(Instant.ofEpochMilli(this.endTimeMillis));
+        data.setDuration(durationOrNull(this.durationMillis));
+        data.setStartTime(instantOrNull(this.startTimeMillis));
+        data.setEndTime(instantOrNull(this.endTimeMillis));
         data.setArchived(this.isArchived);
         data.setRunning(this.isRunning());
         return data;

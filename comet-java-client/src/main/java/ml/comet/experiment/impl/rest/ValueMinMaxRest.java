@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.model.Value;
 
-import java.time.Instant;
+import static ml.comet.experiment.impl.utils.CometUtils.instantOrNull;
 
 @Data
 @NoArgsConstructor
@@ -41,9 +41,10 @@ public class ValueMinMaxRest {
         v.setMax(this.valueMax);
         v.setMin(this.valueMin);
         v.setCurrent(this.valueCurrent);
-        v.setTimestampMax(Instant.ofEpochMilli(this.timestampMax));
-        v.setTimestampMin(Instant.ofEpochMilli(this.timestampMin));
-        v.setTimestampCurrent(Instant.ofEpochMilli(this.timestampCurrent));
+
+        v.setTimestampMax(instantOrNull(this.timestampMax));
+        v.setTimestampMin(instantOrNull(this.timestampMin));
+        v.setTimestampCurrent(instantOrNull(this.timestampCurrent));
         v.setContextMax(this.runContextMax);
         v.setContextMin(this.runContextMin);
         v.setContextCurrent(this.runContextCurrent);

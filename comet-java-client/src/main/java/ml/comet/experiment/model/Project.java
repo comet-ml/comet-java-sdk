@@ -17,6 +17,6 @@ public class Project {
     private String projectDescription;
     private String workspaceName;
     private boolean isPublic;
-    private int numberOfExperiments;
+    private Integer numberOfExperiments;
     private Instant lastUpdated;
 }
