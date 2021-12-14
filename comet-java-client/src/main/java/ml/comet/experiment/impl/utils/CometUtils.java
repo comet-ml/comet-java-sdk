@@ -9,7 +9,11 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static ml.comet.experiment.impl.utils.ResourceUtils.readCometSdkVersion;
@@ -114,6 +118,19 @@ public final class CometUtils {
             return Duration.of(durationMillis, ChronoUnit.MILLIS);
         }
         return null;
+    }
+
+    /**
+     * Safe conversion of list to set.
+     *
+     * @param list the list to be converted
+     * @return the set from provided list or empty set if list is {@code null}.
+     */
+    public <T> Set<T> setFromList(List<T> list) {
+        if (list == null) {
+            return Collections.emptySet();
+        }
+        return new HashSet<>(list);
     }
 
 }

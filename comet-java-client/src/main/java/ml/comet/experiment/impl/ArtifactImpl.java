@@ -192,7 +192,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
         }
 
         @Override
-        public ArtifactBuilderImpl withVersionTags(List<String> tags) {
+        public ArtifactBuilderImpl withVersionTags(@NonNull List<String> tags) {
             this.artifact.versionTags = new HashSet<>(tags);
             return this;
         }

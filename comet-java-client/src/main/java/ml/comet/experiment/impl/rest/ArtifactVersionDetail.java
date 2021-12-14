@@ -9,13 +9,11 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.impl.LoggedArtifactImpl;
+import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.DataModelUtils;
-import ml.comet.experiment.impl.utils.JsonUtils;
 import org.slf4j.Logger;
 
 import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 @Data
@@ -48,20 +46,15 @@ public class ArtifactVersionDetail extends BaseExperimentObject {
     public LoggedArtifact toLoggedArtifact(Logger logger) {
         LoggedArtifactImpl a = new LoggedArtifactImpl(this.artifact.getArtifactName(), this.artifact.getArtifactType());
         a.setSemanticVersion(new Semver(this.artifactVersion));
-        if (this.alias != null) {
-            a.setAliases(new HashSet<>(this.alias));
-        }
         a.setArtifactId(this.artifact.getArtifactId());
-        if (this.artifact.getTags() != null) {
-            a.setArtifactTags(new HashSet<>(this.artifact.getTags()));
-        }
         a.setArtifactVersionId(this.artifactVersionId);
         a.setExperimentKey(this.experimentKey);
         a.setSizeInBytes(this.sizeInBytes);
-        if (this.tags != null) {
-            a.setVersionTags(new HashSet<>(this.tags));
-        }
         a.setWorkspace(this.artifact.getWorkspaceName());
+
+        a.setAliases(CometUtils.setFromList(this.alias));
+        a.setArtifactTags(CometUtils.setFromList(this.artifact.getTags()));
+        a.setVersionTags(CometUtils.setFromList(this.tags));
 
         if (this.metadata != null) {
             try {
