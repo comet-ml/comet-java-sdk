@@ -19,7 +19,17 @@ public enum QueryParamName {
     IS_REMOTE("isRemote"), // boolean
     OVERWRITE("overwrite"), // boolean
     PROJECT_ID("projectId"), // string
-    WORKSPACE_NAME("workspaceName"); // string
+    WORKSPACE_NAME("workspaceName"), // string
+
+    WORKSPACE("workspace"), // string
+    PROJECT("project"), // string
+    ARTIFACT_NAME("artifactName"), // string
+    ARTIFACT_ID("artifactId"), // string
+    VERSION_ID("versionId"), // string
+    VERSION("version"), // string
+    ALIAS("alias"), // string
+    VERSION_OR_ALIAS("versionOrAlias"), // string
+    CONSUMER_EXPERIMENT_KEY("consumerExperimentKey"); // string
 
     private final String paramName;
 
