@@ -1,11 +1,13 @@
 package ml.comet.experiment.artifact;
 
 import lombok.Getter;
+import lombok.ToString;
 
 /**
  * Holds options used to query for Comet artifact.
  */
 @Getter
+@ToString
 public final class GetArtifactOptions {
     private String workspace;
     private String project;
