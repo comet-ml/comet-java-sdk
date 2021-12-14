@@ -3,7 +3,7 @@ package ml.comet.experiment.impl;
 import com.vdurmont.semver4j.SemverException;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
-import ml.comet.experiment.artifact.ConflictingArtifactAssetName;
+import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import org.junit.jupiter.api.BeforeEach;
@@ -165,7 +165,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("throws ConflictingArtifactAssetName when adding asset with existing name")
             @Order(2)
             void throwsExceptionWhenAddingSameName() {
-                assertThrows(ConflictingArtifactAssetName.class, () ->
+                assertThrows(ConflictingArtifactAssetNameException.class, () ->
                         artifact.addAsset(this.assetFile, false));
             }
         }
@@ -199,7 +199,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("throws ConflictingArtifactAssetName when adding asset with existing name")
             @Order(2)
             void throwsExceptionWhenAddingSameName() {
-                assertThrows(ConflictingArtifactAssetName.class, () ->
+                assertThrows(ConflictingArtifactAssetNameException.class, () ->
                         artifact.addAsset(this.data, this.assetFileName));
             }
         }
@@ -233,7 +233,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("throws ConflictingArtifactAssetName when adding asset with existing name")
             @Order(2)
             void throwsExceptionWhenAddingSameName() {
-                assertThrows(ConflictingArtifactAssetName.class, () ->
+                assertThrows(ConflictingArtifactAssetNameException.class, () ->
                         artifact.addRemoteAsset(this.uri, this.assetFileName));
             }
         }
@@ -261,7 +261,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("throws ConflictingArtifactAssetName when adding asset with existing name")
             @Order(2)
             void throwsExceptionWhenAddingSameName() {
-                assertThrows(ConflictingArtifactAssetName.class, () ->
+                assertThrows(ConflictingArtifactAssetNameException.class, () ->
                         artifact.addAssetFolder(assetsFolder.toFile(), logFilePath, recursive));
             }
 

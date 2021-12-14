@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactBuilder;
-import ml.comet.experiment.artifact.ConflictingArtifactAssetName;
+import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 
@@ -76,7 +76,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     }
 
     @Override
-    public void addAsset(byte[] data, String name) throws ConflictingArtifactAssetName {
+    public void addAsset(byte[] data, String name) throws ConflictingArtifactAssetNameException {
         this.addAsset(data, name, false);
     }
 
@@ -113,41 +113,41 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     @Override
     public void addAssetFolder(@NonNull File folder, boolean logFilePath,
                                boolean recursive, @NonNull Map<String, Object> metadata)
-            throws ConflictingArtifactAssetName, IOException {
+            throws ConflictingArtifactAssetNameException, IOException {
         this.addAssetFolder(folder, logFilePath, recursive, Optional.of(metadata));
     }
 
     @Override
     public void addAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive)
-            throws ConflictingArtifactAssetName, IOException {
+            throws ConflictingArtifactAssetNameException, IOException {
         this.addAssetFolder(folder, logFilePath, recursive, empty());
     }
 
     @Override
     public void addAssetFolder(@NonNull File folder, boolean logFilePath)
-            throws ConflictingArtifactAssetName, IOException {
+            throws ConflictingArtifactAssetNameException, IOException {
         this.addAssetFolder(folder, false, false);
     }
 
     @Override
-    public void addAssetFolder(@NonNull File folder) throws ConflictingArtifactAssetName, IOException {
+    public void addAssetFolder(@NonNull File folder) throws ConflictingArtifactAssetNameException, IOException {
         this.addAssetFolder(folder, false);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private void addAssetFolder(@NonNull File folder, boolean logFilePath,
                                 boolean recursive, Optional<Map<String, Object>> metadata)
-            throws ConflictingArtifactAssetName, IOException {
+            throws ConflictingArtifactAssetNameException, IOException {
 
         walkFolderAssets(folder, logFilePath, recursive, this.prefixWithFolderName)
                 .peek(asset -> asset.setMetadata(metadata.orElse(null)))
                 .forEach(this::appendAsset);
     }
 
-    private void appendAsset(Asset asset) throws ConflictingArtifactAssetName {
+    private void appendAsset(Asset asset) throws ConflictingArtifactAssetNameException {
         this.assets.forEach(a -> {
             if (Objects.equals(a.getFileName(), asset.getFileName())) {
-                throw new ConflictingArtifactAssetName(
+                throw new ConflictingArtifactAssetNameException(
                         getString(CONFLICTING_ARTIFACT_ASSET_NAME, asset, asset.getFileName(), a));
             }
         });
