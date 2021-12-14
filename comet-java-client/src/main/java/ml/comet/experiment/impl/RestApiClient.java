@@ -95,64 +95,64 @@ final class RestApiClient implements Disposable {
     }
 
     Single<GetWorkspacesResponse> getAllWorkspaces() {
-        return singleFromSyncGet(WORKSPACES, Collections.emptyMap(), GetWorkspacesResponse.class);
+        return singleFromSyncGetWithRetries(WORKSPACES, Collections.emptyMap(), GetWorkspacesResponse.class);
     }
 
     Single<GetProjectsResponse> getAllProjects(String workspaceName) {
-        return singleFromSyncGet(
+        return singleFromSyncGetWithRetries(
                 PROJECTS, Collections.singletonMap(WORKSPACE_NAME, workspaceName), GetProjectsResponse.class);
     }
 
     Single<GetExperimentsResponse> getAllExperiments(String projectId) {
-        return singleFromSyncGet(
+        return singleFromSyncGetWithRetries(
                 EXPERIMENTS, Collections.singletonMap(PROJECT_ID, projectId), GetExperimentsResponse.class);
     }
 
     Single<ExperimentMetadataRest> getMetadata(String experimentKey) {
-        return singleFromSyncGet(GET_METADATA, experimentKey, ExperimentMetadataRest.class);
+        return singleFromSyncGetWithRetries(GET_METADATA, experimentKey, ExperimentMetadataRest.class);
     }
 
     Single<GitMetadataRest> getGitMetadata(String experimentKey) {
-        return singleFromSyncGet(GET_GIT_METADATA, experimentKey, GitMetadataRest.class);
+        return singleFromSyncGetWithRetries(GET_GIT_METADATA, experimentKey, GitMetadataRest.class);
     }
 
     Single<GetHtmlResponse> getHtml(String experimentKey) {
-        return singleFromSyncGet(GET_HTML, experimentKey, GetHtmlResponse.class);
+        return singleFromSyncGetWithRetries(GET_HTML, experimentKey, GetHtmlResponse.class);
     }
 
     Single<GetOutputResponse> getOutput(String experimentKey) {
-        return singleFromSyncGet(GET_OUTPUT, experimentKey, GetOutputResponse.class);
+        return singleFromSyncGetWithRetries(GET_OUTPUT, experimentKey, GetOutputResponse.class);
     }
 
     Single<GetGraphResponse> getGraph(String experimentKey) {
-        return singleFromSyncGet(GET_GRAPH, experimentKey, GetGraphResponse.class);
+        return singleFromSyncGetWithRetries(GET_GRAPH, experimentKey, GetGraphResponse.class);
     }
 
     Single<MinMaxResponse> getParameters(String experimentKey) {
-        return singleFromSyncGet(GET_PARAMETERS, experimentKey, MinMaxResponse.class);
+        return singleFromSyncGetWithRetries(GET_PARAMETERS, experimentKey, MinMaxResponse.class);
     }
 
     Single<MinMaxResponse> getMetrics(String experimentKey) {
-        return singleFromSyncGet(GET_METRICS, experimentKey, MinMaxResponse.class);
+        return singleFromSyncGetWithRetries(GET_METRICS, experimentKey, MinMaxResponse.class);
     }
 
     Single<MinMaxResponse> getLogOther(String experimentKey) {
-        return singleFromSyncGet(GET_LOG_OTHER, experimentKey, MinMaxResponse.class);
+        return singleFromSyncGetWithRetries(GET_LOG_OTHER, experimentKey, MinMaxResponse.class);
     }
 
     Single<TagsResponse> getTags(String experimentKey) {
-        return singleFromSyncGet(GET_TAGS, experimentKey, TagsResponse.class);
+        return singleFromSyncGetWithRetries(GET_TAGS, experimentKey, TagsResponse.class);
     }
 
     Single<ExperimentAssetListResponse> getAssetList(String experimentKey, AssetType type) {
         HashMap<QueryParamName, String> params = new HashMap<>();
         params.put(EXPERIMENT_KEY, experimentKey);
         params.put(TYPE, type.type());
-        return singleFromSyncGet(GET_ASSET_INFO, params, ExperimentAssetListResponse.class);
+        return singleFromSyncGetWithRetries(GET_ASSET_INFO, params, ExperimentAssetListResponse.class);
     }
 
     Single<ExperimentStatusResponse> sendExperimentStatus(String experimentKey) {
-        return singleFromSyncGet(SET_EXPERIMENT_STATUS, experimentKey, ExperimentStatusResponse.class);
+        return singleFromSyncGetWithRetries(SET_EXPERIMENT_STATUS, experimentKey, ExperimentStatusResponse.class);
     }
 
     Single<LogDataResponse> logMetric(final MetricRest request, String experimentKey) {
@@ -201,7 +201,7 @@ final class RestApiClient implements Disposable {
     }
 
     Single<CreateExperimentResponse> registerExperiment(final CreateExperimentRequest request) {
-        return singleFromSyncPost(request, NEW_EXPERIMENT, true, CreateExperimentResponse.class);
+        return singleFromSyncPostWithRetries(request, NEW_EXPERIMENT, true, CreateExperimentResponse.class);
     }
 
     Single<LogDataResponse> logAsset(final Asset asset, String experimentKey) {
@@ -236,19 +236,20 @@ final class RestApiClient implements Disposable {
 
     Single<ArtifactEntry> upsertArtifact(final ArtifactRequest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromSyncPost(request, UPSERT_ARTIFACT, true, ArtifactEntry.class);
+        return singleFromSyncPostWithRetries(request, UPSERT_ARTIFACT, true, ArtifactEntry.class);
     }
 
     Single<LogDataResponse> updateArtifactState(final ArtifactRequest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromSyncPost(request, UPDATE_ARTIFACT_STATE, true, LogDataResponse.class);
+        return singleFromSyncPostWithRetries(request, UPDATE_ARTIFACT_STATE, true, LogDataResponse.class);
     }
 
     Single<ArtifactVersionDetail> getArtifactVersionDetail(
             final GetArtifactOptions request, String experimentKey) {
 
-        return singleFromSyncGet(
-                GET_ARTIFACT_VERSION_DETAIL, versionDetailsParams(request, experimentKey), ArtifactVersionDetail.class);
+        return this.singleFromSyncGetWithRetries(
+                GET_ARTIFACT_VERSION_DETAIL, versionDetailsParams(request, experimentKey),
+                true, ArtifactVersionDetail.class);
     }
 
     private <T> Single<T> singleFromAsyncPost(@NonNull String endpoint,
@@ -300,10 +301,10 @@ final class RestApiClient implements Disposable {
                 .map(response -> JsonUtils.fromJson(response.getResponseBody(), clazz));
     }
 
-    private <T> Single<T> singleFromSyncPost(@NonNull Object payload,
-                                             @NonNull String endpoint,
-                                             boolean throwOnFailure,
-                                             @NonNull Class<T> clazz) {
+    private <T> Single<T> singleFromSyncPostWithRetries(@NonNull Object payload,
+                                                        @NonNull String endpoint,
+                                                        boolean throwOnFailure,
+                                                        @NonNull Class<T> clazz) {
         if (isDisposed()) {
             return Single.error(ALREADY_DISPOSED);
         }
@@ -315,19 +316,27 @@ final class RestApiClient implements Disposable {
                         String.format("No response was returned by endpoint: %s", endpoint))));
     }
 
-    private <T> Single<T> singleFromSyncGet(@NonNull String endpoint,
-                                            @NonNull String experimentKey,
-                                            @NonNull Class<T> clazz) {
-        return singleFromSyncGet(endpoint, Collections.singletonMap(EXPERIMENT_KEY, experimentKey), clazz);
+    private <T> Single<T> singleFromSyncGetWithRetries(@NonNull String endpoint,
+                                                       @NonNull String experimentKey,
+                                                       @NonNull Class<T> clazz) {
+        return singleFromSyncGetWithRetries(endpoint, Collections.singletonMap(EXPERIMENT_KEY, experimentKey),
+                false, clazz);
     }
 
-    private <T> Single<T> singleFromSyncGet(@NonNull String endpoint,
-                                            @NonNull Map<QueryParamName, String> params,
-                                            @NonNull Class<T> clazz) {
+    private <T> Single<T> singleFromSyncGetWithRetries(@NonNull String endpoint,
+                                                       @NonNull Map<QueryParamName, String> params,
+                                                       @NonNull Class<T> clazz) {
+        return singleFromSyncGetWithRetries(endpoint, params, false, clazz);
+    }
+
+    private <T> Single<T> singleFromSyncGetWithRetries(@NonNull String endpoint,
+                                                       @NonNull Map<QueryParamName, String> queryParams,
+                                                       boolean throwOnFailure,
+                                                       @NonNull Class<T> clazz) {
         if (isDisposed()) {
             return Single.error(ALREADY_DISPOSED);
         }
-        return this.connection.sendGetWithRetries(endpoint, params)
+        return this.connection.sendGetWithRetries(endpoint, queryParams, throwOnFailure)
                 .map(body -> Single.just(JsonUtils.fromJson(body, clazz)))
                 .orElse(Single.error(new CometApiException(
                         String.format("No response was returned by endpoint: %s", endpoint))));

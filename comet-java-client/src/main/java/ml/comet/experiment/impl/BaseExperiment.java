@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactNotReadyException;
+import ml.comet.experiment.artifact.ArtifactNotFoundException;
+import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
@@ -463,7 +466,16 @@ abstract class BaseExperiment implements Experiment {
         sendSynchronously(getRestApiClient()::updateArtifactState, request);
     }
 
-    LoggedArtifact getArtifact() {
+    /**
+     * Synchronously retrieves all data about a specific Artifact Version.
+     *
+     * @param options the {@link GetArtifactOptions} defining query options.
+     * @return the {@link LoggedArtifact} instance holding all data about a specific Artifact Version.
+     * @throws ArtifactNotFoundException if artifact is not found.
+     * @throws ArtifactNotReadyException if artifact is still being processed by the backend.
+     */
+    LoggedArtifact getArtifactVersionDetail(@NonNull GetArtifactOptions options)
+            throws ArtifactNotFoundException, ArtifactNotReadyException {
         // TODO getArtifact
 
 //        if (this.artifact == null) {
