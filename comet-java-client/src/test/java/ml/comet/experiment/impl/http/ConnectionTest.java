@@ -6,6 +6,9 @@ import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import lombok.NonNull;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.constants.QueryParamName;
+import ml.comet.experiment.impl.constants.SdkErrorCodes;
+import ml.comet.experiment.impl.rest.CometWebJavaSdkException;
+import ml.comet.experiment.impl.utils.JsonUtils;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -48,40 +52,103 @@ public class ConnectionTest {
     private static final Logger logger = LoggerFactory.getLogger(ConnectionTest.class);
     private static final String TEST_API_KEY = UUID.randomUUID().toString();
     private static final int MAX_AUTH_RETRIES_DEFAULT = 4;
+    private static final String someEndpoint = "/someEndpoint";
+    private static final String someJsonResponse = "[\"someJsonResponse\"]";
+    private static final String someRequestStr = "someRequestString";
+    private static final int BAD_REQUEST_ERROR_CODE = 400;
+
+    private static final HashMap<QueryParamName, String> someParams = new HashMap<QueryParamName, String>() {{
+        put(EXPERIMENT_KEY, "someValue");
+        put(OVERWRITE, Boolean.toString(true));
+    }};
 
     @Test
     public void testSendGetWithRetries(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
-        // create test data
-        //
-        HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
-            put(EXPERIMENT_KEY, "someValue");
-            put(OVERWRITE, Boolean.toString(true));
-        }};
-        Map<String, StringValuePattern> queryParams = this.createQueryParams(params);
-
-        String endpoint = "/someEndpoint";
-        String responseStr = "[\"someJsonResponse\"]";
-
         // create test HTTP stub
         //
-        stubFor(get(urlPathEqualTo(endpoint))
-                .withQueryParams(queryParams)
-                .willReturn(ok(responseStr).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+        stubFor(get(urlPathEqualTo(someEndpoint))
+                .withQueryParams(this.createQueryParams(someParams))
+                .willReturn(ok(someJsonResponse).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
         String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
-        Optional<String> response = connection.sendGetWithRetries(endpoint, params);
+        Optional<String> response = connection.sendGetWithRetries(someEndpoint, someParams);
         assertDoesNotThrow(connection::close);
 
         assertTrue(response.isPresent(), "response expected");
-        assertEquals(responseStr, response.get(), "wrong response body");
+        assertEquals(someJsonResponse, response.get(), "wrong response body");
 
         // verify that Auth header was set as expected
         //
-        verify(getRequestedFor(urlPathEqualTo(endpoint))
+        verify(getRequestedFor(urlPathEqualTo(someEndpoint))
+                .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
+
+        // check that inventory was fully processed
+        assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
+    }
+
+    @Test
+    public void testSendGet(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+        // create test HTTP stub
+        //
+        stubFor(get(urlPathEqualTo(someEndpoint))
+                .withQueryParams(this.createQueryParams(someParams))
+                .willReturn(ok(someJsonResponse).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+
+        // execute request and check results
+        //
+        String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
+        Connection connection = new Connection(
+                baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
+        Optional<String> response = connection.sendGet(someEndpoint, someParams);
+        assertDoesNotThrow(connection::close);
+
+        assertTrue(response.isPresent(), "response expected");
+        assertEquals(someJsonResponse, response.get(), "wrong response body");
+
+        // verify that Auth header was set as expected
+        //
+        verify(getRequestedFor(urlPathEqualTo(someEndpoint))
+                .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
+
+        // check that inventory was fully processed
+        assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
+    }
+
+    @Test
+    public void testSendGetBadRequest(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+        // create test error response
+        //
+        String errorMessage = "Some message";
+        int sdkErrorCode = SdkErrorCodes.noArtifactFound;
+        CometWebJavaSdkException ex = new CometWebJavaSdkException(BAD_REQUEST_ERROR_CODE, errorMessage, sdkErrorCode);
+        String responseStr = JsonUtils.toJson(ex);
+
+        stubFor(get(urlPathEqualTo(someEndpoint))
+                .withQueryParams(this.createQueryParams(someParams))
+                .willReturn(aResponse().withBody(responseStr).withStatus(BAD_REQUEST_ERROR_CODE)
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+
+        // execute request and check results
+        //
+        String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
+        Connection connection = new Connection(
+                baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
+        CometApiException cometApiException = assertThrows(CometApiException.class, () ->
+                connection.sendGet(someEndpoint, someParams));
+        assertDoesNotThrow(connection::close);
+
+        // test exception values
+        //
+        assertNotNull(cometApiException);
+        assertEquals(sdkErrorCode, cometApiException.getSdkErrorCode(), "wrong SDK error code");
+
+        // verify that Auth header was set as expected
+        //
+        verify(getRequestedFor(urlPathEqualTo(someEndpoint))
                 .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
 
         // check that inventory was fully processed
@@ -90,31 +157,25 @@ public class ConnectionTest {
 
     @Test
     public void testSendPostWithRetries(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
-        // create test data
-        //
-        String endpoint = "/someEndpoint";
-        String requestStr = "someRequestString";
-        String responseStr = "[\"someJsonResponse\"]";
-
         // create test HTTP stub
         //
-        stubFor(post(urlPathEqualTo(endpoint))
-                .willReturn(ok(responseStr).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+        stubFor(post(urlPathEqualTo(someEndpoint))
+                .willReturn(ok(someJsonResponse).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
         String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
-        Optional<String> response = connection.sendPostWithRetries(requestStr, endpoint, true);
+        Optional<String> response = connection.sendPostWithRetries(someRequestStr, someEndpoint, true);
         assertDoesNotThrow(connection::close);
 
         assertTrue(response.isPresent(), "response expected");
-        assertEquals(responseStr, response.get(), "wrong response body");
+        assertEquals(someJsonResponse, response.get(), "wrong response body");
 
         // verify that Auth header was set as expected
         //
-        verify(postRequestedFor(urlPathEqualTo(endpoint))
+        verify(postRequestedFor(urlPathEqualTo(someEndpoint))
                 .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
@@ -122,14 +183,9 @@ public class ConnectionTest {
 
     @Test
     public void testSendPostWithRetries_throwsException(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
-        // create test data
-        //
-        String endpoint = "/someEndpoint";
-        String requestStr = "someRequestString";
-
         // create test HTTP stub
         //
-        stubFor(post(urlPathEqualTo(endpoint))
+        stubFor(post(urlPathEqualTo(someEndpoint))
                 .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
@@ -138,7 +194,7 @@ public class ConnectionTest {
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
         assertThrows(CometApiException.class, () ->
-                connection.sendPostWithRetries(requestStr, endpoint, true));
+                connection.sendPostWithRetries(someRequestStr, someEndpoint, true));
     }
 
     /**
@@ -146,14 +202,9 @@ public class ConnectionTest {
      */
     @Test
     public void testSendPostWithRetries_returnsEmptyOptional(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
-        // create test data
-        //
-        String endpoint = "/someEndpoint";
-        String requestStr = "someRequestString";
-
         // create test HTTP stub
         //
-        stubFor(post(urlPathEqualTo(endpoint))
+        stubFor(post(urlPathEqualTo(someEndpoint))
                 .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
@@ -161,7 +212,7 @@ public class ConnectionTest {
         String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
-        Optional<String> response = connection.sendPostWithRetries(requestStr, endpoint, false);
+        Optional<String> response = connection.sendPostWithRetries(someRequestStr, someEndpoint, false);
         assertDoesNotThrow(connection::close);
 
         assertFalse(response.isPresent(), "empty optional expected");
@@ -169,16 +220,10 @@ public class ConnectionTest {
 
     @Test
     public void testSendPostAsync(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
-        // create test data
-        //
-        String endpoint = "/someEndpoint";
-        String requestStr = "someRequestString";
-        String responseStr = "[\"someJsonResponse\"]";
-
         // create test HTTP stub
         //
-        stubFor(post(urlPathEqualTo(endpoint))
-                .willReturn(ok(responseStr).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+        stubFor(post(urlPathEqualTo(someEndpoint))
+                .willReturn(ok(someJsonResponse).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -186,7 +231,7 @@ public class ConnectionTest {
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
 
-        ListenableFuture<Response> responseListenableFuture = connection.sendPostAsync(requestStr, endpoint);
+        ListenableFuture<Response> responseListenableFuture = connection.sendPostAsync(someRequestStr, someEndpoint);
         assertNotNull(responseListenableFuture, "future expected");
 
         // wait for result
@@ -195,7 +240,7 @@ public class ConnectionTest {
             Response response = completableFuture
                     .exceptionally(throwable -> fail("response failed", throwable))
                     .get(5, TimeUnit.SECONDS);
-            assertEquals(responseStr, response.getResponseBody(), "wrong response body");
+            assertEquals(someJsonResponse, response.getResponseBody(), "wrong response body");
         });
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
@@ -207,14 +252,9 @@ public class ConnectionTest {
      */
     @Test
     public void testSendPostAsync_propagatesException_onErrorStatusCodeReceived(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
-        // create test data
-        //
-        String endpoint = "/someEndpoint";
-        String requestStr = "someRequestString";
-
         // create test HTTP stub
         //
-        stubFor(post(urlPathEqualTo(endpoint))
+        stubFor(post(urlPathEqualTo(someEndpoint))
                 .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
@@ -223,7 +263,7 @@ public class ConnectionTest {
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
 
-        ListenableFuture<Response> responseListenableFuture = connection.sendPostAsync(requestStr, endpoint);
+        ListenableFuture<Response> responseListenableFuture = connection.sendPostAsync(someRequestStr, someEndpoint);
         assertNotNull(responseListenableFuture, "future expected");
 
         // wait for result

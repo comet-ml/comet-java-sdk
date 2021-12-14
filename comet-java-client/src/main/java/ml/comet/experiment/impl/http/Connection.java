@@ -6,6 +6,8 @@ import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
+import ml.comet.experiment.impl.rest.CometWebJavaSdkException;
+import ml.comet.experiment.impl.utils.JsonUtils;
 import org.asynchttpclient.AsyncCompletionHandler;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.AsyncHttpClientConfig;
@@ -86,6 +88,7 @@ public class Connection implements Closeable {
 
     /**
      * Allows sending synchronous GET request to the specified endpoint with given request parameters.
+     * It will attempt to retry request if failed for the {@code maxAuthRetries} attempts.
      *
      * @param endpoint the request path of the endpoint
      * @param params   the map with request parameters.
@@ -94,6 +97,22 @@ public class Connection implements Closeable {
     public Optional<String> sendGetWithRetries(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params) {
         return executeRequestSyncWithRetries(
                 createGetRequest(this.buildCometUrl(endpoint), params), false);
+    }
+
+    /**
+     * Allows sending synchronous GET request to the specified endpoint with given request parameters.
+     * If request failed to {@link CometApiException} will be thrown with related details.
+     *
+     * @param endpoint the request path of the endpoint
+     * @param params   the map with request parameters.
+     * @return the {@link Optional} of response body.
+     * @throws CometApiException if failed.
+     */
+    public Optional<String> sendGet(@NonNull String endpoint, @NonNull Map<QueryParamName, String> params)
+            throws CometApiException {
+        return executeRequestSync(
+                createGetRequest(this.buildCometUrl(endpoint), params)
+        );
     }
 
     /**
@@ -252,6 +271,45 @@ public class Connection implements Closeable {
         String endpoint = request.getUrl();
         return this.asyncHttpClient.executeRequest(request,
                 new AsyncCompletionInventoryHandler(this.requestsInventory, this.logger, endpoint));
+    }
+
+    /**
+     * Synchronously executes provided request.
+     *
+     * @param request the request to be executed
+     * @return the response body or empty {@link Optional}.
+     * @throws CometApiException if request failed or remote endpoint returned error.
+     */
+    Optional<String> executeRequestSync(@NonNull Request request) throws CometApiException {
+        request.getHeaders().add(COMET_SDK_API_HEADER, apiKey);
+        Response response;
+        try {
+            response = this.asyncHttpClient
+                    .executeRequest(request)
+                    .get();
+        } catch (Throwable e) {
+            this.logger.error("Failed to execute request: " + request, e);
+            throw new CometApiException("failed to execute request, unknown error", e);
+        }
+
+        int statusCode = response.getStatusCode();
+        if (ConnectionUtils.isResponseSuccessful(statusCode)) {
+            return Optional.ofNullable(response.getResponseBody());
+        }
+
+        // process error
+        if (statusCode == 400 && response.hasResponseBody()) {
+            // BAD_REQUEST received - parse error message
+            CometWebJavaSdkException exception = JsonUtils.fromJson(
+                    response.getResponseBody(), CometWebJavaSdkException.class);
+
+            throw new CometApiException(statusCode, exception.getMsg(), exception.getSdkErrorCode());
+        }
+
+        // unknown error
+        this.logger.error("Failed to execute request: ({}), unexpected error received: status code [{}], message '{}' ",
+                request, statusCode, response.getResponseBody());
+        throw new CometApiException(statusCode, response.getStatusText(), 0);
     }
 
     /**
