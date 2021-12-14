@@ -3,6 +3,7 @@ package ml.comet.experiment.impl;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
+import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
@@ -13,6 +14,7 @@ import ml.comet.experiment.impl.rest.AddExperimentTagsRest;
 import ml.comet.experiment.impl.rest.AddGraphRest;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactRequest;
+import ml.comet.experiment.impl.rest.ArtifactVersionDetail;
 import ml.comet.experiment.impl.rest.CreateExperimentRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentResponse;
 import ml.comet.experiment.impl.rest.ExperimentAssetListResponse;
@@ -54,6 +56,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_DETAIL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSET_INFO;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GRAPH;
@@ -76,6 +79,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.IS_REMOTE;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
+import static ml.comet.experiment.impl.utils.ArtifactUtils.versionDetailsParams;
 
 /**
  * Represents Comet REST API client providing access to all exposed REST endpoints.
@@ -141,10 +145,9 @@ final class RestApiClient implements Disposable {
     }
 
     Single<ExperimentAssetListResponse> getAssetList(String experimentKey, AssetType type) {
-        HashMap<QueryParamName, String> params = new HashMap<QueryParamName, String>() {{
-            put(EXPERIMENT_KEY, experimentKey);
-            put(TYPE, type.type());
-        }};
+        HashMap<QueryParamName, String> params = new HashMap<>();
+        params.put(EXPERIMENT_KEY, experimentKey);
+        params.put(TYPE, type.type());
         return singleFromSyncGet(GET_ASSET_INFO, params, ExperimentAssetListResponse.class);
     }
 
@@ -239,6 +242,13 @@ final class RestApiClient implements Disposable {
     Single<LogDataResponse> updateArtifactState(final ArtifactRequest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
         return singleFromSyncPost(request, UPDATE_ARTIFACT_STATE, true, LogDataResponse.class);
+    }
+
+    Single<ArtifactVersionDetail> getArtifactVersionDetail(
+            final GetArtifactOptions request, String experimentKey) {
+
+        return singleFromSyncGet(
+                GET_ARTIFACT_VERSION_DETAIL, versionDetailsParams(request, experimentKey), ArtifactVersionDetail.class);
     }
 
     private <T> Single<T> singleFromAsyncPost(@NonNull String endpoint,
