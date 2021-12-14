@@ -28,10 +28,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.unauthorized;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
@@ -56,6 +58,11 @@ public class ConnectionTest {
     private static final String someJsonResponse = "[\"someJsonResponse\"]";
     private static final String someRequestStr = "someRequestString";
     private static final int BAD_REQUEST_ERROR_CODE = 400;
+    private static final String someErrorStatusMessage = "some error status";
+    private static final int sdkErrorCode = SdkErrorCodes.noArtifactFound;
+
+    private static final CometWebJavaSdkException webJavaSdkException = new CometWebJavaSdkException(
+            BAD_REQUEST_ERROR_CODE, someErrorStatusMessage, sdkErrorCode);
 
     private static final HashMap<QueryParamName, String> someParams = new HashMap<QueryParamName, String>() {{
         put(EXPERIMENT_KEY, "someValue");
@@ -67,8 +74,9 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(get(urlPathEqualTo(someEndpoint))
-                .withQueryParams(this.createQueryParams(someParams))
-                .willReturn(ok(someJsonResponse).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+                .withQueryParams(createQueryParams(someParams))
+                .willReturn(ok(someJsonResponse)
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -91,45 +99,14 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testSendGet(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
-        // create test HTTP stub
-        //
-        stubFor(get(urlPathEqualTo(someEndpoint))
-                .withQueryParams(this.createQueryParams(someParams))
-                .willReturn(ok(someJsonResponse).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
-
-        // execute request and check results
-        //
-        String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
-        Connection connection = new Connection(
-                baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
-        Optional<String> response = connection.sendGet(someEndpoint, someParams);
-        assertDoesNotThrow(connection::close);
-
-        assertTrue(response.isPresent(), "response expected");
-        assertEquals(someJsonResponse, response.get(), "wrong response body");
-
-        // verify that Auth header was set as expected
-        //
-        verify(getRequestedFor(urlPathEqualTo(someEndpoint))
-                .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
-
-        // check that inventory was fully processed
-        assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
-    }
-
-    @Test
-    public void testSendGetBadRequest(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+    public void testSendGetWithRetries_throwOnFailure_onCometWebException(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test error response
         //
-        String errorMessage = "Some message";
-        int sdkErrorCode = SdkErrorCodes.noArtifactFound;
-        CometWebJavaSdkException ex = new CometWebJavaSdkException(BAD_REQUEST_ERROR_CODE, errorMessage, sdkErrorCode);
-        String responseStr = JsonUtils.toJson(ex);
-
         stubFor(get(urlPathEqualTo(someEndpoint))
-                .withQueryParams(this.createQueryParams(someParams))
-                .willReturn(aResponse().withBody(responseStr).withStatus(BAD_REQUEST_ERROR_CODE)
+                .withQueryParams(createQueryParams(someParams))
+                .willReturn(aResponse()
+                        .withBody(JsonUtils.toJson(webJavaSdkException))
+                        .withStatus(BAD_REQUEST_ERROR_CODE)
                         .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
@@ -138,18 +115,12 @@ public class ConnectionTest {
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
         CometApiException cometApiException = assertThrows(CometApiException.class, () ->
-                connection.sendGet(someEndpoint, someParams));
+                connection.sendGetWithRetries(someEndpoint, someParams, true));
         assertDoesNotThrow(connection::close);
 
         // test exception values
         //
-        assertNotNull(cometApiException);
-        assertEquals(sdkErrorCode, cometApiException.getSdkErrorCode(), "wrong SDK error code");
-
-        // verify that Auth header was set as expected
-        //
-        verify(getRequestedFor(urlPathEqualTo(someEndpoint))
-                .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
+        checkWebJavaSdkException(cometApiException);
 
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
@@ -160,7 +131,8 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(someEndpoint))
-                .willReturn(ok(someJsonResponse).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+                .willReturn(ok(someJsonResponse)
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -177,35 +149,78 @@ public class ConnectionTest {
         //
         verify(postRequestedFor(urlPathEqualTo(someEndpoint))
                 .withHeader(COMET_SDK_API_HEADER, equalTo(TEST_API_KEY)));
+
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
     }
 
+    /**
+     * Tests that correct exception raised when HTTP error status code received and max retry attempts exceeded
+     * with throwOnFailure set to false.
+     */
     @Test
-    public void testSendPostWithRetries_throwsException(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+    public void testSendPostWithRetries_throwOnFailure_statusError(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(someEndpoint))
-                .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+                .willReturn(unauthorized()
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
         String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
         Connection connection = new Connection(
                 baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
-        assertThrows(CometApiException.class, () ->
+        CometApiException apiException = assertThrows(CometApiException.class, () ->
                 connection.sendPostWithRetries(someRequestStr, someEndpoint, true));
+
+        // check exception
+        assertEquals("Unauthorized", apiException.getStatusMessage(), "wrong status message");
+        assertEquals(401, apiException.getStatusCode(), "wrong status code");
+
+        // check that inventory was fully processed
+        assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
+    }
+
+    /**
+     * Tests that correct exception raised when Comet web error code received and max retry attempts exceeded
+     * with throwOnFailure set to false.
+     */
+    @Test
+    public void testSendPostWithRetries_throwOnFailure_onCometWebException(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+        // create test error response
+        //
+        stubFor(post(urlPathEqualTo(someEndpoint))
+                .willReturn(aResponse()
+                        .withBody(JsonUtils.toJson(webJavaSdkException))
+                        .withStatus(BAD_REQUEST_ERROR_CODE)
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+
+        // execute request and check results
+        //
+        String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
+        Connection connection = new Connection(
+                baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
+        CometApiException cometApiException = assertThrows(CometApiException.class, () ->
+                connection.sendPostWithRetries(someRequestStr, someEndpoint, true));
+
+        // check that inventory was fully processed
+        assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
+
+        // check that correct exception returned
+        checkWebJavaSdkException(cometApiException);
     }
 
     /**
      * Tests that empty optional returned if max retry attempts exceeded and throwOnFailure is false.
      */
     @Test
-    public void testSendPostWithRetries_returnsEmptyOptional(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+    public void testSendPostWithRetries_throwOnFailure_returnsEmptyOptional(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(someEndpoint))
-                .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+                .willReturn(badRequest()
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -215,6 +230,9 @@ public class ConnectionTest {
         Optional<String> response = connection.sendPostWithRetries(someRequestStr, someEndpoint, false);
         assertDoesNotThrow(connection::close);
 
+        // check that inventory was fully processed
+        assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
+
         assertFalse(response.isPresent(), "empty optional expected");
     }
 
@@ -223,7 +241,8 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(someEndpoint))
-                .willReturn(ok(someJsonResponse).withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+                .willReturn(ok(someJsonResponse)
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -242,6 +261,7 @@ public class ConnectionTest {
                     .get(5, TimeUnit.SECONDS);
             assertEquals(someJsonResponse, response.getResponseBody(), "wrong response body");
         });
+
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
     }
@@ -255,7 +275,48 @@ public class ConnectionTest {
         // create test HTTP stub
         //
         stubFor(post(urlPathEqualTo(someEndpoint))
-                .willReturn(badRequest().withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+                .willReturn(notFound()
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
+
+        // execute request and check results
+        //
+        String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
+        Connection connection = new Connection(
+                baseUrl, TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
+
+        ListenableFuture<Response> responseListenableFuture = connection.sendPostAsync(someRequestStr, someEndpoint);
+        assertNotNull(responseListenableFuture, "future expected");
+
+        // wait for result
+        CompletableFuture<Response> completableFuture = responseListenableFuture.toCompletableFuture();
+        Exception exception = assertThrows(ExecutionException.class, () ->
+                completableFuture.get(5, TimeUnit.SECONDS));
+
+        // check that inventory was fully processed
+        assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
+
+        // check that correct exception returned
+        assertTrue(exception.getCause() instanceof CometApiException, "wrong exception returned");
+
+        // check exception values
+        CometApiException apiException = (CometApiException) exception.getCause();
+        assertEquals("Not Found", apiException.getStatusMessage(), "wrong status message");
+        assertEquals(404, apiException.getStatusCode(), "wrong status code");
+    }
+
+    /**
+     * Tests that ListenableFuture returned will propagate CometApiException in case if Comet web error code received
+     * from the endpoint.
+     */
+    @Test
+    public void testSendPostAsync_propagatesException_onCometWebException(@NonNull WireMockRuntimeInfo wmRuntimeInfo) {
+        // create test error response
+        //
+        stubFor(post(urlPathEqualTo(someEndpoint))
+                .willReturn(aResponse()
+                        .withBody(JsonUtils.toJson(webJavaSdkException))
+                        .withStatus(BAD_REQUEST_ERROR_CODE)
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_JSON.toString())));
 
         // execute request and check results
         //
@@ -272,11 +333,22 @@ public class ConnectionTest {
                 completableFuture.get(5, TimeUnit.SECONDS));
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
+
         // check that correct exception returned
         assertTrue(exception.getCause() instanceof CometApiException, "wrong exception returned");
+
+        // check exception values
+        checkWebJavaSdkException((CometApiException) exception.getCause());
     }
 
-    private Map<String, StringValuePattern> createQueryParams(@NonNull Map<QueryParamName, String> params) {
+    private static void checkWebJavaSdkException(CometApiException apiException) {
+        assertNotNull(apiException);
+        assertEquals(sdkErrorCode, apiException.getSdkErrorCode(), "wrong SDK error code");
+        assertEquals(BAD_REQUEST_ERROR_CODE, apiException.getStatusCode(), "wrong status code");
+        assertEquals(someErrorStatusMessage, apiException.getStatusMessage(), "wrong status message");
+    }
+
+    private static Map<String, StringValuePattern> createQueryParams(@NonNull Map<QueryParamName, String> params) {
         Map<String, StringValuePattern> queryParams = new HashMap<>();
         params.forEach((k, v) -> queryParams.put(k.paramName(), equalTo(v)));
         return queryParams;

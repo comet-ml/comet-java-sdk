@@ -8,6 +8,10 @@ import lombok.Getter;
 public class CometApiException extends CometGeneralException {
     @Getter
     private int sdkErrorCode;
+    @Getter
+    private int statusCode;
+    @Getter
+    private String statusMessage;
 
     /**
      * Constructs a new runtime exception with the specified detail message.
@@ -32,6 +36,8 @@ public class CometApiException extends CometGeneralException {
         super(String.format("Remote endpoint returned error status code: %d, message: %s, sdk error code: %d",
                 statusCode, statusMessage, sdkErrorCode));
         this.sdkErrorCode = sdkErrorCode;
+        this.statusCode = statusCode;
+        this.statusMessage = statusMessage;
     }
 
     /**
