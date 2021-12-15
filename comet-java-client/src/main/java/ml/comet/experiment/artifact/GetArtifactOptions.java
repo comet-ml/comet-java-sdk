@@ -36,7 +36,7 @@ public final class GetArtifactOptions {
     /**
      * The builder to create properly initialized instances of the {@link GetArtifactOptions}.
      */
-    static final class GetArtifactOptionsBuilder {
+    public static final class GetArtifactOptionsBuilder {
         final GetArtifactOptions options;
 
         GetArtifactOptionsBuilder() {

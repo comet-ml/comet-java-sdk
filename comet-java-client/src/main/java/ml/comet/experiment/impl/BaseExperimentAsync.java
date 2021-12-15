@@ -8,11 +8,14 @@ import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
+import ml.comet.experiment.impl.rest.ArtifactVersionState;
 import ml.comet.experiment.impl.rest.HtmlRest;
 import ml.comet.experiment.impl.rest.LogDataResponse;
 import ml.comet.experiment.impl.rest.LogOtherRest;
@@ -34,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
+import static ml.comet.experiment.artifact.GetArtifactOptions.Op;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_LOGGED_WITHOUT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_STARTED;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
@@ -432,26 +436,36 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param artifact   the Comet artifact to be sent to the server.
      * @param onComplete the optional {@link Action} to be called upon operation completed,
      *                   either successful or failure.
+     * @return the instance of {@link LoggedArtifact} holding details about newly created version of the Comet artifact.
+     * @throws ArtifactException if operation failed.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logArtifact(@NonNull final Artifact artifact, @NonNull Optional<Action> onComplete) {
+    LoggedArtifact logArtifact(@NonNull final Artifact artifact, @NonNull Optional<Action> onComplete)
+            throws ArtifactException {
         // upsert artifact
         ArtifactEntry entry = super.upsertArtifact(artifact);
 
-        // get new artifact version
+        // update version state
+        this.updateArtifactVersionState(entry.getArtifactVersionId(), ArtifactVersionState.CLOSED);
 
+        // get new artifact's version details
+        LoggedArtifact loggedArtifact = this.getArtifactVersionDetail(
+                Op().artifactId(entry.getArtifactId()).versionId(entry.getArtifactVersionId()).build());
 
         // try to log artifact assets asynchronously
         ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
         if (artifactImpl.getAssets().size() == 0) {
             getLogger().warn(getString(ARTIFACT_LOGGED_WITHOUT_ASSETS, artifactImpl.getName()));
-            return;
+            return loggedArtifact;
         }
 
-//        getLogger().info(getString(ARTIFACT_UPLOAD_STARTED, ));
+        getLogger().info(
+                getString(ARTIFACT_UPLOAD_STARTED, loggedArtifact.getWorkspace(),
+                        loggedArtifact.getName(), loggedArtifact.getVersion()));
 
-        // TODO logArtifact
+        // TODO upload artifact assets
 
+        return loggedArtifact;
     }
 
     /**

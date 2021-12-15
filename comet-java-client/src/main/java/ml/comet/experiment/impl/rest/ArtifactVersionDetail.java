@@ -60,7 +60,7 @@ public class ArtifactVersionDetail extends BaseExperimentObject {
             try {
                 a.setArtifactMetadata(DataModelUtils.metadataFromJson(this.metadata));
             } catch (Throwable e) {
-                logger.error("Couldn't decode metadata for artifact {}:{}", a.getName(), a.getVersion());
+                logger.error("Couldn't decode metadata for artifact {}:{}", a.getName(), a.getVersion(), e);
             }
         }
 

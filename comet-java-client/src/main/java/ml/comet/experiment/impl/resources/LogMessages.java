@@ -35,6 +35,8 @@ public class LogMessages {
     public static final String ARTIFACT_NOT_READY = "ARTIFACT_NOT_READY";
     public static final String ARTIFACT_HAS_NO_DETAILS = "ARTIFACT_HAS_NO_DETAILS";
     public static final String GET_ARTIFACT_FAILED_UNEXPECTEDLY = "GET_ARTIFACT_FAILED_UNEXPECTEDLY";
+    public static final String FAILED_TO_UPSERT_ARTIFACT = "FAILED_TO_UPSERT_ARTIFACT";
+    public static final String FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE = "FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE";
 
 
     /**

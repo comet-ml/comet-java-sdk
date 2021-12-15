@@ -55,6 +55,8 @@ import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CR
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPSERT_ARTIFACT;
 import static ml.comet.experiment.impl.resources.LogMessages.GET_ARTIFACT_FAILED_UNEXPECTEDLY;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
@@ -441,25 +443,30 @@ abstract class BaseExperiment implements Experiment {
      *
      * @param artifact the {@link ArtifactImpl} instance.
      * @return the {@link ArtifactEntry} describing saved artifact.
+     * @throws ArtifactException if operation failed.
      */
-    ArtifactEntry upsertArtifact(@NonNull final Artifact artifact) {
-        ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
-        ArtifactRequest request = createArtifactUpsertRequest(artifactImpl);
-        ArtifactEntry response = validateAndGetExperimentKey()
-                .concatMap(experimentKey -> getRestApiClient().upsertArtifact(request, experimentKey))
-                .blockingGet();
+    ArtifactEntry upsertArtifact(@NonNull final Artifact artifact) throws ArtifactException {
+        try {
+            ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
+            ArtifactRequest request = createArtifactUpsertRequest(artifactImpl);
+            ArtifactEntry response = validateAndGetExperimentKey()
+                    .concatMap(experimentKey -> getRestApiClient().upsertArtifact(request, experimentKey))
+                    .blockingGet();
 
-        if (StringUtils.isBlank(response.getPreviousVersion())) {
-            getLogger().info(
-                    getString(ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS,
-                            artifactImpl.getName(), response.getCurrentVersion()));
-        } else {
-            getLogger().info(
-                    getString(ARTIFACT_VERSION_CREATED_WITH_PREVIOUS,
-                            artifactImpl.getName(), response.getCurrentVersion(), response.getPreviousVersion())
-            );
+            if (StringUtils.isBlank(response.getPreviousVersion())) {
+                getLogger().info(
+                        getString(ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS,
+                                artifactImpl.getName(), response.getCurrentVersion()));
+            } else {
+                getLogger().info(
+                        getString(ARTIFACT_VERSION_CREATED_WITH_PREVIOUS,
+                                artifactImpl.getName(), response.getCurrentVersion(), response.getPreviousVersion())
+                );
+            }
+            return response;
+        } catch (Throwable e) {
+            throw new ArtifactException(getString(FAILED_TO_UPSERT_ARTIFACT, artifact), e);
         }
-        return response;
     }
 
     /**
@@ -467,12 +474,16 @@ abstract class BaseExperiment implements Experiment {
      *
      * @param artifactVersionId the artifact version identifier.
      * @param state             the state to be associated.
-     * @throws CometApiException is operation failed.
+     * @throws ArtifactException is operation failed.
      */
     void updateArtifactVersionState(@NonNull String artifactVersionId, @NonNull ArtifactVersionState state)
-            throws CometApiException {
-        ArtifactRequest request = createArtifactVersionStateRequest(artifactVersionId, state);
-        sendSynchronously(getRestApiClient()::updateArtifactState, request);
+            throws ArtifactException {
+        try {
+            ArtifactRequest request = createArtifactVersionStateRequest(artifactVersionId, state);
+            sendSynchronously(getRestApiClient()::updateArtifactState, request);
+        } catch (Throwable e) {
+            throw new ArtifactException(getString(FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE, artifactVersionId), e);
+        }
     }
 
     /**
@@ -485,7 +496,7 @@ abstract class BaseExperiment implements Experiment {
      * @throws ArtifactException             if failed to get artifact due to the unexpected error.
      */
     LoggedArtifact getArtifactVersionDetail(@NonNull GetArtifactOptions options)
-            throws ArtifactNotFoundException, InvalidArtifactStateException {
+            throws ArtifactNotFoundException, InvalidArtifactStateException, ArtifactException {
 
         try {
             ArtifactVersionDetail detail = validateAndGetExperimentKey()
