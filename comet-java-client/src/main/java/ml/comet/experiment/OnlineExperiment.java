@@ -1,6 +1,8 @@
 package ml.comet.experiment;
 
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 
 import java.io.File;
@@ -172,6 +174,8 @@ public interface OnlineExperiment extends Experiment {
      * asynchronously all the local and remote assets attached to the artifact object.
      *
      * @param artifact the {@link Artifact} instance.
+     * @return {@link LoggedArtifact} instance with details about new version of artifact that was logged.
+     * @throws ArtifactException if operation failed.
      */
-    void logArtifact(Artifact artifact);
+    LoggedArtifact logArtifact(Artifact artifact) throws ArtifactException;
 }

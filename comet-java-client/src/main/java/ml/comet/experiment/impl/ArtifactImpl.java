@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -144,7 +145,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
                 .forEach(this::appendAsset);
     }
 
-    private void appendAsset(Asset asset) throws ConflictingArtifactAssetNameException {
+    private void appendAsset(@NonNull final Asset asset) throws ConflictingArtifactAssetNameException {
         this.assets.forEach(a -> {
             if (Objects.equals(a.getFileName(), asset.getFileName())) {
                 throw new ConflictingArtifactAssetNameException(
@@ -199,6 +200,9 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
         @Override
         public Artifact build() {
+            if (Objects.isNull(this.artifact.artifactMetadata)) {
+                this.artifact.artifactMetadata = new HashMap<>();
+            }
             return this.artifact;
         }
     }

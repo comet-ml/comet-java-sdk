@@ -1,6 +1,7 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Scheduler;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.functions.Action;
@@ -11,7 +12,8 @@ import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.exception.CometApiException;
+import ml.comet.experiment.impl.asset.ArtifactAsset;
+import ml.comet.experiment.impl.asset.ArtifactRemoteAsset;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
@@ -39,12 +41,15 @@ import java.util.stream.Stream;
 import static java.util.Optional.empty;
 import static ml.comet.experiment.artifact.GetArtifactOptions.Op;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_LOGGED_WITHOUT_ASSETS;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_STARTED;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_ASSET_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_REQUEST;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_ASSET_FOLDER_EMPTY;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
@@ -443,17 +448,14 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     LoggedArtifact logArtifact(@NonNull final Artifact artifact, @NonNull Optional<Action> onComplete)
             throws ArtifactException {
         // upsert artifact
-        ArtifactEntry entry = super.upsertArtifact(artifact);
-
-        // update version state
-        this.updateArtifactVersionState(entry.getArtifactVersionId(), ArtifactVersionState.CLOSED);
+        final ArtifactEntry entry = super.upsertArtifact(artifact);
 
         // get new artifact's version details
-        LoggedArtifact loggedArtifact = this.getArtifactVersionDetail(
+        final LoggedArtifact loggedArtifact = this.getArtifactVersionDetail(
                 Op().artifactId(entry.getArtifactId()).versionId(entry.getArtifactVersionId()).build());
 
         // try to log artifact assets asynchronously
-        ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
+        final ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
         if (artifactImpl.getAssets().size() == 0) {
             getLogger().warn(getString(ARTIFACT_LOGGED_WITHOUT_ASSETS, artifactImpl.getName()));
             return loggedArtifact;
@@ -463,7 +465,45 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                 getString(ARTIFACT_UPLOAD_STARTED, loggedArtifact.getWorkspace(),
                         loggedArtifact.getName(), loggedArtifact.getVersion()));
 
-        // TODO upload artifact assets
+        // upload artifact assets
+        AtomicInteger count = new AtomicInteger();
+        Stream<Asset> assets = artifactImpl.getAssets().stream()
+                .peek(asset -> {
+                    if (Objects.isNull(asset.getType())) {
+                        asset.setType(ASSET);
+                    }
+                    count.incrementAndGet();
+                });
+
+        // create parallel execution flow with errors delaying
+        // allowing processing of items even if some of them failed
+        Observable<LogDataResponse> observable = Observable
+                .fromStream(assets)
+                .flatMap(asset -> Observable.fromSingle(this.sendArtifactAssetAsync(asset)), true);
+
+        if (onComplete.isPresent()) {
+            observable = observable.doFinally(onComplete.get());
+        }
+
+        // subscribe for processing results
+        observable
+                .ignoreElements() // ignore items which already processed, see: logAsset
+                .subscribe(
+                        () -> {
+                            getLogger().info(
+                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getWorkspace(),
+                                            loggedArtifact.getName(), loggedArtifact.getVersion(), count.get()));
+                            // mark artifact version status as closed
+                            this.updateArtifactVersionState(entry.getArtifactVersionId(), ArtifactVersionState.CLOSED);
+                        },
+                        (throwable) -> {
+                            getLogger().error(
+                                    getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getWorkspace(),
+                                            loggedArtifact.getName(), loggedArtifact.getVersion()), throwable);
+                            // mark artifact version status as failed
+                            this.updateArtifactVersionState(entry.getArtifactVersionId(), ArtifactVersionState.ERROR);
+                        },
+                        disposables);
 
         return loggedArtifact;
     }
@@ -520,15 +560,45 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @return the {@link Single} which can be used to subscribe for operation results.
      */
     private <T extends Asset> Single<LogDataResponse> sendAssetAsync(
-            final BiFunction<T, String, Single<LogDataResponse>> func, @NonNull final T asset) {
+            @NonNull final BiFunction<T, String, Single<LogDataResponse>> func, @NonNull final T asset) {
 
         return validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
-                .concatMap(experimentKey1 -> func.apply(asset, experimentKey1))
+                .concatMap(experimentKey -> func.apply(asset, experimentKey))
                 .doOnSuccess(logDataResponse ->
-                        AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), asset, false))
+                        checkAndLogAssetResponse(logDataResponse, getLogger(), asset))
                 .doOnError(throwable ->
                         getLogger().error(getString(FAILED_TO_SEND_LOG_ASSET_REQUEST, asset), throwable));
+    }
+
+    /**
+     * Attempts to send given artifact {@link ArtifactAsset} or {@link ArtifactRemoteAsset} asynchronously.
+     *
+     * @param asset the artifact asset.
+     * @param <T>   the type of the artifact asset.
+     * @return the {@link Single} which can be used to subscribe for operation results.
+     */
+    private <T extends Asset> Single<LogDataResponse> sendArtifactAssetAsync(@NonNull final T asset) {
+        Single<LogDataResponse> single;
+        Scheduler scheduler = Schedulers.io();
+        if (asset instanceof ArtifactAsset) {
+            single = validateAndGetExperimentKey()
+                    .subscribeOn(scheduler)
+                    .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey));
+        } else if (asset instanceof ArtifactRemoteAsset) {
+            single = validateAndGetExperimentKey()
+                    .subscribeOn(scheduler)
+                    .concatMap(experimentKey ->
+                            getRestApiClient().logRemoteAsset((ArtifactRemoteAsset) asset, experimentKey));
+        } else {
+            throw new IllegalArgumentException("unsupported asset instance, only artifact assets are supported");
+        }
+
+        return single
+                .doOnSuccess(logDataResponse ->
+                        checkAndLogAssetResponse(logDataResponse, getLogger(), asset))
+                .doOnError(throwable ->
+                        getLogger().error(getString(FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST, asset), throwable));
     }
 
     /**
@@ -557,28 +627,32 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         single
                 .observeOn(Schedulers.single())
                 .subscribe(
-                        (logDataResponse) -> AsyncDataResponseLogger.checkAndLog(
-                                logDataResponse, getLogger(), request, false),
+                        (logDataResponse) -> checkAndLogResponse(logDataResponse, getLogger(), request),
                         (throwable) -> getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, request), throwable),
                         disposables);
     }
 
     /**
-     * Utility class to log asynchronously received data responses.
+     * Utility method to log asynchronously received data responses.
      */
-    static final class AsyncDataResponseLogger {
-        static void checkAndLog(LogDataResponse logDataResponse, Logger logger, Object request, boolean throwOnError) {
-            if (logDataResponse.hasFailed()) {
-                if (throwOnError) {
-                    throw new CometApiException("failed to log %s, reason: %s, sdk error code: %d",
-                            request, logDataResponse.getMsg(), logDataResponse.getSdkErrorCode());
-                } else {
-                    logger.error("failed to log {}, reason: {}, sdk error code: {}",
-                            request, logDataResponse.getMsg(), logDataResponse.getSdkErrorCode());
-                }
-            } else if (logger.isDebugEnabled()) {
-                logger.debug("successful response {} received for request {}", logDataResponse, request);
-            }
+    static void checkAndLogResponse(LogDataResponse logDataResponse, Logger logger, Object request) {
+        if (logDataResponse.hasFailed()) {
+            logger.error("failed to log {}, reason: {}, sdk error code: {}",
+                    request, logDataResponse.getMsg(), logDataResponse.getSdkErrorCode());
+        } else if (logger.isDebugEnabled()) {
+            logger.debug("successful response {} received for request {}", logDataResponse, request);
+        }
+    }
+
+    /**
+     * Utility method to log asynchronously received data responses for Asset logging.
+     */
+    static void checkAndLogAssetResponse(LogDataResponse logDataResponse, Logger logger, Asset asset) {
+        if (logDataResponse.hasFailed()) {
+            logger.error("failed to log asset {}, reason: {}, sdk error code: {}",
+                    asset, logDataResponse.getMsg(), logDataResponse.getSdkErrorCode());
+        } else {
+            logger.info("Successfully logged asset {}", asset);
         }
     }
 }

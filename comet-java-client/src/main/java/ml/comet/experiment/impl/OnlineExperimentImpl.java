@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.log.StdOutLogger;
 import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
@@ -381,8 +383,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logArtifact(Artifact artifact) {
-        //TODO logArtifact
+    public LoggedArtifact logArtifact(Artifact artifact) throws ArtifactException {
+        return this.logArtifact(artifact, empty());
     }
 
     @Override
