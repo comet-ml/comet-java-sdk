@@ -67,6 +67,13 @@ public interface LoggedArtifact {
     String getVersion();
 
     /**
+     * Returns the unique identifier of the artifact version.
+     *
+     * @return the unique identifier of the artifact version.
+     */
+    String getVersionId();
+
+    /**
      * Returns set of TAGs associated with current version of the artifact.
      *
      * @return the set of TAGs associated with current version of the artifact.

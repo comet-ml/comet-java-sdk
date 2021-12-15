@@ -5,7 +5,6 @@ import ml.comet.experiment.artifact.LoggedArtifact;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -72,5 +71,10 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Override
     public String getWorkspace() {
         return this.workspace;
+    }
+
+    @Override
+    public String getVersionId() {
+        return this.artifactVersionId;
     }
 }

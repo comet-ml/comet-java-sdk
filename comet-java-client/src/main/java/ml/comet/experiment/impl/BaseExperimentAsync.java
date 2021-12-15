@@ -44,6 +44,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_LOGGED_WIT
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_STARTED;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FINALIZE_ARTIFACT_VERSION;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST;
@@ -65,7 +66,6 @@ import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherReques
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
-import static ml.comet.experiment.model.AssetType.ASSET;
 import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 
 /**
@@ -462,7 +462,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         getLogger().info(
                 getString(ARTIFACT_UPLOAD_STARTED, loggedArtifact.getWorkspace(),
-                        loggedArtifact.getName(), loggedArtifact.getVersion()));
+                        loggedArtifact.getName(), loggedArtifact.getVersion(), artifactImpl.getAssets().size()));
 
         // upload artifact assets
         AtomicInteger count = new AtomicInteger();
@@ -488,18 +488,35 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                                     getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getWorkspace(),
                                             loggedArtifact.getName(), loggedArtifact.getVersion(), count.get()));
                             // mark artifact version status as closed
-                            this.updateArtifactVersionState(entry.getArtifactVersionId(), ArtifactVersionState.CLOSED);
+                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED);
                         },
                         (throwable) -> {
                             getLogger().error(
                                     getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getWorkspace(),
                                             loggedArtifact.getName(), loggedArtifact.getVersion()), throwable);
                             // mark artifact version status as failed
-                            this.updateArtifactVersionState(entry.getArtifactVersionId(), ArtifactVersionState.ERROR);
+                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR);
                         },
                         disposables);
 
         return loggedArtifact;
+    }
+
+    /**
+     * Synchronously updates the state associated with Comet artifact version.
+     *
+     * @param loggedArtifact the {@link LoggedArtifact} instance with version details.
+     * @param state          the state to be associated.
+     */
+    void updateArtifactVersionState(@NonNull LoggedArtifact loggedArtifact,
+                                    @NonNull ArtifactVersionState state) {
+        try {
+            super.updateArtifactVersionState(loggedArtifact.getVersionId(), state);
+        } catch (Throwable t) {
+            getLogger().error(
+                    getString(FAILED_TO_FINALIZE_ARTIFACT_VERSION, loggedArtifact.getWorkspace(),
+                            loggedArtifact.getName(), loggedArtifact.getVersion()), t);
+        }
     }
 
     /**
