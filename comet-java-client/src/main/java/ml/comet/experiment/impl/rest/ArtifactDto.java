@@ -20,7 +20,7 @@ public class ArtifactDto {
     private String version;
     private String metadata;
     private String artifactType;
-    private Boolean isPublic;
+    private Boolean isPublic = false;
     private String owner;
     private Long s3FileSize;
     private String emoji;
