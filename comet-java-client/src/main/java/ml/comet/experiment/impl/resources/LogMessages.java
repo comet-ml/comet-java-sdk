@@ -31,6 +31,10 @@ public class LogMessages {
     public static final String FAILED_TO_SEND_LOG_ASSET_REQUEST = "FAILED_TO_SEND_LOG_ASSET_REQUEST";
     public static final String FAILED_TO_LOG_ASSET_FOLDER = "FAILED_TO_LOG_ASSET_FOLDER";
     public static final String FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER = "FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER";
+    public static final String ARTIFACT_NOT_FOUND = "ARTIFACT_NOT_FOUND";
+    public static final String ARTIFACT_NOT_READY = "ARTIFACT_NOT_READY";
+    public static final String ARTIFACT_HAS_NO_DETAILS = "ARTIFACT_HAS_NO_DETAILS";
+    public static final String GET_ARTIFACT_FAILED_UNEXPECTEDLY = "GET_ARTIFACT_FAILED_UNEXPECTEDLY";
 
 
     /**

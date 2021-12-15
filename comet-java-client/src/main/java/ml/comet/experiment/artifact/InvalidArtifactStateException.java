@@ -1,9 +1,9 @@
 package ml.comet.experiment.artifact;
 
 /**
- * Exception to be raised if {@link Artifact} is not found by the Comet backend.
+ * Exception to be raised if {@link Artifact} is not closed or has no data.
  */
-public class ArtifactNotFoundException extends ArtifactException {
+public class InvalidArtifactStateException extends ArtifactException {
     /**
      * Constructs a new runtime exception with the specified detail message.
      * The cause is not initialized, and may subsequently be initialized by a
@@ -12,13 +12,13 @@ public class ArtifactNotFoundException extends ArtifactException {
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public ArtifactNotFoundException(String message) {
+    public InvalidArtifactStateException(String message) {
         super(message);
     }
 
     /**
      * Constructs a new runtime exception with the specified detail message and
-     * cause.  
+     * cause.
      *
      * <p>Note that the detail message associated with
      * {@code cause} is <i>not</i> automatically incorporated in
@@ -31,7 +31,7 @@ public class ArtifactNotFoundException extends ArtifactException {
      *                permitted, and indicates that the cause is nonexistent or
      *                unknown.)
      */
-    public ArtifactNotFoundException(String message, Throwable cause) {
+    public InvalidArtifactStateException(String message, Throwable cause) {
         super(message, cause);
     }
 }

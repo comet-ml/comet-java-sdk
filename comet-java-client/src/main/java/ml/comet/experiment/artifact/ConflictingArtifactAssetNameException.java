@@ -1,11 +1,9 @@
 package ml.comet.experiment.artifact;
 
-import ml.comet.experiment.exception.CometGeneralException;
-
 /**
  * Exception to be raised if logical name of the asset added to the {@link Artifact} is not unique.
  */
-public class ConflictingArtifactAssetNameException extends CometGeneralException {
+public class ConflictingArtifactAssetNameException extends ArtifactException {
 
     /**
      * Constructs a new runtime exception with the specified detail message.

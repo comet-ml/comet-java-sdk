@@ -7,9 +7,10 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.artifact.Artifact;
-import ml.comet.experiment.artifact.ArtifactNotReadyException;
+import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.ArtifactNotFoundException;
 import ml.comet.experiment.artifact.GetArtifactOptions;
+import ml.comet.experiment.artifact.InvalidArtifactStateException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
@@ -19,6 +20,7 @@ import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactRequest;
+import ml.comet.experiment.impl.rest.ArtifactVersionDetail;
 import ml.comet.experiment.impl.rest.ArtifactVersionState;
 import ml.comet.experiment.impl.rest.CreateExperimentRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentResponse;
@@ -42,11 +44,18 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
+import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosed;
+import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
+import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_DETAILS;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_FOUND;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_READY;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITH_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.GET_ARTIFACT_FAILED_UNEXPECTEDLY;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
@@ -471,18 +480,36 @@ abstract class BaseExperiment implements Experiment {
      *
      * @param options the {@link GetArtifactOptions} defining query options.
      * @return the {@link LoggedArtifact} instance holding all data about a specific Artifact Version.
-     * @throws ArtifactNotFoundException if artifact is not found.
-     * @throws ArtifactNotReadyException if artifact is still being processed by the backend.
+     * @throws ArtifactNotFoundException     if artifact is not found or no artifact data returned.
+     * @throws InvalidArtifactStateException if artifact was not closed or has empty artifact data returned.
+     * @throws ArtifactException             if failed to get artifact due to the unexpected error.
      */
     LoggedArtifact getArtifactVersionDetail(@NonNull GetArtifactOptions options)
-            throws ArtifactNotFoundException, ArtifactNotReadyException {
-        // TODO getArtifact
+            throws ArtifactNotFoundException, InvalidArtifactStateException {
 
-//        if (this.artifact == null) {
-//            logger.error("no artifact data found");
-//            return;
-//        }
-        return null;
+        try {
+            ArtifactVersionDetail detail = validateAndGetExperimentKey()
+                    .concatMap(experimentKey -> getRestApiClient().getArtifactVersionDetail(options, experimentKey))
+                    .blockingGet();
+
+            if (detail.getArtifact() == null) {
+                throw new InvalidArtifactStateException(getString(ARTIFACT_HAS_NO_DETAILS, options));
+            }
+
+            return detail.toLoggedArtifact(getLogger());
+        } catch (CometApiException apiException) {
+            switch (apiException.getSdkErrorCode()) {
+                case noArtifactFound:
+                    throw new ArtifactNotFoundException(getString(ARTIFACT_NOT_FOUND, options), apiException);
+                case artifactVersionStateNotClosed:
+                case artifactVersionStateNotClosedErrorOccurred:
+                    throw new InvalidArtifactStateException(getString(ARTIFACT_NOT_READY, options), apiException);
+                default:
+                    throw new ArtifactException(getString(GET_ARTIFACT_FAILED_UNEXPECTEDLY, options), apiException);
+            }
+        } catch (Throwable e) {
+            throw new ArtifactException(getString(GET_ARTIFACT_FAILED_UNEXPECTEDLY, options), e);
+        }
     }
 
     @Override
