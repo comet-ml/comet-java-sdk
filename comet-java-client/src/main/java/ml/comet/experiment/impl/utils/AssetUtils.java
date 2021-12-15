@@ -3,10 +3,10 @@ package ml.comet.experiment.impl.utils;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
+import ml.comet.experiment.model.AssetType;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -130,7 +130,7 @@ public class AssetUtils {
      * Extracts query parameters from the provided {@link Asset}.
      *
      * @param asset         the {@link Asset} to extract HTTP query parameters from.
-     * @param experimentKey the {@link ml.comet.experiment.Experiment} key.
+     * @param experimentKey the key of the Comet experiment.
      * @return the map with query parameters.
      */
     public static Map<QueryParamName, String> assetQueryParameters(

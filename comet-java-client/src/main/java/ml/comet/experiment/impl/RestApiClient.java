@@ -5,6 +5,8 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.exception.CometApiException;
+import ml.comet.experiment.impl.asset.ArtifactAsset;
+import ml.comet.experiment.impl.asset.ArtifactRemoteAsset;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
@@ -74,6 +76,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.UPDATE_ARTIFACT_ST
 import static ml.comet.experiment.impl.constants.ApiEndpoints.UPSERT_ARTIFACT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
 import static ml.comet.experiment.impl.constants.FormParamName.LINK;
+import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_VERSION_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.IS_REMOTE;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
@@ -204,9 +207,12 @@ final class RestApiClient implements Disposable {
         return singleFromSyncPostWithRetries(request, NEW_EXPERIMENT, true, CreateExperimentResponse.class);
     }
 
-    Single<LogDataResponse> logAsset(final Asset asset, String experimentKey) {
+    <T extends Asset> Single<LogDataResponse> logAsset(final T asset, String experimentKey) {
         Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
+        if (asset instanceof ArtifactAsset) {
+            queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAsset) asset).getArtifactVersionId());
+        }
 
         // call appropriate send method
         if (asset.getFile() != null) {
@@ -224,9 +230,12 @@ final class RestApiClient implements Disposable {
         return Single.just(response);
     }
 
-    Single<LogDataResponse> logRemoteAsset(final RemoteAsset asset, String experimentKey) {
+    <T extends RemoteAsset> Single<LogDataResponse> logRemoteAsset(final T asset, String experimentKey) {
         Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
-        queryParams.put(IS_REMOTE, Boolean.valueOf(true).toString());
+        queryParams.put(IS_REMOTE, Boolean.TRUE.toString());
+        if (asset instanceof ArtifactRemoteAsset) {
+            queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactRemoteAsset) asset).getArtifactVersionId());
+        }
 
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
         formParams.put(LINK, asset.getLink().toASCIIString());
