@@ -35,6 +35,8 @@ public interface Artifact {
     void addAsset(File file, boolean overwrite, Map<String, Object> metadata)
             throws ConflictingArtifactAssetNameException;
 
+    void addAsset(File file, String name, boolean overwrite) throws ConflictingArtifactAssetNameException;
+
     void addAsset(File file, boolean overwrite) throws ConflictingArtifactAssetNameException;
 
     /**
@@ -80,7 +82,7 @@ public interface Artifact {
      * @param recursive   if {@code true}, recurse the folder.
      * @param metadata    some additional data to attach to the asset. Must be a map with JSON-encodable values.
      * @throws ConflictingArtifactAssetNameException is name of some asset is not unique within this artifact.
-     * @throws IOException                  if an I/O exception occurred when walking through the folder.
+     * @throws IOException                           if an I/O exception occurred when walking through the folder.
      */
     void addAssetFolder(File folder, boolean logFilePath, boolean recursive, Map<String, Object> metadata)
             throws ConflictingArtifactAssetNameException, IOException;

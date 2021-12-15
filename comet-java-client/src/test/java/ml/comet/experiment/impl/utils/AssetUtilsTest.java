@@ -1,8 +1,8 @@
 package ml.comet.experiment.impl.utils;
 
 import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.model.AssetType;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,14 +31,14 @@ import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static ml.comet.experiment.model.AssetType.ASSET;
-import static ml.comet.experiment.model.AssetType.NOTEBOOK;
-import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.utils.AssetUtils.REMOTE_FILE_NAME_DEFAULT;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
 import static ml.comet.experiment.impl.utils.AssetUtils.createRemoteAsset;
 import static ml.comet.experiment.impl.utils.AssetUtils.updateAsset;
+import static ml.comet.experiment.model.AssetType.ASSET;
+import static ml.comet.experiment.model.AssetType.NOTEBOOK;
+import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -90,6 +90,7 @@ public class AssetUtilsTest {
         assertEquals(asset.getFile(), file.toFile(), "wrong asset file");
         assertEquals(asset.getFileName(), file.getFileName().toString(), "wrong asset file name");
         assertEquals(someFileExtension, asset.getFileExtension(), "wrong file extension");
+        assertEquals(ASSET, asset.getType(), "wrong asset type");
     }
 
     @ParameterizedTest

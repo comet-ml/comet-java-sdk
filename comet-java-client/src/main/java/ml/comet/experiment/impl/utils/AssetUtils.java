@@ -88,13 +88,14 @@ public class AssetUtils {
      * @param fileName  the logical name for the asset file.
      * @param overwrite if {@code true} mark as override
      * @param metadata  the metadata to associate with asset. The dictionary values must be JSON compatible.
-     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
+     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET}
      *                  will be assigned.
      * @return the instance of the {@link Asset} from the local file.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static Asset createAssetFromFile(@NonNull File file, Optional<String> fileName, boolean overwrite,
-                                            Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+                                            @NonNull Optional<Map<String, Object>> metadata,
+                                            @NonNull Optional<AssetType> type) {
         String logicalFileName = fileName.orElse(file.getName());
         Asset asset = new Asset();
         asset.setFile(file);
@@ -117,7 +118,8 @@ public class AssetUtils {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static Asset createAssetFromData(byte[] data, @NonNull String fileName, boolean overwrite,
-                                            Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+                                            @NonNull Optional<Map<String, Object>> metadata,
+                                            @NonNull Optional<AssetType> type) {
         Asset asset = new Asset();
         asset.setFileLikeData(data);
         asset.setFileName(fileName);
@@ -206,6 +208,7 @@ public class AssetUtils {
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);
         asset.setFileName(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
+        asset.setType(AssetType.ASSET);
         return asset;
     }
 

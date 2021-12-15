@@ -4,8 +4,9 @@ import com.vdurmont.semver4j.SemverException;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
+import ml.comet.experiment.impl.asset.ArtifactAsset;
+import ml.comet.experiment.impl.asset.ArtifactRemoteAsset;
 import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.impl.asset.RemoteAsset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -154,7 +155,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct file asset")
             @Order(1)
             void hasFileAsset() {
-                Asset asset = artifact.getAssets().get(0);
+                ArtifactAsset asset = (ArtifactAsset) artifact.getAssets().get(0);
                 assertEquals(this.assetFile, asset.getFile(), "wrong file");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -188,7 +189,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct file-like asset")
             @Order(1)
             void hasFileLikeAsset() {
-                Asset asset = artifact.getAssets().get(0);
+                ArtifactAsset asset = (ArtifactAsset) artifact.getAssets().get(0);
                 assertEquals(this.data, asset.getFileLikeData(), "wrong data");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -222,7 +223,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct remote asset")
             @Order(1)
             void hasRemoteAsset() {
-                RemoteAsset asset = (RemoteAsset) artifact.getAssets().get(0);
+                ArtifactRemoteAsset asset = (ArtifactRemoteAsset) artifact.getAssets().get(0);
                 assertEquals(this.uri, asset.getLink(), "wrong link");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -266,6 +267,7 @@ public class ArtifactTest extends AssetsBaseTest {
             }
 
             void validateAsset(@NonNull Asset asset) {
+                assertTrue(asset instanceof ArtifactAsset, "wrong asset class");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
                 assertTrue(
                         assetFolderFiles

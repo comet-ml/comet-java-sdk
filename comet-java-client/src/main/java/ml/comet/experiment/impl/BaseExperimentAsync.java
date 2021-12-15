@@ -322,7 +322,6 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> {
                         asset.setExperimentContext(assetContext);
-                        asset.setType(ASSET);
                         count.incrementAndGet();
                     });
 
@@ -468,12 +467,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         // upload artifact assets
         AtomicInteger count = new AtomicInteger();
         Stream<Asset> assets = artifactImpl.getAssets().stream()
-                .peek(asset -> {
-                    if (Objects.isNull(asset.getType())) {
-                        asset.setType(ASSET);
-                    }
-                    count.incrementAndGet();
-                });
+                .peek(asset -> count.incrementAndGet());
 
         // create parallel execution flow with errors delaying
         // allowing processing of items even if some of them failed
