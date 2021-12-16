@@ -21,6 +21,11 @@ public class LogDataResponse {
     private int sdkErrorCode;
     private String data;
 
+    public LogDataResponse(int statusCode, String msg) {
+        this.code = statusCode;
+        this.msg = msg;
+    }
+
     public boolean hasFailed() {
         return code != 200 || sdkErrorCode != 0;
     }

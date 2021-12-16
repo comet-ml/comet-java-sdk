@@ -357,7 +357,7 @@ public class Connection implements Closeable {
         if (response == null) {
             return Optional.empty();
         } else {
-            return Optional.ofNullable(response.getResponseBody());
+            return Optional.of(response.getResponseBody());
         }
     }
 
