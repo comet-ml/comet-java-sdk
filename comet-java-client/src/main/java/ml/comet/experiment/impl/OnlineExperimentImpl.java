@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import io.reactivex.rxjava3.functions.Action;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.OnlineExperiment;
@@ -24,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
@@ -50,6 +52,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     // The flag to indicate if experiment end() was called and experiment shutdown initialized
     private final AtomicBoolean atShutdown = new AtomicBoolean();
+
+    // The counter to maintain current inventory of the artifacts being in progress
+    private final AtomicInteger artifactsInProgress = new AtomicInteger();
+    // The counter to maintain current inventory of the assets being in progress
+    private final AtomicInteger assetsInProgress = new AtomicInteger();
 
     /**
      * Creates new instance with given parameters.
@@ -295,7 +302,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logAssetFolder(@NonNull File folder, boolean logFilePath,
                                boolean recursive, @NonNull ExperimentContext context) {
-        this.logAssetFolder(folder, logFilePath, recursive, true, context, empty());
+        this.executeLogAssetAction(() -> this.logAssetFolder(
+                folder, logFilePath, recursive, true, context, this.logAssetActionOnComplete()));
     }
 
     @Override
@@ -311,7 +319,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String fileName,
                             boolean overwrite, @NonNull ExperimentContext context) {
-        this.uploadAsset(asset, fileName, overwrite, context, empty());
+        this.executeLogAssetAction(() ->
+                this.uploadAsset(asset, fileName, overwrite, context, this.logAssetActionOnComplete()));
     }
 
     @Override
@@ -343,8 +352,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite,
                                Map<String, Object> metadata, @NonNull ExperimentContext context) {
-        this.logRemoteAsset(
-                uri, ofNullable(fileName), overwrite, ofNullable(metadata), context, empty());
+        this.executeLogAssetAction(() -> this.logRemoteAsset(uri, ofNullable(fileName), overwrite,
+                ofNullable(metadata), context, this.logAssetActionOnComplete()));
     }
 
     @Override
@@ -364,12 +373,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context) {
-        this.logCode(code, fileName, context, empty());
+        this.executeLogAssetAction(() -> this.logCode(code, fileName, context, this.logAssetActionOnComplete()));
     }
 
     @Override
     public void logCode(@NonNull File file, @NonNull ExperimentContext context) {
-        this.logCode(file, context, empty());
+        this.executeLogAssetAction(() -> this.logCode(file, context, this.logAssetActionOnComplete()));
     }
 
     @Override
@@ -384,7 +393,13 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public LoggedArtifact logArtifact(Artifact artifact) throws ArtifactException {
-        return this.logArtifact(artifact, empty());
+        try {
+            this.artifactsInProgress.incrementAndGet();
+            return this.logArtifact(artifact, Optional.of(this.artifactsInProgress::decrementAndGet));
+        } catch (Throwable t) {
+            this.artifactsInProgress.decrementAndGet();
+            throw t;
+        }
     }
 
     @Override
@@ -442,6 +457,20 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
             }
             // TODO: implement logic to change heartbeat interval
         }
+    }
+
+    private void executeLogAssetAction(Action action) {
+        try {
+            assetsInProgress.incrementAndGet();
+            action.run();
+        } catch (Throwable t) {
+            assetsInProgress.decrementAndGet();
+            logger.error("Log asset command failed", t);
+        }
+    }
+
+    private Optional<Action> logAssetActionOnComplete() {
+        return Optional.of(this.assetsInProgress::decrementAndGet);
     }
 
     /**
