@@ -3,6 +3,9 @@ package ml.comet.experiment.impl;
 import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.GetArtifactOptions;
+import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
@@ -17,18 +20,25 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
 
 import static java.util.Optional.empty;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
+import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
 import static ml.comet.experiment.model.AssetType.ALL;
@@ -36,6 +46,7 @@ import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -66,6 +77,12 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             new ExperimentContext(10, 101, "train");
     private static final ExperimentContext SOME_PARTIAL_CONTEXT =
             new ExperimentContext(10, 101);
+
+    private static final Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
+        put("someInt", 10);
+        put("someString", "test string");
+        put("someBoolean", true);
+    }};
 
     @Test
     public void testLogAndGetAssetsFolder() {
@@ -455,16 +472,11 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             // Log remote assets and wait for completion
             //
             OnCompleteAction onComplete = new OnCompleteAction();
-            Map<String, Object> metadata = new HashMap<String, Object>() {{
-                put("someInt", 10);
-                put("someString", "test string");
-                put("someBoolean", true);
-            }};
 
             URI firstAssetLink = new URI("s3://bucket/folder/firstAssetFile.extension");
             String firstAssetFileName = "firstAssetFileName";
             experiment.logRemoteAsset(
-                    firstAssetLink, Optional.of(firstAssetFileName), false, Optional.of(metadata),
+                    firstAssetLink, Optional.of(firstAssetFileName), false, Optional.of(SOME_METADATA),
                     SOME_FULL_CONTEXT, Optional.of(onComplete));
 
             awaitForCondition(onComplete, "first remote asset onComplete timeout", 30);
@@ -481,7 +493,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             awaitForCondition(() -> experiment.getAssetList(ALL).size() == 2, "Assets was uploaded");
             List<ExperimentAsset> assets = experiment.getAssetList(ALL);
 
-            validateRemoteAssetLink(assets, firstAssetLink, firstAssetFileName, metadata);
+            validateRemoteAssetLink(assets, firstAssetLink, firstAssetFileName, SOME_METADATA);
             validateRemoteAssetLink(assets, secondAssetLink, secondAssetExpectedFileName, null);
         } catch (Exception e) {
             fail(e);
@@ -617,6 +629,82 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_PARTIAL_CONTEXT);
 
         experiment.end();
+    }
+
+    @Test
+    public void testLogAndGetArtifact() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+
+            List<String> aliases = Arrays.asList("alias1", "alias2");
+            List<String> tags = Arrays.asList("tag1", "tag2");
+            String artifactName = "someArtifact";
+            String artifactType = "someType";
+            Artifact artifact = Artifact
+                    .newArtifact(artifactName, artifactType)
+                    .withAliases(aliases)
+                    .withVersionTags(tags)
+                    .withMetadata(SOME_METADATA)
+                    .build();
+
+            // add remote assets
+            //
+            URI firstAssetLink = new URI("s3://bucket/folder/firstAssetFile.extension");
+            String firstAssetFileName = "firstAssetFileName";
+            artifact.addRemoteAsset(firstAssetLink, firstAssetFileName);
+
+            String secondAssetExpectedFileName = "secondAssetFile.extension";
+            URI secondAssetLink = new URI("s3://bucket/folder/" + secondAssetExpectedFileName);
+            artifact.addRemoteAsset(secondAssetLink, secondAssetExpectedFileName);
+
+            // add local assets
+            //
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
+                    IMAGE_FILE_NAME, false, SOME_METADATA);
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)),
+                    CODE_FILE_NAME, false);
+            byte[] someData = "some data".getBytes(StandardCharsets.UTF_8);
+            String someDataName = "someDataName";
+            artifact.addAsset(someData, someDataName);
+
+            // add assets folder
+            //
+            artifact.addAssetFolder(assetsFolder.toFile(), true, true);
+
+            // the artifact validator
+            BiFunction<LoggedArtifact, List<String>, Void> artifactValidator = (actual, expectedAliases) -> {
+                assertNotNull(actual, "logged artifact expected");
+                assertEquals(artifactType, actual.getArtifactType(), "wrong artifact type");
+                assertEquals(new HashSet<>(expectedAliases), actual.getAliases(), "wrong aliases");
+                assertEquals(SOME_METADATA, actual.getMetadata(), "wrong metadata");
+                assertEquals(new HashSet<>(tags), actual.getVersionTags(), "wrong version tags");
+                assertEquals(WORKSPACE_NAME, actual.getWorkspace(), "wrong workspace");
+                assertEquals(experiment.getExperimentKey(), actual.getSourceExperimentKey(), "wrong experiment key");
+                assertEquals(artifactName, actual.getName(), "wrong artifact name");
+                return null;
+            };
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+            artifactValidator.apply(loggedArtifact, aliases);
+
+
+            // get artifact details and check its correctness
+            //
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifactVersionDetail(
+                    GetArtifactOptions.Op()
+                            .artifactId(loggedArtifact.getArtifactId())
+                            .versionId(loggedArtifact.getVersionId())
+                            .build());
+            List<String> expectedAliases = new ArrayList<>(aliases);
+            expectedAliases.add("Latest"); // added by the backend automatically
+
+            artifactValidator.apply(loggedArtifactFromServer, expectedAliases);
+
+        } catch (Throwable t) {
+            fail(t);
+        }
     }
 
     static final class OnCompleteAction implements Action, BooleanSupplier {
