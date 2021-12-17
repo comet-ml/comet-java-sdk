@@ -39,7 +39,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_CODE_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_REMOTE_ASSET;
-import static ml.comet.experiment.impl.resources.LogMessages.TIMEOUT_WAITING_FOR_EXPERIMENT_INVENTORY;
+import static ml.comet.experiment.impl.resources.LogMessages.TIMEOUT_FOR_EXPERIMENT_INVENTORY_CLEANUP;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
 /**
@@ -525,9 +525,9 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
                 EXPERIMENT_INVENTORY_STATUS_PROMPT, this.assetsInProgress.get(), this.artifactsInProgress.get()));
 
         // wait for the inventory to be processed
-        Awaitility.await(getString(
-                        TIMEOUT_WAITING_FOR_EXPERIMENT_INVENTORY, this.assetsInProgress.get(),
-                        this.artifactsInProgress.get()))
+        Awaitility
+                .await(getString(TIMEOUT_FOR_EXPERIMENT_INVENTORY_CLEANUP,
+                        this.assetsInProgress.get(), this.artifactsInProgress.get()))
                 .atMost(this.cleaningTimeout)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(this::hasEmptyInventory);

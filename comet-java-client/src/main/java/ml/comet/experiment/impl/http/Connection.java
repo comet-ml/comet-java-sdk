@@ -14,6 +14,8 @@ import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.Response;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.slf4j.Logger;
 
 import java.io.Closeable;
@@ -23,7 +25,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static ml.comet.experiment.impl.http.ConnectionUtils.createGetRequest;
@@ -32,6 +33,8 @@ import static ml.comet.experiment.impl.http.ConnectionUtils.createPostFileReques
 import static ml.comet.experiment.impl.http.ConnectionUtils.createPostFormRequest;
 import static ml.comet.experiment.impl.http.ConnectionUtils.createPostJsonRequest;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 /**
  * Represents connection with the CometML server. Provides utility methods to send
@@ -223,34 +226,23 @@ public class Connection implements Closeable {
      * Allows to properly close this connection after all scheduled posts request are executed or if timeout expired.
      *
      * @param timeout the maximum duration to wait before closing connection.
-     * @throws IOException          if an I/O error occurs.
-     * @throws InterruptedException if current thread was interrupted during wait.
-     * @throws TimeoutException     if cleaning timeout exceeded.
+     * @throws IOException if an I/O error occurs.
      */
-    public void waitAndClose(@NonNull Duration timeout) throws IOException, InterruptedException, TimeoutException {
-        long nanosTimeout = timeout.toNanos();
-        final long deadline = System.nanoTime() + nanosTimeout;
-        // block until all requests in inventory are processed or timeout exceeded
-        while (this.requestsInventory.get() > 0) {
-            if (Thread.interrupted()) {
-                throw new InterruptedException();
-            }
-            nanosTimeout = deadline - System.nanoTime();
-            if (nanosTimeout <= 0L) {
-                throw new TimeoutException(String.format(
-                        "timeout exceeded while waiting for remaining requests to complete, "
-                                + "remaining requests: %d", this.requestsInventory.get()));
-            }
-            if (this.logger.isDebugEnabled()) {
-                this.logger.debug("waiting for {} request items to execute, elapsed {} seconds",
-                        this.requestsInventory.get(), TimeUnit.SECONDS.convert(nanosTimeout, TimeUnit.NANOSECONDS));
-            }
-            // give other processes a chance
-            Thread.sleep(100);
+    public void waitAndClose(@NonNull Duration timeout) throws IOException {
+        try {
+            Awaitility
+                    .await()
+                    .atMost(timeout)
+                    .pollInterval(100, TimeUnit.MILLISECONDS)
+                    .untilAtomic(this.requestsInventory, is(lessThanOrEqualTo(0)));
+        } catch (ConditionTimeoutException e) {
+            getLogger().error(
+                    String.format("Timeout exceeded while waiting for remaining requests to complete, "
+                            + "remaining requests: %d", this.requestsInventory.get()), e);
+        } finally {
+            // close connection
+            this.close();
         }
-
-        // close connection immediately
-        this.close();
     }
 
     /**
