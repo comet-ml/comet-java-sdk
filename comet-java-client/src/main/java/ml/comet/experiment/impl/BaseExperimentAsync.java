@@ -35,6 +35,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -440,11 +441,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param artifact   the Comet artifact to be sent to the server.
      * @param onComplete the optional {@link Action} to be called upon operation completed,
      *                   either successful or failure.
-     * @return the instance of {@link LoggedArtifact} holding details about newly created version of the Comet artifact.
+     * @return the instance of {@link CompletableFuture} which can be used to query for {@link LoggedArtifact} with
+     * details about new artifact version.
      * @throws ArtifactException if operation failed.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    LoggedArtifact logArtifact(@NonNull final Artifact artifact, @NonNull Optional<Action> onComplete)
+    CompletableFuture<LoggedArtifact> logArtifact(@NonNull final Artifact artifact,
+                                                  @NonNull Optional<Action> onComplete)
             throws ArtifactException {
         // upsert artifact
         final ArtifactEntry entry = super.upsertArtifact(artifact);
@@ -457,12 +460,14 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         final ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
         if (artifactImpl.getAssets().size() == 0) {
             getLogger().warn(getString(ARTIFACT_LOGGED_WITHOUT_ASSETS, artifactImpl.getName()));
-            return loggedArtifact;
+            return CompletableFuture.completedFuture(loggedArtifact);
         }
 
         getLogger().info(
                 getString(ARTIFACT_UPLOAD_STARTED, loggedArtifact.getWorkspace(),
                         loggedArtifact.getName(), loggedArtifact.getVersion(), artifactImpl.getAssets().size()));
+
+        CompletableFuture<LoggedArtifact> future = new CompletableFuture<>();
 
         // upload artifact assets
         AtomicInteger count = new AtomicInteger();
@@ -488,18 +493,26 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                                     getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getWorkspace(),
                                             loggedArtifact.getName(), loggedArtifact.getVersion(), count.get()));
                             // mark artifact version status as closed
-                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED);
+                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
+                            // mark future as completed
+                            if (!future.isCompletedExceptionally()) {
+                                future.complete(loggedArtifact);
+                            }
                         },
                         (throwable) -> {
                             getLogger().error(
                                     getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getWorkspace(),
                                             loggedArtifact.getName(), loggedArtifact.getVersion()), throwable);
                             // mark artifact version status as failed
-                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR);
+                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR, future);
+                            // mark future as failed
+                            if (!future.isCompletedExceptionally()) {
+                                future.obtrudeException(throwable);
+                            }
                         },
                         disposables);
 
-        return loggedArtifact;
+        return future;
     }
 
     /**
@@ -507,15 +520,18 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *
      * @param loggedArtifact the {@link LoggedArtifact} instance with version details.
      * @param state          the state to be associated.
+     * @param future         the {@link CompletableFuture} to be completed exceptionally if operation failed.
      */
     void updateArtifactVersionState(@NonNull LoggedArtifact loggedArtifact,
-                                    @NonNull ArtifactVersionState state) {
+                                    @NonNull ArtifactVersionState state,
+                                    CompletableFuture<LoggedArtifact> future) {
         try {
             super.updateArtifactVersionState(loggedArtifact.getVersionId(), state);
         } catch (Throwable t) {
             getLogger().error(
                     getString(FAILED_TO_FINALIZE_ARTIFACT_VERSION, loggedArtifact.getWorkspace(),
                             loggedArtifact.getName(), loggedArtifact.getVersion()), t);
+            future.completeExceptionally(t);
         }
     }
 

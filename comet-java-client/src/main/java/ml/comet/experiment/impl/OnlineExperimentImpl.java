@@ -21,6 +21,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -123,7 +124,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         try {
             this.waitForInventoryCleanup();
         } catch (Throwable t) {
-            this.logger.error(FAILED_TO_CLEAN_EXPERIMENT_INVENTORY, t);
+            this.logger.error(getString(FAILED_TO_CLEAN_EXPERIMENT_INVENTORY), t);
         }
         this.atCleanup.set(false);
 
@@ -444,7 +445,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public LoggedArtifact logArtifact(Artifact artifact) throws ArtifactException {
+    public CompletableFuture<LoggedArtifact> logArtifact(Artifact artifact) throws ArtifactException {
         this.checkExperimentActiveState();
         try {
             this.artifactsInProgress.incrementAndGet();

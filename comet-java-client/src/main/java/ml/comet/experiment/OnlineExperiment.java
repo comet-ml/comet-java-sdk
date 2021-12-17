@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The {@code OnlineExperiment} should be used to asynchronously update data of your Comet.ml experiment.
@@ -174,8 +175,9 @@ public interface OnlineExperiment extends Experiment {
      * asynchronously all the local and remote assets attached to the artifact object.
      *
      * @param artifact the {@link Artifact} instance.
-     * @return {@link LoggedArtifact} instance with details about new version of artifact that was logged.
+     * @return {@link CompletableFuture} which can be used to query for {@link LoggedArtifact} instance with details
+     * about new version of artifact that was logged.
      * @throws ArtifactException if operation failed.
      */
-    LoggedArtifact logArtifact(Artifact artifact) throws ArtifactException;
+    CompletableFuture<LoggedArtifact> logArtifact(Artifact artifact) throws ArtifactException;
 }
