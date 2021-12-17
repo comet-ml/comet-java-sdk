@@ -5,17 +5,14 @@ import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
 import org.apache.commons.io.file.PathUtils;
 
-import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
 
 import static ml.comet.examples.Utils.getResourceFile;
 import static ml.comet.examples.Utils.readResourceToString;
 
 /**
- * Provides variety of example logging using OnlineExperiment.
+ * Provides variety of examples of data logging using OnlineExperiment.
  *
  * <p>To run from command line execute the following at the root of this module:
  * <pre>
@@ -26,13 +23,7 @@ import static ml.comet.examples.Utils.readResourceToString;
  * </pre>
  * Make sure to provide correct values above.
  */
-public class OnlineExperimentExample {
-
-    private static final String CHART_IMAGE_FILE = "chart.png";
-    private static final String MODEL_FILE = "model.hd5";
-    private static final String HTML_REPORT_FILE = "report.html";
-    private static final String GRAPH_JSON_FILE = "graph.json";
-    private static final String CODE_FILE = "code_sample.py";
+public class OnlineExperimentExample implements BaseExample {
 
     /**
      * The main entry point to the example.
@@ -71,11 +62,11 @@ public class OnlineExperimentExample {
 
         experiment.setEpoch(3);
 
-        generateCharts(experiment);
+        BaseExample.generateCharts(experiment);
 
         experiment.setStep(1234);
 
-        experiment.logHtml(generateCustomHtmlReport(), false);
+        experiment.logHtml(BaseExample.generateCustomHtmlReport(), false);
 
         experiment.logParameter("batch_size", "500");
         experiment.logParameter("learning_rate", 12);
@@ -90,7 +81,7 @@ public class OnlineExperimentExample {
 
         // upload asset files from folder
         //
-        Path assetDir = copyResourcesToTmpDir();
+        Path assetDir = BaseExample.copyResourcesToTmpDir();
         experiment.logAssetFolder(assetDir.toFile(), true, true);
 
         // log remote assets
@@ -114,46 +105,5 @@ public class OnlineExperimentExample {
 
         // remove tmp directory
         PathUtils.deleteDirectory(assetDir);
-    }
-
-    private static void generateCharts(OnlineExperiment experiment) {
-        long currentStep = experiment.getStep();
-
-        for (int i = 1; i < 15; i++) {
-            experiment.logMetric("numMetric", 123 + i, currentStep + i, getUpdatedEpochValue(experiment));
-        }
-
-        for (int i = 1; i < 15; i++) {
-            experiment.logMetric("strMetric", "123" + i, currentStep + i, getUpdatedEpochValue(experiment));
-        }
-
-        for (int i = 1; i < 15; i++) {
-            experiment.logMetric("doubleMetric", 123.12d + i, currentStep + i, getUpdatedEpochValue(experiment));
-        }
-    }
-
-    private static String generateCustomHtmlReport() throws IOException {
-        return readResourceToString("report.html");
-    }
-
-    private static long getUpdatedEpochValue(OnlineExperiment experiment) {
-        return experiment.getEpoch() + experiment.getStep() / 5;
-    }
-
-    private static Path copyResourcesToTmpDir() throws IOException {
-        Path root = Files.createTempDirectory("onlineExperimentExample");
-        PathUtils.copyFileToDirectory(
-                Objects.requireNonNull(getResourceFile(CHART_IMAGE_FILE)).toPath(), root);
-        PathUtils.copyFileToDirectory(
-                Objects.requireNonNull(getResourceFile(MODEL_FILE)).toPath(), root);
-        Files.createTempFile(root, "empty_file", ".txt");
-
-        Path subDir = Files.createTempDirectory(root, "subDir");
-        PathUtils.copyFileToDirectory(
-                Objects.requireNonNull(getResourceFile(HTML_REPORT_FILE)).toPath(), subDir);
-        PathUtils.copyFileToDirectory(
-                Objects.requireNonNull(getResourceFile(GRAPH_JSON_FILE)).toPath(), subDir);
-
-        return root;
     }
 }
