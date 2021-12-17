@@ -18,6 +18,13 @@ public interface LoggedArtifact {
     Set<String> getAliases();
 
     /**
+     * Returns unique identifier of the artifact.
+     *
+     * @return the unique identifier of the artifact.
+     */
+    String getArtifactId();
+
+    /**
      * Returns set of TAGs associated with the artifact.
      *
      * @return the set of TAGs associated with the artifact.

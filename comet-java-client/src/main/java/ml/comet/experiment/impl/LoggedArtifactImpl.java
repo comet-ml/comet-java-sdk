@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import lombok.Getter;
 import lombok.Setter;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +24,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Setter
     String artifactVersionId;
     @Setter
+    @Getter
     String artifactId;
 
     public LoggedArtifactImpl(String name, String type) {
