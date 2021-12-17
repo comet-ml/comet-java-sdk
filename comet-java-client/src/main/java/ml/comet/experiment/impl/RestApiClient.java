@@ -250,7 +250,7 @@ final class RestApiClient implements Disposable {
 
     Single<LogDataResponse> updateArtifactState(final ArtifactRequest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromSyncPostWithRetriesEmptyBody(request, UPDATE_ARTIFACT_STATE, true);
+        return singleFromSyncPostWithRetriesEmptyBody(request, UPDATE_ARTIFACT_STATE);
     }
 
     Single<ArtifactVersionDetail> getArtifactVersionDetail(
@@ -326,14 +326,12 @@ final class RestApiClient implements Disposable {
     }
 
     private Single<LogDataResponse> singleFromSyncPostWithRetriesEmptyBody(@NonNull Object payload,
-                                                                           @NonNull String endpoint,
-                                                                           boolean throwOnFailure) {
+                                                                           @NonNull String endpoint) {
         if (isDisposed()) {
             return Single.error(ALREADY_DISPOSED);
         }
 
-        String request = JsonUtils.toJson(payload);
-        return this.connection.sendPostWithRetries(request, endpoint, throwOnFailure)
+        return this.connection.sendPostWithRetries(JsonUtils.toJson(payload), endpoint, true)
                 .map(body -> Single.just(new LogDataResponse(200, body)))
                 .orElse(Single.error(new CometApiException(
                         String.format("No response was returned by endpoint: %s", endpoint))));
