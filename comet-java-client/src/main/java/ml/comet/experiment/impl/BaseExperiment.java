@@ -52,7 +52,6 @@ import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_FOUND;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_READY;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITH_PREVIOUS;
-import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE;
@@ -627,7 +626,6 @@ abstract class BaseExperiment implements Experiment {
         if (!this.alive) {
             return;
         }
-        getLogger().info(getString(EXPERIMENT_CLEANUP_PROMPT, cleaningTimeout.getSeconds()));
 
         // mark as not alive
         this.alive = false;
