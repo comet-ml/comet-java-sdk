@@ -30,11 +30,13 @@ import static ml.comet.experiment.ExperimentBuilder.OnlineExperiment;
  * Make sure to provide correct values above.
  */
 public class ArtifactExample implements BaseExample {
-    private static final Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
-        put("someInt", 10);
-        put("someString", "test string");
-        put("someBoolean", true);
-    }};
+    private static final Map<String, Object> SOME_METADATA = new HashMap<>();
+
+    static {
+        SOME_METADATA.put("someInt", 10);
+        SOME_METADATA.put("someString", "test string");
+        SOME_METADATA.put("someBoolean", true);
+    }
 
     /**
      * The main entry point to the example.
