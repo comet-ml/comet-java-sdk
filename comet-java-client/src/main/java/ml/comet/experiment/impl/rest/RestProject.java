@@ -8,8 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.model.Project;
 
-import java.time.Instant;
-
 import static ml.comet.experiment.impl.utils.CometUtils.instantOrNull;
 
 @Data

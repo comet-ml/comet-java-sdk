@@ -8,10 +8,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.model.ExperimentMetadata;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-
 import static ml.comet.experiment.impl.utils.CometUtils.durationOrNull;
 import static ml.comet.experiment.impl.utils.CometUtils.instantOrNull;
 
