@@ -13,8 +13,8 @@ import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.ArtifactAsset;
-import ml.comet.experiment.impl.asset.ArtifactRemoteAsset;
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactVersionState;
@@ -280,6 +280,11 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logLine(String line, long offset, boolean stderr, String context, @NonNull Optional<Action> onComplete) {
+        if (!this.alive) {
+            // to avoid exceptions from StdOut logger
+            return;
+        }
+
         OutputUpdate request = createLogLineRequest(line, offset, stderr, context);
         Single<LogDataResponse> single = validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
@@ -470,9 +475,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         CompletableFuture<LoggedArtifact> future = new CompletableFuture<>();
 
         // upload artifact assets
+        final String artifactVersionId = entry.getArtifactVersionId();
         AtomicInteger count = new AtomicInteger();
-        Stream<Asset> assets = artifactImpl.getAssets().stream()
-                .peek(asset -> count.incrementAndGet());
+        Stream<ArtifactAsset> assets = artifactImpl.getAssets().stream()
+                .peek(asset -> {
+                    asset.setArtifactVersionId(artifactVersionId);
+                    count.incrementAndGet();
+                });
 
         // create parallel execution flow with errors delaying
         // allowing processing of items even if some of them failed
@@ -548,13 +557,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     }
 
     /**
-     * Attempts to log provided {@link Asset} or its subclass asynchronously using specified log function.
+     * Attempts to log provided {@link AssetImpl} or its subclass asynchronously using specified log function.
      *
      * @param func       the function to be invoked to send asset to the backend.
-     * @param asset      the {@link Asset} or subclass to be sent.
+     * @param asset      the {@link AssetImpl} or subclass to be sent.
      * @param onComplete The optional action to be invoked when this operation
      *                   asynchronously completes. Can be {@code null} if not interested in completion signal.
-     * @param <T>        the {@link Asset} or its subclass.
+     * @param <T>        the {@link AssetImpl} or its subclass.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T extends Asset> void logAsset(final BiFunction<T, String, Single<LogDataResponse>> func,
@@ -599,26 +608,26 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     }
 
     /**
-     * Attempts to send given artifact {@link ArtifactAsset} or {@link ArtifactRemoteAsset} asynchronously.
+     * Attempts to send given {@link ArtifactAsset} or its subclass asynchronously.
      *
      * @param asset the artifact asset.
      * @param <T>   the type of the artifact asset.
      * @return the {@link Single} which can be used to subscribe for operation results.
      */
-    private <T extends Asset> Single<LogDataResponse> sendArtifactAssetAsync(@NonNull final T asset) {
+    private <T extends ArtifactAsset> Single<LogDataResponse> sendArtifactAssetAsync(@NonNull final T asset) {
         Single<LogDataResponse> single;
         Scheduler scheduler = Schedulers.io();
-        if (asset instanceof ArtifactAsset) {
-            single = validateAndGetExperimentKey()
-                    .subscribeOn(scheduler)
-                    .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey));
-        } else if (asset instanceof ArtifactRemoteAsset) {
+        if (asset instanceof RemoteAsset) {
+            // remote asset
             single = validateAndGetExperimentKey()
                     .subscribeOn(scheduler)
                     .concatMap(experimentKey ->
-                            getRestApiClient().logRemoteAsset((ArtifactRemoteAsset) asset, experimentKey));
+                            getRestApiClient().logRemoteAsset((RemoteAsset) asset, experimentKey));
         } else {
-            throw new IllegalArgumentException("unsupported asset instance, only artifact assets are supported");
+            // local asset
+            single = validateAndGetExperimentKey()
+                    .subscribeOn(scheduler)
+                    .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey));
         }
 
         return single

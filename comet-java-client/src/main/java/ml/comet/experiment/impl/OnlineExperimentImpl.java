@@ -132,7 +132,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         //
         if (heartbeatSendFuture != null) {
             if (!heartbeatSendFuture.cancel(true)) {
-                this.logger.error("failed to stop experiment's heartbeat sender");
+                this.logger.error("Failed to stop experiment's heartbeat sender");
             } else {
                 this.logger.info(getString(EXPERIMENT_HEARTBEAT_STOPPED_PROMPT));
             }
@@ -143,7 +143,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         try {
             if (!this.scheduledExecutorService.awaitTermination(
                     SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC, TimeUnit.SECONDS)) {
-                this.logger.warn("scheduled executor failed to terminate");
+                this.logger.warn("Scheduled executor failed to terminate");
             }
         } catch (InterruptedException e) {
             this.logger.error("scheduled executor's wait for termination was interrupted", e);
@@ -155,7 +155,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
             try {
                 this.stopInterceptStdout();
             } catch (IOException e) {
-                logger.error("failed to stop StdOut/StdErr intercepting", e);
+                logger.error("Failed to stop StdOut/StdErr intercepting", e);
             }
         }
 

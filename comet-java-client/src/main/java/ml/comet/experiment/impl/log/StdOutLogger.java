@@ -110,9 +110,9 @@ public class StdOutLogger implements Runnable, Closeable {
         }
 
         if (this.stdOut) {
-            System.out.println("StdOut interception stopped");
+            System.out.println("\nStdOut interception stopped");
         } else {
-            System.out.println("StdErr interception stopped");
+            System.out.println("\nStdErr interception stopped");
         }
     }
 

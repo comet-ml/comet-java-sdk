@@ -6,6 +6,7 @@ import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactBuilder;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
+import ml.comet.experiment.impl.asset.ArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
 import ml.comet.experiment.impl.asset.Asset;
@@ -36,7 +37,7 @@ import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
 public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
     @Getter
-    private final List<Asset> assets;
+    private final List<ArtifactAsset> assets;
 
     private final boolean prefixWithFolderName;
 
@@ -152,7 +153,8 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
                 .forEach(asset -> this.appendAsset(new ArtifactAssetImpl(asset)));
     }
 
-    private <T extends Asset> void appendAsset(@NonNull final T asset) throws ConflictingArtifactAssetNameException {
+    private <T extends ArtifactAsset> void appendAsset(@NonNull final T asset)
+            throws ConflictingArtifactAssetNameException {
         this.assets.forEach(a -> {
             if (Objects.equals(a.getFileName(), asset.getFileName())) {
                 throw new ConflictingArtifactAssetNameException(

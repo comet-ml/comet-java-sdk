@@ -6,7 +6,6 @@ import lombok.NonNull;
 import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.ArtifactAsset;
-import ml.comet.experiment.impl.asset.ArtifactRemoteAsset;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
@@ -233,8 +232,8 @@ final class RestApiClient implements Disposable {
     <T extends RemoteAsset> Single<LogDataResponse> logRemoteAsset(final T asset, String experimentKey) {
         Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
         queryParams.put(IS_REMOTE, Boolean.TRUE.toString());
-        if (asset instanceof ArtifactRemoteAsset) {
-            queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactRemoteAsset) asset).getArtifactVersionId());
+        if (asset instanceof ArtifactAsset) {
+            queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAsset) asset).getArtifactVersionId());
         }
 
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);

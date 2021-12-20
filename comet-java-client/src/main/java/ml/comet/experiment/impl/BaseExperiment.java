@@ -653,6 +653,9 @@ abstract class BaseExperiment implements Experiment {
      * @return the status response of the experiment.
      */
     Optional<ExperimentStatusResponse> sendExperimentStatus() {
+        if (!this.alive) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(validateAndGetExperimentKey()
                 .concatMap(experimentKey -> restApiClient.sendExperimentStatus(experimentKey))
                 .onErrorComplete()
