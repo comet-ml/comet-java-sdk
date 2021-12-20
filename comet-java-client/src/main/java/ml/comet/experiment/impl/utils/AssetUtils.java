@@ -2,8 +2,11 @@ package ml.comet.experiment.impl.utils;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.model.AssetType;
@@ -74,7 +77,7 @@ public class AssetUtils {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static RemoteAsset createRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
                                                 Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
-        RemoteAsset asset = new RemoteAsset();
+        RemoteAssetImpl asset = new RemoteAssetImpl();
         asset.setLink(uri);
         asset.setFileName(fileName.orElse(remoteAssetFileName(uri)));
 
@@ -97,7 +100,7 @@ public class AssetUtils {
                                             @NonNull Optional<Map<String, Object>> metadata,
                                             @NonNull Optional<AssetType> type) {
         String logicalFileName = fileName.orElse(file.getName());
-        Asset asset = new Asset();
+        AssetImpl asset = new AssetImpl();
         asset.setFile(file);
         asset.setFileName(logicalFileName);
         asset.setFileExtension(FilenameUtils.getExtension(logicalFileName));
@@ -120,7 +123,7 @@ public class AssetUtils {
     public static Asset createAssetFromData(byte[] data, @NonNull String fileName, boolean overwrite,
                                             @NonNull Optional<Map<String, Object>> metadata,
                                             @NonNull Optional<AssetType> type) {
-        Asset asset = new Asset();
+        AssetImpl asset = new AssetImpl();
         asset.setFileLikeData(data);
         asset.setFileName(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
@@ -144,9 +147,13 @@ public class AssetUtils {
         putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
         putNotNull(queryParams, FILE_NAME, asset.getFileName());
         putNotNull(queryParams, EXTENSION, asset.getFileExtension());
-        putNotNull(queryParams, CONTEXT, asset.getContext());
-        putNotNull(queryParams, STEP, asset.getStep());
-        putNotNull(queryParams, EPOCH, asset.getEpoch());
+
+        ExperimentContext context = asset.getExperimentContext();
+        if (context != null) {
+            putNotNull(queryParams, CONTEXT, context.getContext());
+            putNotNull(queryParams, STEP, context.getStep());
+            putNotNull(queryParams, EPOCH, context.getEpoch());
+        }
 
         return queryParams;
     }
@@ -167,9 +174,9 @@ public class AssetUtils {
     }
 
     /**
-     * Updates provided {@link Asset} with values from optionals or with defaults.
+     * Updates provided {@link AssetImpl} with values from optionals or with defaults.
      *
-     * @param asset     the {@link Asset} to be updated.
+     * @param asset     the {@link AssetImpl} to be updated.
      * @param overwrite if {@code true} will overwrite all existing assets with the same name.
      * @param metadata  Some additional data to attach to the remote asset.
      *                  The dictionary values must be JSON compatible.
@@ -178,7 +185,7 @@ public class AssetUtils {
      * @return the updated {@link Asset} with values from optionals or with defaults.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static Asset updateAsset(Asset asset, boolean overwrite,
+    public static Asset updateAsset(AssetImpl asset, boolean overwrite,
                                     Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
         asset.setOverwrite(overwrite);
         metadata.ifPresent(asset::setMetadata);
@@ -203,7 +210,7 @@ public class AssetUtils {
 
     static Asset mapToFileAsset(@NonNull File folder, @NonNull Path assetPath,
                                 boolean logFilePath, boolean prefixWithFolderName) {
-        Asset asset = new Asset();
+        AssetImpl asset = new AssetImpl();
         asset.setFile(assetPath.toFile());
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);
         asset.setFileName(fileName);

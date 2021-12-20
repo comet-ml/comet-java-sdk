@@ -1,36 +1,20 @@
 package ml.comet.experiment.impl.asset;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-import ml.comet.experiment.model.AssetType;
-
-import java.io.File;
-import java.util.Map;
-
 /**
- * Describes artifact's asset data.
+ * Defines the public contract of the asset associated with specific artifact.
  */
-@Data
-@NoArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
-public class ArtifactAsset extends Asset {
-    String artifactVersionId;
+public interface ArtifactAsset extends Asset {
+    /**
+     * Returns version ID of the associated {@link ml.comet.experiment.artifact.Artifact}.
+     *
+     * @return the version ID of the associated {@link ml.comet.experiment.artifact.Artifact}.
+     */
+    String getArtifactVersionId();
 
     /**
-     * The copy constructor.
+     * Sets the version ID of the associated {@link ml.comet.experiment.artifact.Artifact}.
      *
-     * @param asset the {@link Asset} to copy data from.
+     * @param artifactVersionId the version ID of the associated {@link ml.comet.experiment.artifact.Artifact}.
      */
-    public ArtifactAsset(Asset asset) {
-        this.setFile(asset.getFile());
-        this.setFileLikeData(asset.getFileLikeData());
-        this.setFileExtension(asset.getFileExtension());
-        this.fileName = asset.fileName;
-        this.type = asset.type;
-        this.overwrite = asset.overwrite;
-        this.metadata = asset.metadata;
-    }
+    void setArtifactVersionId(String artifactVersionId);
 }

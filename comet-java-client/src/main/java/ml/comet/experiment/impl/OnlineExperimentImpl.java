@@ -68,7 +68,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     // The counter to maintain current inventory of the artifacts being in progress
     private final AtomicInteger artifactsInProgress = new AtomicInteger();
-    // The counter to maintain current inventory of the assets being in progress
+    // The counter to maintain current inventory of the assets or the set of assets (assets folder) being in progress
     private final AtomicInteger assetsInProgress = new AtomicInteger();
 
     /**

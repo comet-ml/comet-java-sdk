@@ -6,12 +6,12 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 /**
- * Represents asset associated with particular experiment.
+ * Represents asset associated with particular experiment which already logged to the Comet.
  */
 @Data
 @NoArgsConstructor
 @SuppressWarnings("unused")
-public class ExperimentAsset {
+public class LoggedExperimentAsset {
     private String assetId;
     private String type;
     private String fileName;

@@ -2,7 +2,7 @@ package ml.comet.experiment;
 
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.model.AssetType;
-import ml.comet.experiment.model.ExperimentAsset;
+import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -123,12 +123,12 @@ public interface Experiment extends AutoCloseable {
     List<String> getTags();
 
     /**
-     * Get experiment asset list.
+     * Get list of the logged experiment assets.
      *
      * @param type the type of assets to be included.
      * @return the list of assets associated with experiment.
      */
-    List<ExperimentAsset> getAssetList(AssetType type);
+    List<LoggedExperimentAsset> getAssetList(AssetType type);
 
     /**
      * Sets the experiment name.

@@ -5,7 +5,8 @@ import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
 import ml.comet.experiment.impl.asset.ArtifactAsset;
-import ml.comet.experiment.impl.asset.ArtifactRemoteAsset;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
+import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
 import ml.comet.experiment.impl.asset.Asset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -155,7 +156,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct file asset")
             @Order(1)
             void hasFileAsset() {
-                ArtifactAsset asset = (ArtifactAsset) artifact.getAssets().get(0);
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().get(0);
                 assertEquals(this.assetFile, asset.getFile(), "wrong file");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -189,7 +190,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct file-like asset")
             @Order(1)
             void hasFileLikeAsset() {
-                ArtifactAsset asset = (ArtifactAsset) artifact.getAssets().get(0);
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().get(0);
                 assertEquals(this.data, asset.getFileLikeData(), "wrong data");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -223,7 +224,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct remote asset")
             @Order(1)
             void hasRemoteAsset() {
-                ArtifactRemoteAsset asset = (ArtifactRemoteAsset) artifact.getAssets().get(0);
+                ArtifactRemoteAssetImpl asset = (ArtifactRemoteAssetImpl) artifact.getAssets().get(0);
                 assertEquals(this.uri, asset.getLink(), "wrong link");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");

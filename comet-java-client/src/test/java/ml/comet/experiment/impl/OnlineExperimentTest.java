@@ -9,7 +9,7 @@ import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.model.ExperimentAsset;
+import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -106,7 +106,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         awaitForCondition(() ->
                 experiment.getAssetList(ALL).size() == assetFolderFiles.size(), "Assets was uploaded");
 
-        List<ExperimentAsset> assets = experiment.getAssetList(ALL);
+        List<LoggedExperimentAsset> assets = experiment.getAssetList(ALL);
 
         validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
         validateAsset(assets, ANOTHER_TEXT_FILE_NAME, ANOTHER_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
@@ -438,7 +438,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         //
         awaitForCondition(() -> experiment.getAssetList(ALL).size() == 2, "Assets was uploaded");
 
-        List<ExperimentAsset> assets = experiment.getAssetList(ALL);
+        List<LoggedExperimentAsset> assets = experiment.getAssetList(ALL);
         validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, SOME_FULL_CONTEXT);
         validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
 
@@ -450,7 +450,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         awaitForCondition(onComplete, "update text file onComplete timeout", 30);
 
         awaitForCondition(() -> {
-            List<ExperimentAsset> assetList = experiment.getAssetList(ALL);
+            List<LoggedExperimentAsset> assetList = experiment.getAssetList(ALL);
             return assetList.stream()
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
                     .anyMatch(asset ->
@@ -491,7 +491,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             // wait for assets become available and validate results
             //
             awaitForCondition(() -> experiment.getAssetList(ALL).size() == 2, "Assets was uploaded");
-            List<ExperimentAsset> assets = experiment.getAssetList(ALL);
+            List<LoggedExperimentAsset> assets = experiment.getAssetList(ALL);
 
             validateRemoteAssetLink(assets, firstAssetLink, firstAssetFileName, SOME_METADATA);
             validateRemoteAssetLink(assets, secondAssetLink, secondAssetExpectedFileName, null);
@@ -510,7 +510,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             awaitForCondition(() -> experiment.getAssetList(ALL).size() == 1, "Asset uploaded");
 
-            Optional<ExperimentAsset> assetOpt = experiment.getAssetList(ALL)
+            Optional<LoggedExperimentAsset> assetOpt = experiment.getAssetList(ALL)
                     .stream()
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
                     .findFirst();
@@ -605,7 +605,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
         awaitForCondition(() -> !experiment.getAssetList(SOURCE_CODE).isEmpty(),
                 "Experiment code from file added");
-        List<ExperimentAsset> assets = experiment.getAssetList(SOURCE_CODE);
+        List<LoggedExperimentAsset> assets = experiment.getAssetList(SOURCE_CODE);
         validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, SOME_FULL_CONTEXT);
 
         experiment.end();
@@ -625,7 +625,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
         awaitForCondition(() -> !experiment.getAssetList(SOURCE_CODE).isEmpty(),
                 "Experiment raw code added");
-        List<ExperimentAsset> assets = experiment.getAssetList(SOURCE_CODE);
+        List<LoggedExperimentAsset> assets = experiment.getAssetList(SOURCE_CODE);
         validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_PARTIAL_CONTEXT);
 
         experiment.end();
@@ -728,7 +728,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
                 .build();
     }
 
-    static void validateRemoteAssetLink(List<ExperimentAsset> assets, URI uri,
+    static void validateRemoteAssetLink(List<LoggedExperimentAsset> assets, URI uri,
                                         String fileName, Map<String, Object> metadata) {
         if (Objects.nonNull(metadata)) {
             String metadataJson = JsonUtils.toJson(metadata);
@@ -746,7 +746,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         }
     }
 
-    static void validateAsset(List<ExperimentAsset> assets, String expectedAssetName,
+    static void validateAsset(List<LoggedExperimentAsset> assets, String expectedAssetName,
                               long expectedSize, ExperimentContext context) {
         assertTrue(assets.stream()
                 .filter(asset -> expectedAssetName.equals(asset.getFileName()))

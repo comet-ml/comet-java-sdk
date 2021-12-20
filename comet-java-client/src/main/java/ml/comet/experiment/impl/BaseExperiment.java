@@ -16,6 +16,7 @@ import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
@@ -29,7 +30,7 @@ import ml.comet.experiment.impl.rest.LogDataResponse;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.model.AssetType;
-import ml.comet.experiment.model.ExperimentAsset;
+import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -429,7 +430,7 @@ abstract class BaseExperiment implements Experiment {
     /**
      * Synchronously logs provided asset.
      *
-     * @param asset the {@link Asset} to be uploaded
+     * @param asset the {@link AssetImpl} to be uploaded
      */
     void logAsset(@NonNull final Asset asset, @NonNull ExperimentContext context) {
         asset.setExperimentContext(context);
@@ -604,7 +605,7 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<ExperimentAsset> getAssetList(@NonNull AssetType type) {
+    public List<LoggedExperimentAsset> getAssetList(@NonNull AssetType type) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get assets with type {} for experiment {}", type, this.experimentKey);
         }

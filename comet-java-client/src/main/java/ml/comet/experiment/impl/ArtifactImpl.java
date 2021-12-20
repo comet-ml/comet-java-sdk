@@ -6,8 +6,8 @@ import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactBuilder;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
-import ml.comet.experiment.impl.asset.ArtifactRemoteAsset;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
+import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 
@@ -70,7 +70,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     private void addAsset(@NonNull File file, @NonNull String name,
                           boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
         Asset asset = createAssetFromFile(file, Optional.of(name), overwrite, metadata, empty());
-        this.appendAsset(new ArtifactAsset(asset));
+        this.appendAsset(new ArtifactAssetImpl(asset));
     }
 
     @Override
@@ -92,7 +92,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     private void addAsset(byte[] data, @NonNull String name,
                           boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
         Asset asset = createAssetFromData(data, name, overwrite, metadata, empty());
-        this.appendAsset(new ArtifactAsset(asset));
+        this.appendAsset(new ArtifactAssetImpl(asset));
     }
 
     @Override
@@ -115,7 +115,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     private void addRemoteAsset(@NonNull URI uri, @NonNull String name,
                                 boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
         RemoteAsset asset = createRemoteAsset(uri, Optional.of(name), overwrite, metadata, empty());
-        this.appendAsset(new ArtifactRemoteAsset(asset));
+        this.appendAsset(new ArtifactRemoteAssetImpl(asset));
     }
 
     @Override
@@ -149,10 +149,10 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
         walkFolderAssets(folder, logFilePath, recursive, this.prefixWithFolderName)
                 .peek(asset -> asset.setMetadata(metadata.orElse(null)))
-                .forEach(asset -> this.appendAsset(new ArtifactAsset(asset)));
+                .forEach(asset -> this.appendAsset(new ArtifactAssetImpl(asset)));
     }
 
-    private void appendAsset(@NonNull final Asset asset) throws ConflictingArtifactAssetNameException {
+    private <T extends Asset> void appendAsset(@NonNull final T asset) throws ConflictingArtifactAssetNameException {
         this.assets.forEach(a -> {
             if (Objects.equals(a.getFileName(), asset.getFileName())) {
                 throw new ConflictingArtifactAssetNameException(

@@ -1,7 +1,9 @@
 package ml.comet.experiment.impl.utils;
 
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.model.AssetType;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.file.PathUtils;
@@ -203,7 +205,7 @@ public class AssetUtilsTest {
         }};
         AssetType type = NOTEBOOK;
 
-        Asset asset = new Asset();
+        AssetImpl asset = new AssetImpl();
         updateAsset(asset, overwrite, Optional.of(metadata), Optional.of(type));
 
         assertEquals(overwrite, asset.getOverwrite());
@@ -213,7 +215,7 @@ public class AssetUtilsTest {
 
     @Test
     public void testUpdateAsset_defaultType() {
-        Asset asset = new Asset();
+        AssetImpl asset = new AssetImpl();
         updateAsset(asset, false, empty(), empty());
 
         assertEquals(ASSET, asset.getType());
