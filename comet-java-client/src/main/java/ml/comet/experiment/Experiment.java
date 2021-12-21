@@ -1,12 +1,11 @@
 package ml.comet.experiment;
 
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.impl.asset.AssetType;
-import ml.comet.experiment.model.ExperimentAssetLink;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.GitMetadata;
-import ml.comet.experiment.model.GitMetadataRest;
-import ml.comet.experiment.model.ValueMinMaxDto;
+import ml.comet.experiment.model.AssetType;
+import ml.comet.experiment.model.LoggedExperimentAsset;
+import ml.comet.experiment.model.ExperimentMetadata;
+import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.Value;
 
 import java.io.File;
 import java.util.List;
@@ -65,14 +64,14 @@ public interface Experiment extends AutoCloseable {
      *
      * @return the metadata associated with experiment.
      */
-    ExperimentMetadataRest getMetadata();
+    ExperimentMetadata getMetadata();
 
     /**
      * Get experiment git metadata.
      *
      * @return the GIT metadata for this experiment.
      */
-    GitMetadataRest getGitMetadata();
+    GitMetaData getGitMetadata();
 
     /**
      * Get experiment html.
@@ -100,21 +99,21 @@ public interface Experiment extends AutoCloseable {
      *
      * @return the parameters logged by experiment.
      */
-    List<ValueMinMaxDto> getParameters();
+    List<Value> getParameters();
 
     /**
      * Get experiment metrics.
      *
      * @return the metrics logged by experiment.
      */
-    List<ValueMinMaxDto> getMetrics();
+    List<Value> getMetrics();
 
     /**
      * Get experiment log other data.
      *
      * @return the other data logged with experiment.
      */
-    List<ValueMinMaxDto> getLogOther();
+    List<Value> getLogOther();
 
     /**
      * Get experiment tags.
@@ -124,12 +123,12 @@ public interface Experiment extends AutoCloseable {
     List<String> getTags();
 
     /**
-     * Get experiment asset list.
+     * Get list of the logged experiment assets.
      *
      * @param type the type of assets to be included.
      * @return the list of assets associated with experiment.
      */
-    List<ExperimentAssetLink> getAssetList(AssetType type);
+    List<LoggedExperimentAsset> getAssetList(AssetType type);
 
     /**
      * Sets the experiment name.
@@ -316,7 +315,7 @@ public interface Experiment extends AutoCloseable {
      *
      * @param gitMetadata The Git Metadata for the experiment
      */
-    void logGitMetadata(GitMetadata gitMetadata);
+    void logGitMetadata(GitMetaData gitMetadata);
 
     /**
      * Tells Comet that the Experiment is complete and release all associated resources.

@@ -1,6 +1,11 @@
 package ml.comet.experiment.impl.utils;
 
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetImpl;
+import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.impl.asset.RemoteAssetImpl;
+import ml.comet.experiment.model.AssetType;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterAll;
@@ -11,12 +16,17 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -24,7 +34,13 @@ import java.util.stream.Stream;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static ml.comet.experiment.impl.utils.AssetUtils.REMOTE_FILE_NAME_DEFAULT;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
 import static ml.comet.experiment.impl.utils.AssetUtils.createRemoteAsset;
+import static ml.comet.experiment.impl.utils.AssetUtils.updateAsset;
+import static ml.comet.experiment.model.AssetType.ASSET;
+import static ml.comet.experiment.model.AssetType.NOTEBOOK;
+import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -76,6 +92,7 @@ public class AssetUtilsTest {
         assertEquals(asset.getFile(), file.toFile(), "wrong asset file");
         assertEquals(asset.getFileName(), file.getFileName().toString(), "wrong asset file name");
         assertEquals(someFileExtension, asset.getFileExtension(), "wrong file extension");
+        assertEquals(ASSET, asset.getType(), "wrong asset type");
     }
 
     @ParameterizedTest
@@ -99,8 +116,109 @@ public class AssetUtilsTest {
             "s3://bucket,, " + REMOTE_FILE_NAME_DEFAULT
     })
     public void testCreateRemoteAsset_fileNameSelection(URI uri, String fileName, String expectedFileName) {
-        Asset asset = createRemoteAsset(uri, ofNullable(fileName), false, empty());
+        RemoteAsset asset = createRemoteAsset(uri, ofNullable(fileName), false, empty(), empty());
+        assertNotNull(asset);
         assertEquals(expectedFileName, asset.getFileName());
+    }
+
+    @Test
+    public void testCreateRemoteAsset_correctTypeCheck() throws URISyntaxException {
+        URI uri = new URI("s3://bucket/folder/someFile");
+
+        RemoteAsset asset = createRemoteAsset(uri, empty(), false, empty(), empty());
+        assertNotNull(asset);
+        assertEquals(ASSET, asset.getType());
+
+        AssetType expected = NOTEBOOK;
+        asset = createRemoteAsset(uri, empty(), false, empty(), Optional.of(expected));
+        assertNotNull(asset);
+        assertEquals(expected, asset.getType());
+    }
+
+    @Test
+    public void testCreateAssetFromFile() {
+        // test with defined logical file name
+        //
+        String extension = "someExtension";
+        String fileName = "someFileName." + extension;
+        File file = allFolderFiles.get(0).toFile();
+        Asset asset = createAssetFromFile(file, Optional.of(fileName),
+                false, empty(), empty());
+        assertNotNull(asset);
+        assertEquals(file, asset.getFile(), "wrong file");
+        assertEquals(fileName, asset.getFileName(), "wrong file name");
+        assertEquals(extension, asset.getFileExtension(), "wrong file extension");
+        assertEquals(ASSET, asset.getType());
+
+        // test with empty logical file name
+        //
+        asset = createAssetFromFile(file, empty(),
+                false, empty(), empty());
+        fileName = file.getName();
+        extension = FilenameUtils.getExtension(fileName);
+        assertNotNull(asset);
+        assertEquals(file, asset.getFile(), "wrong file");
+        assertEquals(fileName, asset.getFileName(), "wrong file name");
+        assertEquals(extension, asset.getFileExtension(), "wrong file extension");
+        assertEquals(ASSET, asset.getType());
+    }
+
+    @Test
+    public void testCreateAssetFromFile_correctTypeCheck() {
+        File file = allFolderFiles.get(0).toFile();
+        Asset asset = createAssetFromFile(file, empty(), false, empty(), empty());
+        assertNotNull(asset);
+        assertEquals(ASSET, asset.getType());
+
+        AssetType expected = NOTEBOOK;
+        asset = createAssetFromFile(file, empty(), false, empty(), Optional.of(expected));
+        assertNotNull(asset);
+        assertEquals(expected, asset.getType());
+    }
+
+    @Test
+    public void testCreateAssetFromData() {
+        byte[] data = "some data string".getBytes(StandardCharsets.UTF_8);
+        String fileName = "someFileName." + someFileExtension;
+
+        Asset asset = createAssetFromData(data, fileName, false, empty(), empty());
+        assertNotNull(asset);
+        assertEquals(data, asset.getFileLikeData());
+        assertEquals(fileName, asset.getFileName());
+        assertEquals(ASSET, asset.getType());
+
+        AssetType expected = SOURCE_CODE;
+        asset = createAssetFromData(data, fileName, false, empty(), Optional.of(expected));
+        assertNotNull(asset);
+        assertEquals(data, asset.getFileLikeData());
+        assertEquals(fileName, asset.getFileName());
+        assertEquals(expected, asset.getType());
+    }
+
+    @Test
+    public void testUpdateAsset() {
+        boolean overwrite = true;
+        Map<String, Object> metadata = new HashMap<String, Object>() {{
+            put("someInt", 10);
+            put("someString", "test string");
+            put("someBoolean", true);
+        }};
+        AssetType type = NOTEBOOK;
+
+        AssetImpl asset = new AssetImpl();
+        updateAsset(asset, overwrite, Optional.of(metadata), Optional.of(type));
+
+        assertEquals(overwrite, asset.getOverwrite());
+        assertEquals(metadata, asset.getMetadata());
+        assertEquals(type, asset.getType());
+    }
+
+    @Test
+    public void testUpdateAsset_defaultType() {
+        AssetImpl asset = new AssetImpl();
+        updateAsset(asset, false, empty(), empty());
+
+        assertEquals(ASSET, asset.getType());
     }
 
     @ParameterizedTest(name = "[{index}] logFilePath: {0}, recursive: {1}, prefixWithFolderName: {2}")

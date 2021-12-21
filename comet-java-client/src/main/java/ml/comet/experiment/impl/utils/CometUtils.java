@@ -6,7 +6,14 @@ import ml.comet.experiment.context.ExperimentContext;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static ml.comet.experiment.impl.utils.ResourceUtils.readCometSdkVersion;
@@ -86,4 +93,44 @@ public final class CometUtils {
             return String.format("%s_%s", context.getContext(), name);
         }
     }
+
+    /**
+     * Allows safe conversion of timestamp into {@link Instant}.
+     *
+     * @param timestamp the time in millis since epoch or {@code null}.
+     * @return the instance of {@link Instant} or {@code null} if timestamp is not set.
+     */
+    public static Instant instantOrNull(Long timestamp) {
+        if (timestamp != null) {
+            return Instant.ofEpochMilli(timestamp);
+        }
+        return null;
+    }
+
+    /**
+     * Allows safe conversion of duration in millis into {@link Duration}.
+     *
+     * @param durationMillis the duration in millis since epoch or {@code null}.
+     * @return the instance of {@link Duration} or {@code null} if duration is not set.
+     */
+    public static Duration durationOrNull(Long durationMillis) {
+        if (durationMillis != null) {
+            return Duration.of(durationMillis, ChronoUnit.MILLIS);
+        }
+        return null;
+    }
+
+    /**
+     * Safe conversion of list to set.
+     *
+     * @param list the list to be converted
+     * @return the set from provided list or empty set if list is {@code null}.
+     */
+    public <T> Set<T> setFromList(List<T> list) {
+        if (list == null) {
+            return Collections.emptySet();
+        }
+        return new HashSet<>(list);
+    }
+
 }

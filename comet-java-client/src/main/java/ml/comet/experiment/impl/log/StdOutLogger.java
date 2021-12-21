@@ -54,6 +54,7 @@ public class StdOutLogger implements Runnable, Closeable {
      *
      * @throws IOException if I/O exception occurs.
      */
+    @Override
     public void close() throws IOException {
         this.restoreOriginalAndStop();
 
@@ -109,9 +110,9 @@ public class StdOutLogger implements Runnable, Closeable {
         }
 
         if (this.stdOut) {
-            System.out.println("StdOut interception stopped");
+            System.out.println("\nStdOut interception stopped");
         } else {
-            System.out.println("StdErr interception stopped");
+            System.out.println("\nStdErr interception stopped");
         }
     }
 

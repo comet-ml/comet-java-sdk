@@ -4,8 +4,11 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import lombok.NonNull;
 import lombok.Value;
+import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
+import ml.comet.experiment.impl.rest.CometWebJavaSdkException;
+import ml.comet.experiment.impl.utils.JsonUtils;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.RequestBuilder;
 import org.asynchttpclient.Response;
@@ -19,6 +22,7 @@ import org.asynchttpclient.util.HttpConstants;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +109,7 @@ public class ConnectionUtils {
         return new RequestBuilder()
                 .setUrl(url)
                 .setHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .setBody(new ByteArrayBodyGenerator(body.getBytes()))
+                .setBody(new ByteArrayBodyGenerator(body.getBytes(StandardCharsets.UTF_8)))
                 .setMethod(HttpConstants.Methods.POST)
                 .build();
     }
@@ -176,6 +180,26 @@ public class ConnectionUtils {
                 .setHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.MULTIPART_FORM_DATA)
                 .setBodyParts(parts);
         return builder;
+    }
+
+    /**
+     * Allows checking response status and throw related exceptions.
+     *
+     * @param response the {@link Response} to be checked.
+     * @throws CometWebJavaSdkException if remote endpoint returned BAD REQUEST error status.
+     * @throws CometApiException        is request failed with another error code.
+     */
+    static void checkResponseStatus(@NonNull Response response) throws CometWebJavaSdkException {
+        int statusCode = response.getStatusCode();
+        if (isResponseSuccessful(statusCode)) {
+            return;
+        }
+        // check for status code and raise appropriate exception
+        if (statusCode == 400 && response.hasResponseBody()) {
+            throw JsonUtils.fromJson(
+                    response.getResponseBody(), CometWebJavaSdkException.class);
+        }
+        throw new CometApiException(response.getStatusCode(), response.getStatusText(), 0);
     }
 
     private static Part createStringPart(String name, @NonNull Object value) {

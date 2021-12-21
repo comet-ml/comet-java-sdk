@@ -1,23 +1,31 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Scheduler;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.NonNull;
+import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.asset.ArtifactAsset;
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.impl.rest.ArtifactEntry;
+import ml.comet.experiment.impl.rest.ArtifactVersionState;
+import ml.comet.experiment.impl.rest.HtmlRest;
+import ml.comet.experiment.impl.rest.LogDataResponse;
+import ml.comet.experiment.impl.rest.LogOtherRest;
+import ml.comet.experiment.impl.rest.MetricRest;
+import ml.comet.experiment.impl.rest.OutputUpdate;
+import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.impl.utils.AssetUtils;
-import ml.comet.experiment.model.GitMetadata;
-import ml.comet.experiment.model.HtmlRest;
-import ml.comet.experiment.model.LogDataResponse;
-import ml.comet.experiment.model.LogOtherRest;
-import ml.comet.experiment.model.MetricRest;
-import ml.comet.experiment.model.OutputUpdate;
-import ml.comet.experiment.model.ParameterRest;
+import ml.comet.experiment.model.GitMetaData;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -27,28 +35,39 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ASSET;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
+import static java.util.Optional.empty;
+import static ml.comet.experiment.artifact.GetArtifactOptions.Op;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_LOGGED_WITHOUT_ASSETS;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_COMPLETED;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_STARTED;
 import static ml.comet.experiment.impl.resources.LogMessages.ASSETS_FOLDER_UPLOAD_COMPLETED;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FINALIZE_ARTIFACT_VERSION;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_ASSET_REQUEST;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_SEND_LOG_REQUEST;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_ASSET_FOLDER_EMPTY;
 import static ml.comet.experiment.impl.resources.LogMessages.LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
-import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogHtmlRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogLineRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogMetricRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogOtherRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogParamRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogStartTimeRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createTagRequest;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createGitMetadataRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createGraphRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogEndTimeRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogHtmlRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogLineRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogMetricRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
+import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 
 /**
  * The base class for all asynchronous experiment implementations providing implementation of common routines
@@ -99,7 +118,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logMetric(@NonNull String metricName, @NonNull Object metricValue,
-                   @NonNull ExperimentContext context, Optional<Action> onComplete) {
+                   @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
         if (getLogger().isDebugEnabled()) {
@@ -121,7 +140,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logParameter(@NonNull String parameterName, @NonNull Object paramValue,
-                      @NonNull ExperimentContext context, Optional<Action> onComplete) {
+                      @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
         if (getLogger().isDebugEnabled()) {
@@ -142,7 +161,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logHtml(@NonNull String html, boolean override, Optional<Action> onComplete) {
+    void logHtml(@NonNull String html, boolean override, @NonNull Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logHtmlAsync {}, override: {}", html, override);
         }
@@ -160,7 +179,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logOther(@NonNull String key, @NonNull Object value, Optional<Action> onComplete) {
+    void logOther(@NonNull String key, @NonNull Object value, @NonNull Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logOtherAsync {} {}", key, value);
         }
@@ -177,7 +196,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public void addTag(@NonNull String tag, Optional<Action> onComplete) {
+    public void addTag(@NonNull String tag, @NonNull Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("addTagAsync {}", tag);
         }
@@ -193,7 +212,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logGraph(@NonNull String graph, Optional<Action> onComplete) {
+    void logGraph(@NonNull String graph, @NonNull Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logGraphAsync {}", graph);
         }
@@ -209,7 +228,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                        Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logStartTime(long startTimeMillis, Optional<Action> onComplete) {
+    void logStartTime(long startTimeMillis, @NonNull Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logStartTimeAsync {}", startTimeMillis);
         }
@@ -225,7 +244,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                      Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logEndTime(long endTimeMillis, Optional<Action> onComplete) {
+    void logEndTime(long endTimeMillis, @NonNull Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logEndTimeAsync {}", endTimeMillis);
         }
@@ -236,17 +255,17 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
-     * @param gitMetadata The Git Metadata for the experiment.
+     * @param gitMetaData The Git Metadata for the experiment.
      * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
      *                    Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logGitMetadataAsync(@NonNull GitMetadata gitMetadata, Optional<Action> onComplete) {
+    void logGitMetadataAsync(@NonNull GitMetaData gitMetaData, @NonNull Optional<Action> onComplete) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logGitMetadata {}", gitMetadata);
+            getLogger().debug("logGitMetadata {}", gitMetaData);
         }
 
-        sendAsynchronously(getRestApiClient()::logGitMetadata, gitMetadata, onComplete);
+        sendAsynchronously(getRestApiClient()::logGitMetadata, createGitMetadataRequest(gitMetaData), onComplete);
     }
 
     /**
@@ -260,7 +279,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logLine(String line, long offset, boolean stderr, String context, Optional<Action> onComplete) {
+    void logLine(String line, long offset, boolean stderr, String context, @NonNull Optional<Action> onComplete) {
+        if (!this.alive) {
+            // to avoid exceptions from StdOut logger
+            return;
+        }
+
         OutputUpdate request = createLogLineRequest(line, offset, stderr, context);
         Single<LogDataResponse> single = validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
@@ -289,9 +313,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
-                        @NonNull ExperimentContext context, Optional<Action> onComplete) {
+                        @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
         if (!folder.isDirectory()) {
-            getLogger().error(getString(LOG_ASSET_FOLDER_EMPTY, folder));
+            getLogger().warn(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
         }
         this.updateContext(context);
@@ -304,7 +328,6 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> {
                         asset.setExperimentContext(assetContext);
-                        asset.setType(ASSET_TYPE_ASSET);
                         count.incrementAndGet();
                     });
 
@@ -344,15 +367,10 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void uploadAsset(@NonNull File file, @NonNull String fileName,
-                     boolean overwrite, @NonNull ExperimentContext context, Optional<Action> onComplete) {
+                     boolean overwrite, @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
-        Asset asset = new Asset();
-        asset.setFile(file);
-        asset.setFileName(fileName);
-        asset.setOverwrite(overwrite);
-        asset.setType(ASSET_TYPE_ASSET);
-
+        Asset asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
         this.logAsset(asset, onComplete);
     }
 
@@ -371,20 +389,17 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
-                        Optional<Map<String, Object>> metadata, @NonNull ExperimentContext context,
-                        Optional<Action> onComplete) {
+                        @NonNull Optional<Map<String, Object>> metadata, @NonNull ExperimentContext context,
+                        @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
-        RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata);
-        asset.setExperimentContext(this.baseContext);
-        asset.setType(ASSET_TYPE_ASSET);
+        RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata, empty());
+        this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
 
         if (Objects.equals(asset.getFileName(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
-            getLogger().info(
+            getLogger().warn(
                     getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
         }
-
-        this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
     }
 
     /**
@@ -398,14 +413,11 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logCode(@NonNull String code, @NonNull String fileName,
-                 @NonNull ExperimentContext context, Optional<Action> onComplete) {
+                 @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
-        Asset asset = new Asset();
-        asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
-        asset.setFileName(fileName);
-        asset.setType(ASSET_TYPE_SOURCE_CODE);
-
+        Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
+                empty(), Optional.of(SOURCE_CODE));
         this.logAsset(asset, onComplete);
     }
 
@@ -418,15 +430,118 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logCode(@NonNull File file, @NonNull ExperimentContext context, Optional<Action> onComplete) {
+    void logCode(@NonNull File file, @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
-        Asset asset = new Asset();
-        asset.setFile(file);
-        asset.setFileName(file.getName());
-        asset.setType(ASSET_TYPE_SOURCE_CODE);
-
+        Asset asset = createAssetFromFile(file, empty(), false,
+                empty(), Optional.of(SOURCE_CODE));
         this.logAsset(asset, onComplete);
+    }
+
+    /**
+     * Asynchronously logs provided {@link Artifact}. First it synchronously upserts the artifact into the Comet
+     * backend. If successful then artifact assets uploaded to the server. Finally, the artifact status committed
+     * to the backend to confirm transaction status.
+     *
+     * @param artifact   the Comet artifact to be sent to the server.
+     * @param onComplete the optional {@link Action} to be called upon operation completed,
+     *                   either successful or failure.
+     * @return the instance of {@link CompletableFuture} which can be used to query for {@link LoggedArtifact} with
+     * details about new artifact version.
+     * @throws ArtifactException if operation failed.
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    CompletableFuture<LoggedArtifact> logArtifact(@NonNull final Artifact artifact,
+                                                  @NonNull Optional<Action> onComplete)
+            throws ArtifactException {
+        // upsert artifact
+        final ArtifactEntry entry = super.upsertArtifact(artifact);
+
+        // get new artifact's version details
+        final LoggedArtifact loggedArtifact = this.getArtifactVersionDetail(
+                Op().artifactId(entry.getArtifactId()).versionId(entry.getArtifactVersionId()).build());
+
+        // try to log artifact assets asynchronously
+        final ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
+        if (artifactImpl.getAssets().size() == 0) {
+            getLogger().warn(getString(ARTIFACT_LOGGED_WITHOUT_ASSETS, artifactImpl.getName()));
+            return CompletableFuture.completedFuture(loggedArtifact);
+        }
+
+        getLogger().info(
+                getString(ARTIFACT_UPLOAD_STARTED, loggedArtifact.getWorkspace(),
+                        loggedArtifact.getName(), loggedArtifact.getVersion(), artifactImpl.getAssets().size()));
+
+        CompletableFuture<LoggedArtifact> future = new CompletableFuture<>();
+
+        // upload artifact assets
+        final String artifactVersionId = entry.getArtifactVersionId();
+        AtomicInteger count = new AtomicInteger();
+        Stream<ArtifactAsset> assets = artifactImpl.getAssets().stream()
+                .peek(asset -> {
+                    asset.setArtifactVersionId(artifactVersionId);
+                    count.incrementAndGet();
+                });
+
+        // create parallel execution flow with errors delaying
+        // allowing processing of items even if some of them failed
+        Observable<LogDataResponse> observable = Observable
+                .fromStream(assets)
+                .flatMap(asset -> Observable.fromSingle(this.sendArtifactAssetAsync(asset)), true);
+
+        if (onComplete.isPresent()) {
+            observable = observable.doFinally(onComplete.get());
+        }
+
+        // subscribe for processing results
+        observable
+                .ignoreElements() // ignore items which already processed, see: logAsset
+                .subscribe(
+                        () -> {
+                            getLogger().info(
+                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getWorkspace(),
+                                            loggedArtifact.getName(), loggedArtifact.getVersion(), count.get()));
+                            // mark artifact version status as closed
+                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
+                            // mark future as completed
+                            if (!future.isCompletedExceptionally()) {
+                                future.complete(loggedArtifact);
+                            }
+                        },
+                        (throwable) -> {
+                            getLogger().error(
+                                    getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getWorkspace(),
+                                            loggedArtifact.getName(), loggedArtifact.getVersion()), throwable);
+                            // mark artifact version status as failed
+                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR, future);
+                            // mark future as failed
+                            if (!future.isCompletedExceptionally()) {
+                                future.obtrudeException(throwable);
+                            }
+                        },
+                        disposables);
+
+        return future;
+    }
+
+    /**
+     * Synchronously updates the state associated with Comet artifact version.
+     *
+     * @param loggedArtifact the {@link LoggedArtifact} instance with version details.
+     * @param state          the state to be associated.
+     * @param future         the {@link CompletableFuture} to be completed exceptionally if operation failed.
+     */
+    void updateArtifactVersionState(@NonNull LoggedArtifact loggedArtifact,
+                                    @NonNull ArtifactVersionState state,
+                                    CompletableFuture<LoggedArtifact> future) {
+        try {
+            super.updateArtifactVersionState(loggedArtifact.getVersionId(), state);
+        } catch (Throwable t) {
+            getLogger().error(
+                    getString(FAILED_TO_FINALIZE_ARTIFACT_VERSION, loggedArtifact.getWorkspace(),
+                            loggedArtifact.getName(), loggedArtifact.getVersion()), t);
+            future.completeExceptionally(t);
+        }
     }
 
     /**
@@ -437,23 +552,23 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   either successful or failure.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logAsset(@NonNull final Asset asset, Optional<Action> onComplete) {
-        asset.setExperimentContext(this.baseContext);
+    void logAsset(@NonNull final Asset asset, @NonNull Optional<Action> onComplete) {
         this.logAsset(getRestApiClient()::logAsset, asset, onComplete);
     }
 
     /**
-     * Attempts to log provided {@link Asset} or its subclass asynchronously using specified log function.
+     * Attempts to log provided {@link AssetImpl} or its subclass asynchronously using specified log function.
      *
      * @param func       the function to be invoked to send asset to the backend.
-     * @param asset      the {@link Asset} or subclass to be sent.
+     * @param asset      the {@link AssetImpl} or subclass to be sent.
      * @param onComplete The optional action to be invoked when this operation
      *                   asynchronously completes. Can be {@code null} if not interested in completion signal.
-     * @param <T>        the {@link Asset} or its subclass.
+     * @param <T>        the {@link AssetImpl} or its subclass.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T extends Asset> void logAsset(final BiFunction<T, String, Single<LogDataResponse>> func,
-                                            @NonNull final T asset, Optional<Action> onComplete) {
+                                            @NonNull final T asset, @NonNull Optional<Action> onComplete) {
+        asset.setExperimentContext(this.baseContext);
         Single<LogDataResponse> single = this.sendAssetAsync(func, asset);
 
         if (onComplete.isPresent()) {
@@ -481,15 +596,45 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @return the {@link Single} which can be used to subscribe for operation results.
      */
     private <T extends Asset> Single<LogDataResponse> sendAssetAsync(
-            final BiFunction<T, String, Single<LogDataResponse>> func, @NonNull final T asset) {
+            @NonNull final BiFunction<T, String, Single<LogDataResponse>> func, @NonNull final T asset) {
 
         return validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
-                .concatMap(experimentKey1 -> func.apply(asset, experimentKey1))
+                .concatMap(experimentKey -> func.apply(asset, experimentKey))
                 .doOnSuccess(logDataResponse ->
-                        AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), asset))
+                        checkAndLogAssetResponse(logDataResponse, getLogger(), asset))
                 .doOnError(throwable ->
                         getLogger().error(getString(FAILED_TO_SEND_LOG_ASSET_REQUEST, asset), throwable));
+    }
+
+    /**
+     * Attempts to send given {@link ArtifactAsset} or its subclass asynchronously.
+     *
+     * @param asset the artifact asset.
+     * @param <T>   the type of the artifact asset.
+     * @return the {@link Single} which can be used to subscribe for operation results.
+     */
+    private <T extends ArtifactAsset> Single<LogDataResponse> sendArtifactAssetAsync(@NonNull final T asset) {
+        Single<LogDataResponse> single;
+        Scheduler scheduler = Schedulers.io();
+        if (asset instanceof RemoteAsset) {
+            // remote asset
+            single = validateAndGetExperimentKey()
+                    .subscribeOn(scheduler)
+                    .concatMap(experimentKey ->
+                            getRestApiClient().logRemoteAsset((RemoteAsset) asset, experimentKey));
+        } else {
+            // local asset
+            single = validateAndGetExperimentKey()
+                    .subscribeOn(scheduler)
+                    .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey));
+        }
+
+        return single
+                .doOnSuccess(logDataResponse ->
+                        checkAndLogAssetResponse(logDataResponse, getLogger(), asset))
+                .doOnError(throwable ->
+                        getLogger().error(getString(FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST, asset), throwable));
     }
 
     /**
@@ -503,8 +648,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param <T>        the type of the request data object.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private <T> void sendAsynchronously(final BiFunction<T, String, Single<LogDataResponse>> func,
-                                        final T request, final Optional<Action> onComplete) {
+    private <T> void sendAsynchronously(@NonNull final BiFunction<T, String, Single<LogDataResponse>> func,
+                                        @NonNull final T request, final @NonNull Optional<Action> onComplete) {
         Single<LogDataResponse> single = validateAndGetExperimentKey()
                 .subscribeOn(Schedulers.io())
                 .concatMap(experimentKey -> func.apply(request, experimentKey));
@@ -518,21 +663,32 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         single
                 .observeOn(Schedulers.single())
                 .subscribe(
-                        (logDataResponse) -> AsyncDataResponseLogger.checkAndLog(logDataResponse, getLogger(), request),
+                        (logDataResponse) -> checkAndLogResponse(logDataResponse, getLogger(), request),
                         (throwable) -> getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, request), throwable),
                         disposables);
     }
 
     /**
-     * Utility class to log asynchronously received data responses.
+     * Utility method to log asynchronously received data responses.
      */
-    static final class AsyncDataResponseLogger {
-        static void checkAndLog(LogDataResponse logDataResponse, Logger logger, Object request) {
-            if (logDataResponse.hasFailed()) {
-                logger.error("failed to log {}, reason: {}", request, logDataResponse.getMsg());
-            } else if (logger.isDebugEnabled()) {
-                logger.debug("successful response {} received for request {}", logDataResponse, request);
-            }
+    static void checkAndLogResponse(LogDataResponse logDataResponse, Logger logger, Object request) {
+        if (logDataResponse.hasFailed()) {
+            logger.error("failed to log {}, reason: {}, sdk error code: {}",
+                    request, logDataResponse.getMsg(), logDataResponse.getSdkErrorCode());
+        } else if (logger.isDebugEnabled()) {
+            logger.debug("successful response {} received for request {}", logDataResponse, request);
+        }
+    }
+
+    /**
+     * Utility method to log asynchronously received data responses for Asset logging.
+     */
+    static void checkAndLogAssetResponse(LogDataResponse logDataResponse, Logger logger, Asset asset) {
+        if (logDataResponse.hasFailed()) {
+            logger.error("failed to log asset {}, reason: {}, sdk error code: {}",
+                    asset, logDataResponse.getMsg(), logDataResponse.getSdkErrorCode());
+        } else {
+            logger.info("Successfully logged asset {}", asset);
         }
     }
 }

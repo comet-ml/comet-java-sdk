@@ -9,14 +9,15 @@ import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.utils.CometUtils;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.RestProject;
+import ml.comet.experiment.model.ExperimentMetadata;
+import ml.comet.experiment.model.Project;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -59,7 +60,7 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public List<RestProject> getAllProjects(@NonNull String workspaceName) {
+    public List<Project> getAllProjects(@NonNull String workspaceName) {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllProjects invoked");
         }
@@ -67,11 +68,15 @@ public final class CometApiImpl implements CometApi {
         return restApiClient.getAllProjects(workspaceName)
                 .doOnError(ex -> this.logger.error("Failed to read projects in the workspace {}", workspaceName, ex))
                 .blockingGet()
-                .getProjects();
+                .getProjects()
+                .stream()
+                .collect(ArrayList::new,
+                        (projects, restProject) -> projects.add(restProject.toProject()),
+                        ArrayList::addAll);
     }
 
     @Override
-    public List<ExperimentMetadataRest> getAllExperiments(@NonNull String projectId) {
+    public List<ExperimentMetadata> getAllExperiments(@NonNull String projectId) {
         if (this.logger.isDebugEnabled()) {
             this.logger.debug("getAllExperiments invoked");
         }
@@ -79,7 +84,11 @@ public final class CometApiImpl implements CometApi {
         return restApiClient.getAllExperiments(projectId)
                 .doOnError(ex -> this.logger.error("Failed to read experiments found in the project {}", projectId, ex))
                 .blockingGet()
-                .getExperiments();
+                .getExperiments()
+                .stream()
+                .collect(ArrayList::new,
+                        (metadataList, metadataRest) -> metadataList.add(metadataRest.toExperimentMetadata()),
+                        ArrayList::addAll);
     }
 
     /**

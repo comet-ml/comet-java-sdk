@@ -19,6 +19,8 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
 /**
  * Implementation of the {@link Experiment} that allows to read/update existing experiment synchronously.
@@ -72,6 +74,13 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
             this.logger.error("failed to build experiment link", ex);
             return Optional.empty();
         }
+    }
+
+    @Override
+    public void end() {
+        getLogger().info(getString(EXPERIMENT_CLEANUP_PROMPT, cleaningTimeout.getSeconds()));
+
+        super.end();
     }
 
     @Override

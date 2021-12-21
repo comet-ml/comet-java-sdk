@@ -6,47 +6,74 @@ import io.reactivex.rxjava3.functions.Function;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
+import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.ArtifactNotFoundException;
+import ml.comet.experiment.artifact.GetArtifactOptions;
+import ml.comet.experiment.artifact.InvalidArtifactStateException;
+import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.impl.asset.AssetType;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
+import ml.comet.experiment.impl.rest.ArtifactEntry;
+import ml.comet.experiment.impl.rest.ArtifactRequest;
+import ml.comet.experiment.impl.rest.ArtifactVersionDetail;
+import ml.comet.experiment.impl.rest.ArtifactVersionState;
+import ml.comet.experiment.impl.rest.CreateExperimentRequest;
+import ml.comet.experiment.impl.rest.CreateExperimentResponse;
+import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
+import ml.comet.experiment.impl.rest.LogDataResponse;
+import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
-import ml.comet.experiment.model.CreateExperimentRequest;
-import ml.comet.experiment.model.CreateExperimentResponse;
-import ml.comet.experiment.model.ExperimentAssetLink;
-import ml.comet.experiment.model.ExperimentMetadataRest;
-import ml.comet.experiment.model.ExperimentStatusResponse;
-import ml.comet.experiment.model.GitMetadata;
-import ml.comet.experiment.model.GitMetadataRest;
-import ml.comet.experiment.model.LogDataResponse;
-import ml.comet.experiment.model.ValueMinMaxDto;
+import ml.comet.experiment.model.AssetType;
+import ml.comet.experiment.model.LoggedExperimentAsset;
+import ml.comet.experiment.model.ExperimentMetadata;
+import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_ASSET;
-import static ml.comet.experiment.impl.asset.AssetType.ASSET_TYPE_SOURCE_CODE;
-import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
+import static java.util.Optional.empty;
+import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosed;
+import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
+import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_DETAILS;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_FOUND;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_READY;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITH_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPSERT_ARTIFACT;
+import static ml.comet.experiment.impl.resources.LogMessages.GET_ARTIFACT_FAILED_UNEXPECTEDLY;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
-import static ml.comet.experiment.impl.utils.DataUtils.createGraphRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogEndTimeRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogHtmlRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogLineRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogMetricRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogOtherRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogParamRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createLogStartTimeRequest;
-import static ml.comet.experiment.impl.utils.DataUtils.createTagRequest;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createArtifactUpsertRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createArtifactVersionStateRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createGitMetadataRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createGraphRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogEndTimeRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogHtmlRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogLineRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogMetricRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
+import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
+import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 
 /**
  * The base class for all synchronous experiment implementations providing implementation of common routines
@@ -332,15 +359,15 @@ abstract class BaseExperiment implements Experiment {
     /**
      * Synchronous version that waits for result or exception. Also, it checks the response status for failure.
      *
-     * @param gitMetadata The Git Metadata for the experiment.
+     * @param gitMetaData The Git Metadata for the experiment.
      */
     @Override
-    public void logGitMetadata(GitMetadata gitMetadata) {
+    public void logGitMetadata(GitMetaData gitMetaData) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logGitMetadata {}", gitMetadata);
+            getLogger().debug("logGitMetadata {}", gitMetaData);
         }
 
-        sendSynchronously(restApiClient::logGitMetadata, gitMetadata);
+        sendSynchronously(restApiClient::logGitMetadata, createGitMetadataRequest(gitMetaData));
     }
 
     @Override
@@ -349,13 +376,9 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("log raw source code, file name: {}", fileName);
         }
 
-        Asset asset = new Asset();
-        asset.setFileLikeData(code.getBytes(StandardCharsets.UTF_8));
-        asset.setFileName(fileName);
-        asset.setExperimentContext(context);
-        asset.setType(ASSET_TYPE_SOURCE_CODE);
-
-        sendSynchronously(restApiClient::logAsset, asset);
+        Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
+                empty(), Optional.of(SOURCE_CODE));
+        this.logAsset(asset, context);
     }
 
     @Override
@@ -368,13 +391,9 @@ abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("log source code from file {}", file.getName());
         }
-        Asset asset = new Asset();
-        asset.setFile(file);
-        asset.setFileName(file.getName());
-        asset.setExperimentContext(context);
-        asset.setType(ASSET_TYPE_SOURCE_CODE);
-
-        sendSynchronously(restApiClient::logAsset, asset);
+        Asset asset = createAssetFromFile(file, empty(), false,
+                empty(), Optional.of(SOURCE_CODE));
+        this.logAsset(asset, context);
     }
 
     @Override
@@ -389,14 +408,8 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("uploadAsset from file {}, name {}, override {}, context {}",
                     file.getName(), fileName, overwrite, context);
         }
-        Asset asset = new Asset();
-        asset.setFile(file);
-        asset.setFileName(fileName);
-        asset.setExperimentContext(context);
-        asset.setOverwrite(overwrite);
-        asset.setType(ASSET_TYPE_ASSET);
-
-        sendSynchronously(restApiClient::logAsset, asset);
+        Asset asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
+        this.logAsset(asset, context);
     }
 
     @Override
@@ -414,22 +427,118 @@ abstract class BaseExperiment implements Experiment {
         this.uploadAsset(asset, overwrite, new ExperimentContext(step, epoch));
     }
 
+    /**
+     * Synchronously logs provided asset.
+     *
+     * @param asset the {@link AssetImpl} to be uploaded
+     */
+    void logAsset(@NonNull final Asset asset, @NonNull ExperimentContext context) {
+        asset.setExperimentContext(context);
+
+        sendSynchronously(restApiClient::logAsset, asset);
+    }
+
+    /**
+     * Synchronously upsert provided Comet artifact into Comet backend.
+     *
+     * @param artifact the {@link ArtifactImpl} instance.
+     * @return the {@link ArtifactEntry} describing saved artifact.
+     * @throws ArtifactException if operation failed.
+     */
+    ArtifactEntry upsertArtifact(@NonNull final Artifact artifact) throws ArtifactException {
+        try {
+            ArtifactImpl artifactImpl = (ArtifactImpl) artifact;
+            ArtifactRequest request = createArtifactUpsertRequest(artifactImpl);
+            ArtifactEntry response = validateAndGetExperimentKey()
+                    .concatMap(experimentKey -> getRestApiClient().upsertArtifact(request, experimentKey))
+                    .blockingGet();
+
+            if (StringUtils.isBlank(response.getPreviousVersion())) {
+                getLogger().info(
+                        getString(ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS,
+                                artifactImpl.getName(), response.getCurrentVersion()));
+            } else {
+                getLogger().info(
+                        getString(ARTIFACT_VERSION_CREATED_WITH_PREVIOUS,
+                                artifactImpl.getName(), response.getCurrentVersion(), response.getPreviousVersion())
+                );
+            }
+            return response;
+        } catch (Throwable e) {
+            throw new ArtifactException(getString(FAILED_TO_UPSERT_ARTIFACT, artifact), e);
+        }
+    }
+
+    /**
+     * Synchronously updates the state associated with Comet artifact version.
+     *
+     * @param artifactVersionId the artifact version identifier.
+     * @param state             the state to be associated.
+     * @throws ArtifactException is operation failed.
+     */
+    void updateArtifactVersionState(@NonNull String artifactVersionId, @NonNull ArtifactVersionState state)
+            throws ArtifactException {
+        try {
+            ArtifactRequest request = createArtifactVersionStateRequest(artifactVersionId, state);
+            sendSynchronously(getRestApiClient()::updateArtifactState, request);
+        } catch (Throwable e) {
+            throw new ArtifactException(getString(FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE, artifactVersionId), e);
+        }
+    }
+
+    /**
+     * Synchronously retrieves all data about a specific Artifact Version.
+     *
+     * @param options the {@link GetArtifactOptions} defining query options.
+     * @return the {@link LoggedArtifact} instance holding all data about a specific Artifact Version.
+     * @throws ArtifactNotFoundException     if artifact is not found or no artifact data returned.
+     * @throws InvalidArtifactStateException if artifact was not closed or has empty artifact data returned.
+     * @throws ArtifactException             if failed to get artifact due to the unexpected error.
+     */
+    LoggedArtifact getArtifactVersionDetail(@NonNull GetArtifactOptions options)
+            throws ArtifactNotFoundException, InvalidArtifactStateException, ArtifactException {
+
+        try {
+            ArtifactVersionDetail detail = validateAndGetExperimentKey()
+                    .concatMap(experimentKey -> getRestApiClient().getArtifactVersionDetail(options, experimentKey))
+                    .blockingGet();
+
+            if (detail.getArtifact() == null) {
+                throw new InvalidArtifactStateException(getString(ARTIFACT_HAS_NO_DETAILS, options));
+            }
+
+            return detail.toLoggedArtifact(getLogger());
+        } catch (CometApiException apiException) {
+            switch (apiException.getSdkErrorCode()) {
+                case noArtifactFound:
+                    throw new ArtifactNotFoundException(getString(ARTIFACT_NOT_FOUND, options), apiException);
+                case artifactVersionStateNotClosed:
+                case artifactVersionStateNotClosedErrorOccurred:
+                    throw new InvalidArtifactStateException(getString(ARTIFACT_NOT_READY, options), apiException);
+                default:
+                    throw new ArtifactException(getString(GET_ARTIFACT_FAILED_UNEXPECTEDLY, options), apiException);
+            }
+        } catch (Throwable e) {
+            throw new ArtifactException(getString(GET_ARTIFACT_FAILED_UNEXPECTEDLY, options), e);
+        }
+    }
+
     @Override
-    public ExperimentMetadataRest getMetadata() {
+    public ExperimentMetadata getMetadata() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get metadata for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getMetadata, "METADATA");
+        return loadRemote(restApiClient::getMetadata, "METADATA").toExperimentMetadata();
     }
 
     @Override
-    public GitMetadataRest getGitMetadata() {
+    public GitMetaData getGitMetadata() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get git metadata for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getGitMetadata, "GIT METADATA");
+        return loadRemote(restApiClient::getGitMetadata, "GIT METADATA").toGitMetaData();
     }
 
     @Override
@@ -460,30 +569,30 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<ValueMinMaxDto> getParameters() {
+    public List<Value> getParameters() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get params for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getParameters, "PARAMETERS").getValues();
+        return loadRemoteValues(restApiClient::getParameters, "PARAMETERS");
     }
 
     @Override
-    public List<ValueMinMaxDto> getMetrics() {
+    public List<Value> getMetrics() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get metrics summary for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getMetrics, "METRICS").getValues();
+        return loadRemoteValues(restApiClient::getMetrics, "METRICS");
     }
 
     @Override
-    public List<ValueMinMaxDto> getLogOther() {
+    public List<Value> getLogOther() {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get log other for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getLogOther, "OTHER PARAMETERS").getValues();
+        return loadRemoteValues(restApiClient::getLogOther, "OTHER PARAMETERS");
     }
 
     @Override
@@ -496,7 +605,7 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<ExperimentAssetLink> getAssetList(@NonNull AssetType type) {
+    public List<LoggedExperimentAsset> getAssetList(@NonNull AssetType type) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get assets with type {} for experiment {}", type, this.experimentKey);
         }
@@ -506,7 +615,11 @@ abstract class BaseExperiment implements Experiment {
                 .doOnError(ex -> getLogger().error("Failed to read ASSETS list for the experiment, experiment key: {}",
                         this.experimentKey, ex))
                 .blockingGet()
-                .getAssets();
+                .getAssets()
+                .stream()
+                .collect(ArrayList::new,
+                        (assets, experimentAssetLink) -> assets.add(experimentAssetLink.toExperimentAsset()),
+                        ArrayList::addAll);
     }
 
     @Override
@@ -514,7 +627,6 @@ abstract class BaseExperiment implements Experiment {
         if (!this.alive) {
             return;
         }
-        getLogger().info(getString(EXPERIMENT_CLEANUP_PROMPT, cleaningTimeout.getSeconds()));
 
         // mark as not alive
         this.alive = false;
@@ -541,10 +653,29 @@ abstract class BaseExperiment implements Experiment {
      * @return the status response of the experiment.
      */
     Optional<ExperimentStatusResponse> sendExperimentStatus() {
+        if (!this.alive) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(validateAndGetExperimentKey()
                 .concatMap(experimentKey -> restApiClient.sendExperimentStatus(experimentKey))
                 .onErrorComplete()
                 .blockingGet());
+    }
+
+    /**
+     * Synchronously loads remote data values.
+     *
+     * @param loadFunc the function to be applied to load remote data.
+     * @param alias    the data type alias used for logging.
+     * @return the list of values returned by REST API endpoint.
+     */
+    private List<Value> loadRemoteValues(final Function<String, Single<MinMaxResponse>> loadFunc, String alias) {
+        return this.loadRemote(loadFunc, alias)
+                .getValues()
+                .stream()
+                .collect(ArrayList::new,
+                        (values, valueMinMaxRest) -> values.add(valueMinMaxRest.toValue()),
+                        ArrayList::addAll);
     }
 
     /**
@@ -579,7 +710,8 @@ abstract class BaseExperiment implements Experiment {
                 .blockingGet();
 
         if (response.hasFailed()) {
-            throw new CometApiException("Failed to log {}, reason: %s", request, response.getMsg());
+            throw new CometApiException("Failed to log {}, reason: %s, sdk error code: %d",
+                    request, response.getMsg(), response.getSdkErrorCode());
         }
     }
 

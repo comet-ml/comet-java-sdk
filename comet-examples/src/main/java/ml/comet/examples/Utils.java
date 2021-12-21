@@ -9,7 +9,7 @@ import java.net.URL;
 import java.util.Scanner;
 
 /**
- * Provides common utilitites used bby examples.
+ * Provides common utilities used by examples.
  */
 public class Utils {
 
