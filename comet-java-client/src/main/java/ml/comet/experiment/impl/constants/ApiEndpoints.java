@@ -37,6 +37,6 @@ public final class ApiEndpoints {
     public static final String EXPERIMENTS = READ_API_URL + "/experiments";
     public static final String PROJECTS = READ_API_URL + "/projects";
     public static final String WORKSPACES = READ_API_URL + "/workspaces";
-    public static final String GET_ARTIFACT = READ_API_URL + "/artifacts/get";
     public static final String GET_ARTIFACT_VERSION_DETAIL = READ_API_URL + "/artifacts/version";
+    public static final String GET_ARTIFACT_VERSION_FILES = READ_API_URL + "/artifacts/version/files";
 }

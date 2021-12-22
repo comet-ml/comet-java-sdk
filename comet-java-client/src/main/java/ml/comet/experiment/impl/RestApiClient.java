@@ -15,6 +15,7 @@ import ml.comet.experiment.impl.rest.AddExperimentTagsRest;
 import ml.comet.experiment.impl.rest.AddGraphRest;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactRequest;
+import ml.comet.experiment.impl.rest.ArtifactVersionAssetResponse;
 import ml.comet.experiment.impl.rest.ArtifactVersionDetail;
 import ml.comet.experiment.impl.rest.CreateExperimentRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentResponse;
@@ -58,6 +59,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_DETAIL;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_FILES;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSET_INFO;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GRAPH;
@@ -82,6 +84,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.utils.ArtifactUtils.versionDetailsParams;
+import static ml.comet.experiment.impl.utils.ArtifactUtils.versionFilesParams;
 
 /**
  * Represents Comet REST API client providing access to all exposed REST endpoints.
@@ -258,6 +261,12 @@ final class RestApiClient implements Disposable {
         return this.singleFromSyncGetWithRetries(
                 GET_ARTIFACT_VERSION_DETAIL, versionDetailsParams(request, experimentKey),
                 true, ArtifactVersionDetail.class);
+    }
+
+    Single<ArtifactVersionAssetResponse> getArtifactVersionFiles(final GetArtifactOptions request) {
+        return this.singleFromSyncGetWithRetries(
+                GET_ARTIFACT_VERSION_FILES, versionFilesParams(request),
+                true, ArtifactVersionAssetResponse.class);
     }
 
     private <T> Single<T> singleFromAsyncPost(@NonNull String endpoint,

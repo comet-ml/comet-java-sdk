@@ -26,7 +26,8 @@ import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE;
 public class ArtifactUtils {
 
     /**
-     * Extracts query parameters from provided {@link GetArtifactOptions} object.
+     * Extracts query parameters from provided {@link GetArtifactOptions} object to be used for getting details about
+     * particular artifact version.
      *
      * @param options       the {@link GetArtifactOptions}
      * @param experimentKey the current experiment's key
@@ -45,6 +46,24 @@ public class ArtifactUtils {
         queryParams.put(ALIAS, options.getAlias());
         queryParams.put(VERSION_OR_ALIAS, options.getVersionOrAlias());
         queryParams.put(CONSUMER_EXPERIMENT_KEY, options.getConsumerExperimentKey());
+        return queryParams;
+    }
+
+    /**
+     * Extracts query parameters from provided {@link GetArtifactOptions} object to be used for getting list of assets
+     * associated with particular artifact.
+     *
+     * @param options the {@link GetArtifactOptions}
+     * @return the map with query parameters.
+     */
+    public static Map<QueryParamName, String> versionFilesParams(@NonNull final GetArtifactOptions options) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(WORKSPACE, options.getWorkspace());
+        queryParams.put(ARTIFACT_NAME, options.getArtifactName());
+        queryParams.put(ARTIFACT_ID, options.getArtifactId());
+        queryParams.put(VERSION_ID, options.getVersionId());
+        queryParams.put(VERSION, options.getVersion());
+        queryParams.put(ALIAS, options.getAlias());
         return queryParams;
     }
 }

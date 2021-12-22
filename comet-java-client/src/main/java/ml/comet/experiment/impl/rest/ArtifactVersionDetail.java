@@ -34,7 +34,6 @@ public class ArtifactVersionDetail extends BaseExperimentObject {
     ArtifactVersionState state;
     List<String> tags;
     List<String> alias;
-    List<ArtifactVersionAsset> files;
     ArtifactDto artifact;
 
     /**

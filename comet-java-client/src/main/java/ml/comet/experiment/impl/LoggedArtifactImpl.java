@@ -2,6 +2,7 @@ package ml.comet.experiment.impl;
 
 import lombok.Getter;
 import lombok.Setter;
+import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import org.apache.commons.lang3.StringUtils;
@@ -86,6 +87,10 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
 
     @Override
     public Collection<LoggedArtifactAsset> readAssets() {
+        GetArtifactOptions options = GetArtifactOptions.Op()
+                .artifactId(this.artifactId)
+                .versionId(this.artifactVersionId)
+                .build();
         // TODO: implement readAssets
         return Collections.emptyList();
     }

@@ -30,9 +30,9 @@ import ml.comet.experiment.impl.rest.LogDataResponse;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.model.AssetType;
-import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -521,6 +521,49 @@ abstract class BaseExperiment implements Experiment {
         } catch (Throwable e) {
             throw new ArtifactException(getString(GET_ARTIFACT_FAILED_UNEXPECTEDLY, options), e);
         }
+    }
+
+
+    @Override
+    public LoggedArtifact getArtifact(@NonNull String name, @NonNull String workspace, @NonNull String versionOrAlias)
+            throws ArtifactException {
+        if (name.contains("/") || name.contains(":")) {
+            throw new IllegalArgumentException(
+                    "Only simple artifact name allowed for this method without slash (/) or colon (:) characters.");
+        }
+        return this.getArtifact(GetArtifactOptions.Op()
+                .name(name)
+                .workspaceName(workspace)
+                .versionOrAlias(versionOrAlias)
+                .consumerExperimentKey(this.experimentKey)
+                .build());
+    }
+
+    @Override
+    public LoggedArtifact getArtifact(@NonNull String name, @NonNull String workspace) throws ArtifactException {
+        if (name.contains("/")) {
+            throw new IllegalArgumentException(
+                    "The name of artifact for this method should not include workspace or workspace separator (/).");
+        }
+        return this.getArtifact(GetArtifactOptions.Op()
+                .fullName(name)
+                .workspaceName(workspace)
+                .consumerExperimentKey(this.experimentKey)
+                .build());
+    }
+
+    @Override
+    public LoggedArtifact getArtifact(@NonNull String name) throws ArtifactException {
+        return this.getArtifact(GetArtifactOptions.Op()
+                .fullName(name)
+                .consumerExperimentKey(this.experimentKey)
+                .build());
+    }
+
+    LoggedArtifact getArtifact(@NonNull GetArtifactOptions options) throws ArtifactException {
+        LoggedArtifactImpl artifact = (LoggedArtifactImpl) this.getArtifactVersionDetail(options);
+        artifact.apiClient = this.getRestApiClient();
+        return artifact;
     }
 
     @Override
