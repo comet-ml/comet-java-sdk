@@ -1,5 +1,6 @@
 package ml.comet.experiment.artifact;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -93,4 +94,11 @@ public interface LoggedArtifact {
      * @return the workspace name where artifact was logged.
      */
     String getWorkspace();
+
+    /**
+     * Allows reading list of assets associated with this artifact from Comet backend.
+     *
+     * @return the list of {@link LoggedArtifactAsset} associated with this artifact.
+     */
+    Collection<LoggedArtifactAsset> readAssets();
 }

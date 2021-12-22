@@ -3,8 +3,10 @@ package ml.comet.experiment.impl;
 import lombok.Getter;
 import lombok.Setter;
 import ml.comet.experiment.artifact.LoggedArtifact;
+import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +28,8 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Setter
     @Getter
     String artifactId;
+
+    RestApiClient apiClient;
 
     public LoggedArtifactImpl(String name, String type) {
         super(name, type);
@@ -78,5 +82,11 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Override
     public String getVersionId() {
         return this.artifactVersionId;
+    }
+
+    @Override
+    public Collection<LoggedArtifactAsset> readAssets() {
+        // TODO: implement readAssets
+        return Collections.emptyList();
     }
 }

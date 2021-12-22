@@ -1,7 +1,6 @@
 package ml.comet.experiment.impl;
 
 import com.vdurmont.semver4j.Semver;
-import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactBuilder;
@@ -15,7 +14,7 @@ import ml.comet.experiment.impl.asset.RemoteAsset;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,15 +35,18 @@ import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
  */
 public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
-    @Getter
-    private final List<ArtifactAsset> assets;
+    private final HashMap<String, ArtifactAsset> assetsMap;
 
     private final boolean prefixWithFolderName;
 
     ArtifactImpl(String name, String type) {
         super(name, type);
-        this.assets = new ArrayList<>();
+        this.assetsMap = new HashMap<>();
         this.prefixWithFolderName = true;
+    }
+
+    Collection<ArtifactAsset> getAssets() {
+        return this.assetsMap.values();
     }
 
     @Override
@@ -155,14 +157,14 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
     private <T extends ArtifactAsset> void appendAsset(@NonNull final T asset)
             throws ConflictingArtifactAssetNameException {
-        this.assets.forEach(a -> {
-            if (Objects.equals(a.getFileName(), asset.getFileName())) {
-                throw new ConflictingArtifactAssetNameException(
-                        getString(CONFLICTING_ARTIFACT_ASSET_NAME, asset, asset.getFileName(), a));
-            }
-        });
+        String key = asset.getFileName();
+        ArtifactAsset a = this.assetsMap.get(key);
+        if (a != null) {
+            throw new ConflictingArtifactAssetNameException(
+                    getString(CONFLICTING_ARTIFACT_ASSET_NAME, asset, key, a));
+        }
 
-        this.assets.add(asset);
+        this.assetsMap.put(key, asset);
     }
 
     /**

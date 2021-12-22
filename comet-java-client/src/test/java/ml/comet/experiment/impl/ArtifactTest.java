@@ -156,7 +156,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct file asset")
             @Order(1)
             void hasFileAsset() {
-                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().get(0);
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
                 assertEquals(this.assetFile, asset.getFile(), "wrong file");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -190,7 +190,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct file-like asset")
             @Order(1)
             void hasFileLikeAsset() {
-                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().get(0);
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
                 assertEquals(this.data, asset.getFileLikeData(), "wrong data");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -224,7 +224,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct remote asset")
             @Order(1)
             void hasRemoteAsset() {
-                ArtifactRemoteAssetImpl asset = (ArtifactRemoteAssetImpl) artifact.getAssets().get(0);
+                ArtifactRemoteAssetImpl asset = (ArtifactRemoteAssetImpl) artifact.getAssets().iterator().next();
                 assertEquals(this.uri, asset.getLink(), "wrong link");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
