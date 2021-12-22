@@ -47,29 +47,4 @@ public class ArtifactUtils {
         queryParams.put(CONSUMER_EXPERIMENT_KEY, options.getConsumerExperimentKey());
         return queryParams;
     }
-
-    /**
-     * Extracts get artifact options from provided name of the artifact.
-     *
-     * @param name the name of the artifact, which can be a fully
-     *             qualified artifact name like {@code 'workspace/artifact-name:versionOrAlias'}
-     * @return the populated {@link GetArtifactOptions} object.
-     */
-    public static GetArtifactOptions parseArtifactName(@NonNull String name) {
-        GetArtifactOptions.GetArtifactOptionsBuilder builder = GetArtifactOptions.Op();
-        String[] parts = name.split("/");
-        String nameAndVersion;
-        if (parts.length == 1) {
-            nameAndVersion = parts[0];
-        } else {
-            builder.workspaceName(parts[0]);
-            nameAndVersion = parts[1];
-        }
-        parts = nameAndVersion.split(":");
-        builder.name(parts[0]);
-        if (parts.length > 1) {
-            builder.versionOrAlias(parts[1]);
-        }
-        return builder.build();
-    }
 }
