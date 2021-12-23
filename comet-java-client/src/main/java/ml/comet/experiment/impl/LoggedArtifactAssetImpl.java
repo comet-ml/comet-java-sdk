@@ -1,16 +1,22 @@
 package ml.comet.experiment.impl;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
+import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.utils.DataModelUtils;
+import ml.comet.experiment.model.FileAsset;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -97,5 +103,21 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
             }
         }
         return Collections.emptyMap();
+    }
+
+    @Override
+    public FileAsset download(Path dir) throws ArtifactException {
+        return this.download(dir, AssetOverwriteStrategy.FAIL);
+    }
+
+    @Override
+    public FileAsset download(Path dir, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException {
+        return this.download(dir, FileSystems.getDefault().getPath(this.fileName), overwriteStrategy);
+    }
+
+    @Override
+    public FileAsset download(@NonNull Path dir, @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
+            throws ArtifactException {
+        return this.artifact.downloadAsset(this, dir, file, overwriteStrategy);
     }
 }

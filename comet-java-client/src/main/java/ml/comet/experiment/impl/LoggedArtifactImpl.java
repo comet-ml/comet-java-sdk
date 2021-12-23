@@ -1,15 +1,19 @@
 package ml.comet.experiment.impl;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
+import ml.comet.experiment.model.FileAsset;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -87,5 +91,12 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Override
     public Collection<LoggedArtifactAsset> readAssets() throws ArtifactException {
         return this.baseExperiment.readArtifactAssets(this);
+    }
+
+    FileAsset downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
+                            @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
+            throws ArtifactException {
+        // TODO: implement downloadAsset
+        return null;
     }
 }

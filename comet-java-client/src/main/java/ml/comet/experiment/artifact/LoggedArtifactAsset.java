@@ -1,6 +1,9 @@
 package ml.comet.experiment.artifact;
 
+import ml.comet.experiment.model.FileAsset;
+
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 
@@ -70,4 +73,20 @@ public interface LoggedArtifactAsset {
      * @return {@code true} if this is remote asset.
      */
     boolean isRemote();
+
+    /**
+     * Downloads asset to the given directory.
+     *
+     * @param dir               the root folder to which to download.
+     * @param file              the path relative to the root. If not provided the asset file name will be used as path
+     *                          relative to the root directory.
+     * @param overwriteStrategy overwrite strategy to handle conflicting file names.
+     * @return the {@link FileAsset} representing downloaded asset file.
+     * @throws ArtifactException if operation failed.
+     */
+    FileAsset download(Path dir, Path file, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
+
+    FileAsset download(Path dir, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
+
+    FileAsset download(Path dir) throws ArtifactException;
 }

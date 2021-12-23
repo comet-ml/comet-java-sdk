@@ -325,7 +325,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         AtomicInteger count = new AtomicInteger();
         try {
-            Stream<Asset> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
+            Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> {
                         asset.setExperimentContext(assetContext);
                         count.incrementAndGet();

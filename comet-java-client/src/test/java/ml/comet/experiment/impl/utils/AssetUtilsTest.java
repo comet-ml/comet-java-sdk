@@ -3,7 +3,6 @@ package ml.comet.experiment.impl.utils;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.RemoteAsset;
-import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.model.AssetType;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.file.PathUtils;
@@ -230,7 +229,7 @@ public class AssetUtilsTest {
         if (!recursive) {
             expected -= subFolderFiles.size();
         }
-        Stream<Asset> assets = AssetUtils.walkFolderAssets(
+        Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(
                 root.toFile(), logFilePath, recursive, prefixWithFolderName);
         assertEquals(expected, assets.count(), "wrong assets count");
 
