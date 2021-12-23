@@ -20,6 +20,7 @@ import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
+import ml.comet.experiment.impl.rest.ArtifactDto;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactRequest;
 import ml.comet.experiment.impl.rest.ArtifactVersionAssetResponse;
@@ -507,13 +508,13 @@ abstract class BaseExperiment implements Experiment {
                     .concatMap(experimentKey -> getRestApiClient().getArtifactVersionDetail(options, experimentKey))
                     .blockingGet();
 
-            if (detail.getArtifact() == null) {
+            ArtifactDto artifactDto = detail.getArtifact();
+            if (artifactDto == null) {
                 throw new InvalidArtifactStateException(getString(ARTIFACT_HAS_NO_DETAILS, options));
             }
 
-            LoggedArtifact artifact = detail.toLoggedArtifact();
-            ((LoggedArtifactImpl) artifact).baseExperiment = this;
-            return artifact;
+            return detail.copyToLoggedArtifact(
+                    new LoggedArtifactImpl(artifactDto.getArtifactName(), artifactDto.getArtifactType(), this));
         } catch (CometApiException apiException) {
             switch (apiException.getSdkErrorCode()) {
                 case noArtifactFound:

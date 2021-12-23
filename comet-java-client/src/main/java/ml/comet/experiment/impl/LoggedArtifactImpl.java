@@ -36,10 +36,11 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Getter
     String artifactId;
 
-    BaseExperiment baseExperiment;
+    final BaseExperiment baseExperiment;
 
-    public LoggedArtifactImpl(String name, String type) {
+    LoggedArtifactImpl(String name, String type, BaseExperiment baseExperiment) {
         super(name, type);
+        this.baseExperiment = baseExperiment;
     }
 
     @Override
