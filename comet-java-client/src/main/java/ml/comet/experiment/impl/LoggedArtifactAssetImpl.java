@@ -1,6 +1,7 @@
 package ml.comet.experiment.impl;
 
 import lombok.Getter;
+import lombok.Setter;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.utils.DataModelUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,18 +22,29 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     private final Logger logger = LoggerFactory.getLogger(LoggedArtifactAsset.class);
 
     @Getter
-    boolean remote;
+    @Setter
+    private boolean remote;
     @Getter
-    String assetType;
+    @Setter
+    private String assetType;
     @Getter
-    String assetId;
+    @Setter
+    private String assetId;
+    @Setter
+    private String metadataJson;
+    @Setter
+    @Getter
+    private String fileName;
+    @Setter
+    private Long fileSize;
+    @Setter
+    private String remoteUri;
+    @Setter
+    private String artifactId;
+    @Setter
+    private String artifactVersionId;
 
     private Map<String, Object> metadata;
-    String metadataJson;
-    String fileName;
-    Long fileSize;
-    String remoteUri;
-
     private final LoggedArtifactImpl artifact;
 
     LoggedArtifactAssetImpl(LoggedArtifactImpl artifact) {
@@ -41,20 +53,12 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
 
     @Override
     public String getArtifactId() {
-        return this.artifact.getArtifactId();
+        return this.artifactId;
     }
 
     @Override
     public String getArtifactVersionId() {
-        return this.artifact.getVersionId();
-    }
-
-    @Override
-    public Optional<String> getFileName() {
-        if (StringUtils.isNotBlank(this.fileName)) {
-            return Optional.of(this.fileName);
-        }
-        return Optional.empty();
+        return this.artifactVersionId;
     }
 
     @Override

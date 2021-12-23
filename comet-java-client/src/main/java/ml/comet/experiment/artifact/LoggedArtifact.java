@@ -99,6 +99,7 @@ public interface LoggedArtifact {
      * Allows reading list of assets associated with this artifact from Comet backend.
      *
      * @return the list of {@link LoggedArtifactAsset} associated with this artifact.
+     * @throws ArtifactException if failed to read assets from Comet.
      */
-    Collection<LoggedArtifactAsset> readAssets();
+    Collection<LoggedArtifactAsset> readAssets() throws ArtifactException;
 }

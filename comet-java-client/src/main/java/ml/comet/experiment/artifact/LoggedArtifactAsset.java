@@ -37,11 +37,11 @@ public interface LoggedArtifactAsset {
     String getAssetType();
 
     /**
-     * Returns the optional asset file name.
+     * Returns the asset file name.
      *
-     * @return the optional asset file name.
+     * @return the asset file name.
      */
-    Optional<String> getFileName();
+    String getFileName();
 
     /**
      * Returns the optional size of the asset file.

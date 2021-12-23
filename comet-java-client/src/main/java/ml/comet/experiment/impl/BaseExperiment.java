@@ -562,7 +562,7 @@ abstract class BaseExperiment implements Experiment {
 
     LoggedArtifact getArtifact(@NonNull GetArtifactOptions options) throws ArtifactException {
         LoggedArtifactImpl artifact = (LoggedArtifactImpl) this.getArtifactVersionDetail(options);
-        artifact.apiClient = this.getRestApiClient();
+        artifact.restApiClient = this.getRestApiClient();
         return artifact;
     }
 
