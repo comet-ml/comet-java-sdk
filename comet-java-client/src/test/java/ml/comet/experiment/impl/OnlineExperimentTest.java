@@ -6,12 +6,15 @@ import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.LoggedArtifact;
+import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.asset.ArtifactAsset;
+import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
@@ -24,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
 
@@ -42,7 +47,9 @@ import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
 import static ml.comet.experiment.model.AssetType.ALL;
+import static ml.comet.experiment.model.AssetType.ASSET;
 import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.model.AssetType.UNKNOWN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -639,7 +646,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             List<String> tags = Arrays.asList("tag1", "tag2");
             String artifactName = "someArtifact";
             String artifactType = "someType";
-            Artifact artifact = Artifact
+            ArtifactImpl artifact = (ArtifactImpl) Artifact
                     .newArtifact(artifactName, artifactType)
                     .withAliases(aliases)
                     .withVersionTags(tags)
@@ -702,6 +709,11 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             artifactValidator.apply(loggedArtifactFromServer, expectedAliases);
 
+            // check that correct assets was logged
+            //
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifact.readAssets();
+            validateLoggedArtifactAssets(artifact.getAssets(), loggedAssets);
+
         } catch (Throwable t) {
             fail(t);
         }
@@ -726,6 +738,38 @@ public class OnlineExperimentTest extends AssetsBaseTest {
                 .withApiKey(API_KEY)
                 .withExistingExperimentKey(experimentKey)
                 .build();
+    }
+
+    static void validateLoggedArtifactAssets(Collection<ArtifactAsset> assets, Collection<LoggedArtifactAsset> loggedAssets) {
+        assertEquals(assets.size(), loggedAssets.size(), "wrong size");
+        loggedAssets.forEach(loggedArtifactAsset -> validateLoggedArtifactAsset(loggedArtifactAsset, assets));
+    }
+
+    static void validateLoggedArtifactAsset(LoggedArtifactAsset loggedArtifactAsset, Collection<ArtifactAsset> assets) {
+        AtomicBoolean matchFound = new AtomicBoolean(false);
+        assets.stream()
+                .filter(asset -> Objects.equals(asset.getFileName(), loggedArtifactAsset.getFileName()))
+                .forEach(asset -> {
+                    matchFound.set(true);
+                    if (asset instanceof RemoteAsset) {
+                        assertTrue(loggedArtifactAsset.isRemote());
+                        assertTrue(loggedArtifactAsset.getLink().isPresent(), "remote link expected");
+                        assertEquals(((RemoteAsset) asset).getLink(), loggedArtifactAsset.getLink().get(), "wrong URI");
+                    } else {
+                        assertFalse(loggedArtifactAsset.isRemote());
+                    }
+                    if (asset.getMetadata() != null) {
+                        assertEquals(asset.getMetadata(), loggedArtifactAsset.getMetadata(), "wrong metadata");
+                    } else {
+                        assertEquals(0, loggedArtifactAsset.getMetadata().size(), "empty metadata expected");
+                    }
+                    if (asset.getType() == ASSET) {
+                        assertEquals(UNKNOWN.type(), loggedArtifactAsset.getAssetType());
+                    } else {
+                        assertEquals(asset.getType().type(), loggedArtifactAsset.getAssetType(), "wrong asset type");
+                    }
+                });
+        assertTrue(matchFound.get(), String.format("no match found for %s", loggedArtifactAsset));
     }
 
     static void validateRemoteAssetLink(List<LoggedExperimentAsset> assets, URI uri,

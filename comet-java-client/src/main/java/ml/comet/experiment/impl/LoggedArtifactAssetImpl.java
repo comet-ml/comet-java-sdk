@@ -2,6 +2,7 @@ package ml.comet.experiment.impl;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.utils.DataModelUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,6 +18,7 @@ import java.util.Optional;
 /**
  * Implementation of the {@link LoggedArtifactAsset}.
  */
+@ToString
 public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
 
     private final Logger logger = LoggerFactory.getLogger(LoggedArtifactAsset.class);

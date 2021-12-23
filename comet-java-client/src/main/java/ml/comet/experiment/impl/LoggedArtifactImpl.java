@@ -2,6 +2,7 @@ package ml.comet.experiment.impl;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.LoggedArtifact;
@@ -22,6 +23,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.getString;
 /**
  * The implementation of the {@link LoggedArtifact}.
  */
+@ToString
 public final class LoggedArtifactImpl extends BaseArtifactImpl implements LoggedArtifact {
     @Getter
     private final Logger logger = LoggerFactory.getLogger(LoggedArtifact.class);
