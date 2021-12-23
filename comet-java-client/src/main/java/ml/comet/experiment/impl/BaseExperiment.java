@@ -507,7 +507,9 @@ abstract class BaseExperiment implements Experiment {
                 throw new InvalidArtifactStateException(getString(ARTIFACT_HAS_NO_DETAILS, options));
             }
 
-            return detail.toLoggedArtifact();
+            LoggedArtifact artifact = detail.toLoggedArtifact();
+            ((LoggedArtifactImpl) artifact).restApiClient = this.getRestApiClient();
+            return artifact;
         } catch (CometApiException apiException) {
             switch (apiException.getSdkErrorCode()) {
                 case noArtifactFound:
