@@ -78,7 +78,7 @@ public class ArtifactTest extends AssetsBaseTest {
                 .withMetadata(SOME_METADATA)
                 .build();
         assertNotNull(artifact);
-        assertEquals(SOME_METADATA, artifact.getArtifactMetadata());
+        assertEquals(SOME_METADATA, artifact.getMetadata());
     }
 
     @Test

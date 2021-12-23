@@ -6,16 +6,20 @@ import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * The implementation of the {@link LoggedArtifact}.
  */
 public final class LoggedArtifactImpl extends BaseArtifactImpl implements LoggedArtifact {
+    @Getter
+    private final Logger logger = LoggerFactory.getLogger(LoggedArtifact.class);
+
     @Setter
     Set<String> artifactTags;
     @Setter
@@ -47,14 +51,6 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Override
     public String getArtifactType() {
         return this.getType();
-    }
-
-    @Override
-    public Map<String, Object> getMetadata() {
-        if (this.artifactMetadata == null) {
-            return Collections.emptyMap();
-        }
-        return this.artifactMetadata;
     }
 
     @Override

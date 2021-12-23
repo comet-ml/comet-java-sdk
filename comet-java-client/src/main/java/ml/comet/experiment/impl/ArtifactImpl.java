@@ -1,6 +1,7 @@
 package ml.comet.experiment.impl;
 
 import com.vdurmont.semver4j.Semver;
+import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactBuilder;
@@ -10,6 +11,8 @@ import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
@@ -34,6 +36,8 @@ import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
  * The implementation of the {@link Artifact}.
  */
 public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
+    @Getter
+    private final Logger logger = LoggerFactory.getLogger(Artifact.class);
 
     private final HashMap<String, ArtifactAsset> assetsMap;
 
@@ -193,7 +197,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
         @Override
         public ArtifactBuilderImpl withMetadata(@NonNull Map<String, Object> metadata) {
-            this.artifact.artifactMetadata = metadata;
+            this.artifact.setMetadata(metadata);
             return this;
         }
 
@@ -211,9 +215,6 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
         @Override
         public Artifact build() {
-            if (Objects.isNull(this.artifact.artifactMetadata)) {
-                this.artifact.artifactMetadata = new HashMap<>();
-            }
             return this.artifact;
         }
     }
