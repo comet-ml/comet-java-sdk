@@ -508,7 +508,7 @@ abstract class BaseExperiment implements Experiment {
             }
 
             LoggedArtifact artifact = detail.toLoggedArtifact();
-            ((LoggedArtifactImpl) artifact).restApiClient = this.getRestApiClient();
+            ((LoggedArtifactImpl) artifact).baseExperiment = this;
             return artifact;
         } catch (CometApiException apiException) {
             switch (apiException.getSdkErrorCode()) {
@@ -563,9 +563,7 @@ abstract class BaseExperiment implements Experiment {
     }
 
     LoggedArtifact getArtifact(@NonNull GetArtifactOptions options) throws ArtifactException {
-        LoggedArtifactImpl artifact = (LoggedArtifactImpl) this.getArtifactVersionDetail(options);
-        artifact.restApiClient = this.getRestApiClient();
-        return artifact;
+        return this.getArtifactVersionDetail(options);
     }
 
     @Override

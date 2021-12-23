@@ -42,7 +42,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Getter
     String artifactId;
 
-    RestApiClient restApiClient;
+    BaseExperiment baseExperiment;
 
     public LoggedArtifactImpl(String name, String type) {
         super(name, type);
@@ -97,7 +97,9 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
                 .build();
 
         try {
-            ArtifactVersionAssetResponse response = this.restApiClient.getArtifactVersionFiles(options).blockingGet();
+            ArtifactVersionAssetResponse response = this.baseExperiment.getRestApiClient()
+                    .getArtifactVersionFiles(options)
+                    .blockingGet();
             return response.getFiles()
                     .stream()
                     .collect(ArrayList::new,

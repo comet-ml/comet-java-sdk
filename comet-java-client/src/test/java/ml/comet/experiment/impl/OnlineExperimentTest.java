@@ -697,13 +697,10 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             artifactValidator.apply(loggedArtifact, aliases);
 
 
-            // get artifact details and check its correctness
+            // get artifact details from server and check its correctness
             //
-            LoggedArtifact loggedArtifactFromServer = experiment.getArtifactVersionDetail(
-                    GetArtifactOptions.Op()
-                            .artifactId(loggedArtifact.getArtifactId())
-                            .versionId(loggedArtifact.getVersionId())
-                            .build());
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
+                    loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
             List<String> expectedAliases = new ArrayList<>(aliases);
             expectedAliases.add("Latest"); // added by the backend automatically
 
@@ -711,7 +708,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             // check that correct assets was logged
             //
-            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifact.readAssets();
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
             validateLoggedArtifactAssets(artifact.getAssets(), loggedAssets);
 
         } catch (Throwable t) {
