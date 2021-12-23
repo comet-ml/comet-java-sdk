@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl.utils;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -22,4 +23,8 @@ public final class JsonUtils {
         return OBJECT_MAPPER.readValue(json, clazz);
     }
 
+    @SneakyThrows
+    public <T> T fromJson(String json, TypeReference<T> typeReference) {
+        return OBJECT_MAPPER.readValue(json, typeReference);
+    }
 }

@@ -48,7 +48,7 @@ public interface LoggedArtifactAsset {
      *
      * @return the optional size of the asset file.
      */
-    Optional<Integer> getFileSize();
+    Optional<Long> getFileSize();
 
     /**
      * Returns the optional {@link URI} of the asset if this is remote asset.
