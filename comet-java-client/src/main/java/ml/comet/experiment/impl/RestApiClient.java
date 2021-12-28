@@ -33,7 +33,7 @@ import ml.comet.experiment.impl.rest.GetProjectsResponse;
 import ml.comet.experiment.impl.rest.GetWorkspacesResponse;
 import ml.comet.experiment.impl.rest.GitMetadataRest;
 import ml.comet.experiment.impl.rest.HtmlRest;
-import ml.comet.experiment.impl.rest.LogDataResponse;
+import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.LogOtherRest;
 import ml.comet.experiment.impl.rest.MetricRest;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
@@ -165,56 +165,56 @@ final class RestApiClient implements Disposable {
         return singleFromSyncGetWithRetries(SET_EXPERIMENT_STATUS, experimentKey, ExperimentStatusResponse.class);
     }
 
-    Single<LogDataResponse> logMetric(final MetricRest request, String experimentKey) {
+    Single<RestApiResponse> logMetric(final MetricRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_METRIC, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_METRIC, RestApiResponse.class);
     }
 
-    Single<LogDataResponse> logParameter(final ParameterRest request, String experimentKey) {
+    Single<RestApiResponse> logParameter(final ParameterRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_PARAMETER, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_PARAMETER, RestApiResponse.class);
     }
 
-    Single<LogDataResponse> logOutputLine(final OutputUpdate request, String experimentKey) {
+    Single<RestApiResponse> logOutputLine(final OutputUpdate request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_OUTPUT, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_OUTPUT, RestApiResponse.class);
     }
 
-    Single<LogDataResponse> logHtml(final HtmlRest request, String experimentKey) {
+    Single<RestApiResponse> logHtml(final HtmlRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_HTML, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_HTML, RestApiResponse.class);
     }
 
-    Single<LogDataResponse> logOther(final LogOtherRest request, String experimentKey) {
+    Single<RestApiResponse> logOther(final LogOtherRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_LOG_OTHER, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_LOG_OTHER, RestApiResponse.class);
     }
 
-    Single<LogDataResponse> addTag(final AddExperimentTagsRest request, String experimentKey) {
+    Single<RestApiResponse> addTag(final AddExperimentTagsRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_TAG, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_TAG, RestApiResponse.class);
     }
 
-    Single<LogDataResponse> logGraph(final AddGraphRest request, String experimentKey) {
+    Single<RestApiResponse> logGraph(final AddGraphRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_GRAPH, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_GRAPH, RestApiResponse.class);
     }
 
-    Single<LogDataResponse> logStartEndTime(final ExperimentTimeRequest request, String experimentKey) {
+    Single<RestApiResponse> logStartEndTime(final ExperimentTimeRequest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_START_END_TIME, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_START_END_TIME, RestApiResponse.class);
     }
 
-    Single<LogDataResponse> logGitMetadata(final GitMetadataRest request, String experimentKey) {
+    Single<RestApiResponse> logGitMetadata(final GitMetadataRest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
-        return singleFromAsyncPost(request, ADD_GIT_METADATA, LogDataResponse.class);
+        return singleFromAsyncPost(request, ADD_GIT_METADATA, RestApiResponse.class);
     }
 
     Single<CreateExperimentResponse> registerExperiment(final CreateExperimentRequest request) {
         return singleFromSyncPostWithRetries(request, NEW_EXPERIMENT, true, CreateExperimentResponse.class);
     }
 
-    <T extends Asset> Single<LogDataResponse> logAsset(final T asset, String experimentKey) {
+    <T extends Asset> Single<RestApiResponse> logAsset(final T asset, String experimentKey) {
         Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
         if (asset instanceof ArtifactAsset) {
@@ -224,20 +224,20 @@ final class RestApiClient implements Disposable {
         // call appropriate send method
         if (asset.getFile() != null) {
             return singleFromAsyncPost(asset.getFile(), ADD_ASSET, queryParams,
-                    formParams, LogDataResponse.class);
+                    formParams, RestApiResponse.class);
         } else if (asset.getFileLikeData() != null) {
             return singleFromAsyncPost(asset.getFileLikeData(), ADD_ASSET, queryParams,
-                    formParams, LogDataResponse.class);
+                    formParams, RestApiResponse.class);
         }
 
         // no data response
-        LogDataResponse response = new LogDataResponse();
+        RestApiResponse response = new RestApiResponse();
         response.setMsg("asset has no data");
         response.setCode(-1);
         return Single.just(response);
     }
 
-    <T extends RemoteAsset> Single<LogDataResponse> logRemoteAsset(final T asset, String experimentKey) {
+    <T extends RemoteAsset> Single<RestApiResponse> logRemoteAsset(final T asset, String experimentKey) {
         Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
         queryParams.put(IS_REMOTE, Boolean.TRUE.toString());
         if (asset instanceof ArtifactAsset) {
@@ -247,7 +247,7 @@ final class RestApiClient implements Disposable {
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
         formParams.put(LINK, asset.getLink().toASCIIString());
 
-        return singleFromAsyncPost(ADD_ASSET, queryParams, formParams, LogDataResponse.class);
+        return singleFromAsyncPost(ADD_ASSET, queryParams, formParams, RestApiResponse.class);
     }
 
     Single<ArtifactEntry> upsertArtifact(final ArtifactRequest request, String experimentKey) {
@@ -255,7 +255,7 @@ final class RestApiClient implements Disposable {
         return singleFromSyncPostWithRetries(request, UPSERT_ARTIFACT, true, ArtifactEntry.class);
     }
 
-    Single<LogDataResponse> updateArtifactState(final ArtifactRequest request, String experimentKey) {
+    Single<RestApiResponse> updateArtifactState(final ArtifactRequest request, String experimentKey) {
         request.setExperimentKey(experimentKey);
         return singleFromSyncPostWithRetriesEmptyBody(request, UPDATE_ARTIFACT_STATE);
     }
@@ -274,12 +274,12 @@ final class RestApiClient implements Disposable {
                 true, ArtifactVersionAssetResponse.class);
     }
 
-    Single<LogDataResponse> downloadArtifactAsset(final DownloadArtifactAssetOptions options, String experimentKey) {
+    Single<RestApiResponse> downloadArtifactAsset(final DownloadArtifactAssetOptions options, String experimentKey) {
         Map<QueryParamName, String> queryParams = downloadArtifactAssetParams(options, experimentKey);
         return this.singleFromAsyncDownload(options.getFile(), GET_EXPERIMENT_ASSET, queryParams);
     }
 
-    private Single<LogDataResponse> singleFromAsyncDownload(@NonNull File file,
+    private Single<RestApiResponse> singleFromAsyncDownload(@NonNull File file,
                                                             @NonNull String endpoint,
                                                             @NonNull Map<QueryParamName, String> queryParams) {
         if (isDisposed()) {
@@ -291,11 +291,11 @@ final class RestApiClient implements Disposable {
                     try {
                         checkResponseStatus(response);
                     } catch (CometApiException ex) {
-                        return new LogDataResponse(ex.getStatusCode(), ex.getStatusMessage());
+                        return new RestApiResponse(ex.getStatusCode(), ex.getStatusMessage());
                     } catch (CometWebJavaSdkException ex) {
-                        return new LogDataResponse(ex.getCode(), ex.getMsg(), ex.getSdkErrorCode());
+                        return new RestApiResponse(ex.getCode(), ex.getMsg(), ex.getSdkErrorCode());
                     }
-                    return new LogDataResponse();
+                    return new RestApiResponse(200);
                 });
     }
 
@@ -363,14 +363,14 @@ final class RestApiClient implements Disposable {
                         String.format("No response was returned by endpoint: %s", endpoint))));
     }
 
-    private Single<LogDataResponse> singleFromSyncPostWithRetriesEmptyBody(@NonNull Object payload,
+    private Single<RestApiResponse> singleFromSyncPostWithRetriesEmptyBody(@NonNull Object payload,
                                                                            @NonNull String endpoint) {
         if (isDisposed()) {
             return Single.error(ALREADY_DISPOSED);
         }
 
         return this.connection.sendPostWithRetries(JsonUtils.toJson(payload), endpoint, true)
-                .map(body -> Single.just(new LogDataResponse(200, body)))
+                .map(body -> Single.just(new RestApiResponse(200, body)))
                 .orElse(Single.error(new CometApiException(
                         String.format("No response was returned by endpoint: %s", endpoint))));
     }

@@ -15,18 +15,22 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @SuppressWarnings("unused")
-public class LogDataResponse {
+public class RestApiResponse {
     private String msg;
     private int code;
     private int sdkErrorCode;
     private String data;
 
-    public LogDataResponse(int statusCode, String msg) {
+    public RestApiResponse(int statusCode) {
         this.code = statusCode;
+    }
+
+    public RestApiResponse(int statusCode, String msg) {
+        this(statusCode);
         this.msg = msg;
     }
 
-    public LogDataResponse(int statusCode, String msg, int sdkErrorCode) {
+    public RestApiResponse(int statusCode, String msg, int sdkErrorCode) {
         this(statusCode, msg);
         this.sdkErrorCode = sdkErrorCode;
     }
