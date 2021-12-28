@@ -219,15 +219,18 @@ public class Connection implements Closeable {
      * @param endpoint the request path of the endpoint.
      * @param params   the map with request parameters.
      * @return the {@link ListenableFuture} which can be used to monitor status of the request execution.
-     * @throws IOException if an I/O exception occured.
      */
     public ListenableFuture<Response> downloadAsync(@NonNull File file,
                                                     @NonNull String endpoint,
-                                                    @NonNull Map<QueryParamName, String> params)
-            throws IOException {
+                                                    @NonNull Map<QueryParamName, String> params) {
         Request request = createGetRequest(this.buildCometUrl(endpoint), params);
-        AsyncFileDownloadHandler listener = new AsyncFileDownloadHandler(file, this.logger);
-        return this.executeDownloadAsync(request, listener);
+
+        try {
+            return this.executeDownloadAsync(request, new AsyncFileDownloadHandler(file, this.logger));
+        } catch (FileNotFoundException e) {
+            this.logger.error("Failed to start download of the file {}", file.getPath(), e);
+            return new ListenableFuture.CompletedFailure<>(e);
+        }
     }
 
     /**

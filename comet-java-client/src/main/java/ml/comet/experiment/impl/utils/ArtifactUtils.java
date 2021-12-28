@@ -3,6 +3,7 @@ package ml.comet.experiment.impl.utils;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.artifact.GetArtifactOptions;
+import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
 import ml.comet.experiment.impl.constants.QueryParamName;
 
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.Map;
 import static ml.comet.experiment.impl.constants.QueryParamName.ALIAS;
 import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.ASSET_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONSUMER_EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT;
@@ -64,6 +66,23 @@ public class ArtifactUtils {
         queryParams.put(VERSION_ID, options.getVersionId());
         queryParams.put(VERSION, options.getVersion());
         queryParams.put(ALIAS, options.getAlias());
+        return queryParams;
+    }
+
+    /**
+     * Extracts query parameters from provided {@link DownloadArtifactAssetOptions} to be used to download specific
+     * asset associated with Comet artifact.
+     *
+     * @param options       the {@link DownloadArtifactAssetOptions}
+     * @param experimentKey the current experiment's key
+     * @return the map with query parameters.
+     */
+    public static Map<QueryParamName, String> downloadArtifactAssetParams(
+            @NonNull final DownloadArtifactAssetOptions options, @NonNull String experimentKey) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(EXPERIMENT_KEY, experimentKey);
+        queryParams.put(ASSET_ID, options.getAssetId());
+        queryParams.put(VERSION_ID, options.getArtifactVersionId());
         return queryParams;
     }
 }

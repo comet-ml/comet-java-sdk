@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Encodes common fields of response received for POST logXXX requests.
+ * Encodes common fields of response received from Comet REST API.
  */
 @Data
 @NoArgsConstructor
@@ -24,6 +24,11 @@ public class LogDataResponse {
     public LogDataResponse(int statusCode, String msg) {
         this.code = statusCode;
         this.msg = msg;
+    }
+
+    public LogDataResponse(int statusCode, String msg, int sdkErrorCode) {
+        this(statusCode, msg);
+        this.sdkErrorCode = sdkErrorCode;
     }
 
     public boolean hasFailed() {

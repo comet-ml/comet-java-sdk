@@ -24,7 +24,7 @@ public final class ApiEndpoints {
     public static final String UPDATE_ARTIFACT_STATE = UPDATE_API_URL + "/artifacts/state";
 
     public static final String READ_API_URL = "/api/rest/v2";
-    public static final String GET_ASSET_INFO = READ_API_URL + "/experiment/asset/list";
+    public static final String GET_ASSETS_LIST = READ_API_URL + "/experiment/asset/list";
     public static final String GET_TAGS = READ_API_URL + "/experiment/tags";
     public static final String GET_LOG_OTHER = READ_API_URL + "/experiment/log-other";
     public static final String GET_METRICS = READ_API_URL + "/experiment/metrics/summary";
@@ -39,4 +39,5 @@ public final class ApiEndpoints {
     public static final String WORKSPACES = READ_API_URL + "/workspaces";
     public static final String GET_ARTIFACT_VERSION_DETAIL = READ_API_URL + "/artifacts/version";
     public static final String GET_ARTIFACT_VERSION_FILES = READ_API_URL + "/artifacts/version/files";
+    public static final String GET_EXPERIMENT_ASSET = READ_API_URL + "experiment/asset/get-asset";
 }

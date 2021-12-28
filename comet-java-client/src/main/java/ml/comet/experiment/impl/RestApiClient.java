@@ -7,6 +7,7 @@ import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.ArtifactAsset;
 import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
@@ -17,6 +18,7 @@ import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactRequest;
 import ml.comet.experiment.impl.rest.ArtifactVersionAssetResponse;
 import ml.comet.experiment.impl.rest.ArtifactVersionDetail;
+import ml.comet.experiment.impl.rest.CometWebJavaSdkException;
 import ml.comet.experiment.impl.rest.CreateExperimentRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentResponse;
 import ml.comet.experiment.impl.rest.ExperimentAssetListResponse;
@@ -60,7 +62,8 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_DETAIL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_FILES;
-import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSET_INFO;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSETS_LIST;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_EXPERIMENT_ASSET;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_HTML;
@@ -83,6 +86,8 @@ import static ml.comet.experiment.impl.constants.QueryParamName.IS_REMOTE;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
+import static ml.comet.experiment.impl.http.ConnectionUtils.checkResponseStatus;
+import static ml.comet.experiment.impl.utils.ArtifactUtils.downloadArtifactAssetParams;
 import static ml.comet.experiment.impl.utils.ArtifactUtils.versionDetailsParams;
 import static ml.comet.experiment.impl.utils.ArtifactUtils.versionFilesParams;
 
@@ -153,7 +158,7 @@ final class RestApiClient implements Disposable {
         HashMap<QueryParamName, String> params = new HashMap<>();
         params.put(EXPERIMENT_KEY, experimentKey);
         params.put(TYPE, type.type());
-        return singleFromSyncGetWithRetries(GET_ASSET_INFO, params, ExperimentAssetListResponse.class);
+        return singleFromSyncGetWithRetries(GET_ASSETS_LIST, params, ExperimentAssetListResponse.class);
     }
 
     Single<ExperimentStatusResponse> sendExperimentStatus(String experimentKey) {
@@ -267,6 +272,31 @@ final class RestApiClient implements Disposable {
         return this.singleFromSyncGetWithRetries(
                 GET_ARTIFACT_VERSION_FILES, versionFilesParams(request),
                 true, ArtifactVersionAssetResponse.class);
+    }
+
+    Single<LogDataResponse> downloadArtifactAsset(final DownloadArtifactAssetOptions options, String experimentKey) {
+        Map<QueryParamName, String> queryParams = downloadArtifactAssetParams(options, experimentKey);
+        return this.singleFromAsyncDownload(options.getFile(), GET_EXPERIMENT_ASSET, queryParams);
+    }
+
+    private Single<LogDataResponse> singleFromAsyncDownload(@NonNull File file,
+                                                            @NonNull String endpoint,
+                                                            @NonNull Map<QueryParamName, String> queryParams) {
+        if (isDisposed()) {
+            return Single.error(ALREADY_DISPOSED);
+        }
+
+        return Single.fromFuture(this.connection.downloadAsync(file, endpoint, queryParams))
+                .map(response -> {
+                    try {
+                        checkResponseStatus(response);
+                    } catch (CometApiException ex) {
+                        return new LogDataResponse(ex.getStatusCode(), ex.getStatusMessage());
+                    } catch (CometWebJavaSdkException ex) {
+                        return new LogDataResponse(ex.getCode(), ex.getMsg(), ex.getSdkErrorCode());
+                    }
+                    return new LogDataResponse();
+                });
     }
 
     private <T> Single<T> singleFromAsyncPost(@NonNull String endpoint,

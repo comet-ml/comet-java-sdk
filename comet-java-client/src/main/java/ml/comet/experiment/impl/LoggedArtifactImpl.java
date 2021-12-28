@@ -96,7 +96,6 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     FileAsset downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
                             @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactException {
-        // TODO: implement downloadAsset
-        return null;
+        return this.baseExperiment.downloadArtifactAsset(asset, dir, file, overwriteStrategy);
     }
 }
