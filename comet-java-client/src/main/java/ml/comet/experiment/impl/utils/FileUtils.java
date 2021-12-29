@@ -1,12 +1,16 @@
 package ml.comet.experiment.impl.utils;
 
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Stream;
@@ -46,6 +50,52 @@ public class FileUtils {
             }
         }
         return res.stream().sorted(Comparator.naturalOrder());
+    }
+
+    /**
+     * Allows resolving of the path to the asset file based on provided parameters. As a result of this method
+     * invocation the missing parent directories can be created.
+     *
+     * @param dir               the path to the parent directory of the asset file.
+     * @param file              the relative path to the asset file within {@code dir}.
+     * @param overwriteStrategy the overwrite strategy to be applied in case file already exists.
+     * @return the path to the asset file in the file system.
+     * @throws IOException                if an I/O exception occurred.
+     * @throws FileAlreadyExistsException if {@code overwriteStrategy} is to FAIL when file already exists.
+     */
+    @SuppressWarnings({"checkstyle:MissingSwitchDefault"})
+    public static Path resolveAssetPath(@NonNull Path dir, @NonNull Path file,
+                                        @NonNull AssetOverwriteStrategy overwriteStrategy)
+            throws FileAlreadyExistsException, IOException {
+        Path assetPath = dir.resolve(file);
+        if (Files.isRegularFile(assetPath)) {
+            // the file already exists
+            switch (overwriteStrategy) {
+                case PRESERVE:
+                    // rename existing file
+                    renameWithTimestamp(assetPath, Instant.now());
+                    return assetPath;
+                case OVERWRITE:
+                    // remove existing file
+                    Files.delete(assetPath);
+                    return assetPath;
+                case FAIL:
+                    throw new FileAlreadyExistsException(assetPath.toString());
+            }
+        }
+        // create parent directories
+        Files.createDirectories(assetPath.getParent());
+
+        return assetPath;
+    }
+
+    static Path renameWithTimestamp(@NonNull Path file, @NonNull Instant instant) throws IOException {
+        String name = instant.toString().replace(":", "-");
+        name = String.format("%s_%s", file.getFileName(), name);
+
+        Path target = file.resolveSibling(name);
+        Files.move(file, target);
+        return target;
     }
 
     static String resolveAssetFileName(File folder, Path path, boolean logFilePath,

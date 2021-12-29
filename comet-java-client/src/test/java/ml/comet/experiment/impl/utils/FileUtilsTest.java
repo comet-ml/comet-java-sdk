@@ -1,52 +1,58 @@
 package ml.comet.experiment.impl.utils;
 
+import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import org.apache.commons.io.file.PathUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FileUtilsTest {
-    private static Path root;
-    private static Path subFolderFile;
-    private static Path subDir;
-    private static List<Path> allFiles;
-    private static List<Path> topFiles;
+    private final static String someExtension = ".txt";
 
-    @BeforeAll
-    static void setup() throws IOException {
+    private Path root;
+    private Path subFolderFile;
+    private Path subDir;
+    private List<Path> allFiles;
+    private List<Path> topFiles;
+
+    @BeforeEach
+    public void setup() throws IOException {
         allFiles = new ArrayList<>();
         topFiles = new ArrayList<>();
         // create temporary directory tree
         root = Files.createTempDirectory("testFileUtils");
         topFiles.add(
-                Files.createTempFile(root, "a_file", ".txt"));
+                Files.createTempFile(root, "a_file", someExtension));
         topFiles.add(
-                Files.createTempFile(root, "b_file", ".txt"));
+                Files.createTempFile(root, "b_file", someExtension));
         topFiles.add(
-                Files.createTempFile(root, "c_file", ".txt"));
+                Files.createTempFile(root, "c_file", someExtension));
 
         allFiles.addAll(topFiles);
 
         subDir = Files.createTempDirectory(root, "subDir");
-        subFolderFile = Files.createTempFile(subDir, "d_file", ".txt");
+        subFolderFile = Files.createTempFile(subDir, "d_file", someExtension);
         allFiles.add(subFolderFile);
         allFiles.add(
-                Files.createTempFile(subDir, "e_file", ".txt"));
+                Files.createTempFile(subDir, "e_file", someExtension));
     }
 
-    @AfterAll
-    static void teardown() throws IOException {
+    @AfterEach
+    public void teardown() throws IOException {
         PathUtils.delete(root);
         assertFalse(Files.exists(root), "Directory still exists");
     }
@@ -100,5 +106,67 @@ public class FileUtilsTest {
         String name = FileUtils.resolveAssetFileName(root.toFile(), subFolderFile, true, true);
         System.out.println(name);
         assertEquals(expected, name, "wrong absolute file name");
+    }
+
+    @Test
+    public void testRenameWithTimestamp() throws IOException {
+        Path file = Files.createTempFile(root, "file_to_rename", ".txt");
+        Instant now = Instant.now();
+        Path renamed = FileUtils.renameWithTimestamp(file, now);
+        assertTrue(Files.isRegularFile(renamed));
+        assertFalse(Files.isRegularFile(file));
+    }
+
+    @Test
+    public void testResolveAssetPath() throws IOException {
+        String fileName = "not_existing_file" + someExtension;
+        Path subSubDir = subDir.resolve("not_existing_dir");
+        Path file = subSubDir.resolve(fileName);
+        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.FAIL);
+        assertEquals(file.getFileName(), resolved.getFileName());
+
+        assertTrue(Files.isDirectory(subSubDir), "parent dir expected");
+    }
+
+    @Test
+    public void testResolveAssetPath_OVERWRITE() throws IOException {
+        String prefix = "file_to_overwrite";
+        Path file = Files.createTempFile(subDir, prefix, someExtension);
+        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.OVERWRITE);
+        assertEquals(file.getFileName(), resolved.getFileName());
+
+        // check that resolved file doesn't exist
+        assertFalse(Files.isRegularFile(resolved));
+
+        // check that original file doesn't exist either
+        try (Stream<Path> files = Files.walk(subDir)) {
+            assertFalse(files
+                    .peek(System.out::println)
+                    .anyMatch(path -> path.getFileName().toString().startsWith(prefix)));
+        }
+    }
+
+    @Test
+    public void testResolveAssetPath_PRESERVE() throws IOException {
+        String prefix = "file_to_preserve";
+        Path file = Files.createTempFile(subDir, prefix, someExtension);
+        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.PRESERVE);
+        assertEquals(file.getFileName(), resolved.getFileName());
+
+        // check that resolved file doesn't exist yet
+        assertFalse(Files.isRegularFile(resolved));
+
+        // check that original file was renamed
+        try (Stream<Path> files = Files.walk(subDir)) {
+            assertTrue(files
+                    .peek(System.out::println)
+                    .anyMatch(path -> path.getFileName().toString().startsWith(prefix)));
+        }
+    }
+
+    @Test
+    public void testResolveAssetPath_FAIL() {
+        assertThrows(FileAlreadyExistsException.class, () ->
+                FileUtils.resolveAssetPath(subDir, subFolderFile, AssetOverwriteStrategy.FAIL));
     }
 }
