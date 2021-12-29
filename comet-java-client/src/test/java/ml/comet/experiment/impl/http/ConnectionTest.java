@@ -420,9 +420,13 @@ public class ConnectionTest {
         Connection connection = new Connection(
                 wmRuntimeInfo.getHttpBaseUrl(), TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
 
-        Exception exception = assertThrows(FileNotFoundException.class, () -> connection.downloadAsync(
-                downloadFile, SOME_ENDPOINT, SOME_PARAMS));
+        ListenableFuture<Response> response = connection.downloadAsync(downloadFile, SOME_ENDPOINT, SOME_PARAMS);
+        assertNotNull(response, "response expected");
+
+        Exception exception = assertThrows(ExecutionException.class, response::get);
         assertNotNull(exception, "exception expected");
+
+        assertTrue(exception.getCause() instanceof FileNotFoundException, "wrong exception cause");
 
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");

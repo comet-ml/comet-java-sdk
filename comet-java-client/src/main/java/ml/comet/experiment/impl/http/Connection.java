@@ -228,7 +228,7 @@ public class Connection implements Closeable {
         try {
             return this.executeDownloadAsync(request, new AsyncFileDownloadHandler(file, this.logger));
         } catch (FileNotFoundException e) {
-            this.logger.error("Failed to start download of the file {}", file.getPath(), e);
+            this.logger.error("Failed to start download to the file {}", file.getPath(), e);
             return new ListenableFuture.CompletedFailure<>(e);
         }
     }
