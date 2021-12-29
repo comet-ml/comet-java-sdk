@@ -278,20 +278,7 @@ public class Connection implements Closeable {
      * @return the {@link ListenableFuture} which can be used to check request status.
      */
     ListenableFuture<Response> executeDownloadAsync(@NonNull Request request, @NonNull DownloadListener listener) {
-        // check that client is not closed
-        if (this.asyncHttpClient.isClosed()) {
-            String msg = String.format("failed to execute request %s connection to the server already closed", request);
-            return new ListenableFuture.CompletedFailure<>(
-                    "asyncHttpClient already closed", new CometGeneralException(msg));
-        }
-
-        // increment inventory
-        this.requestsInventory.incrementAndGet();
-
-        request.getHeaders().add(COMET_SDK_API_HEADER, apiKey);
-        String endpoint = request.getUrl();
-        return this.asyncHttpClient.executeRequest(request,
-                new AsyncCompletionInventoryHandler(this.requestsInventory, this.logger, endpoint, listener));
+        return this.executeRequestAsync(request, listener);
     }
 
     /**
@@ -301,6 +288,18 @@ public class Connection implements Closeable {
      * @return the {@link ListenableFuture} which can be used to check request status.
      */
     ListenableFuture<Response> executeRequestAsync(@NonNull Request request) {
+        return this.executeRequestAsync(request, null);
+    }
+
+    /**
+     * Executes provided request asynchronously.
+     *
+     * @param request          the request to be executed.
+     * @param downloadListener the {@link DownloadListener} to collect received bytes.
+     * @return the {@link ListenableFuture} which can be used to check request status.
+     */
+    ListenableFuture<Response> executeRequestAsync(@NonNull Request request,
+                                                   DownloadListener downloadListener) {
         // check that client is not closed
         if (this.asyncHttpClient.isClosed()) {
             String msg = String.format("failed to execute request %s connection to the server already closed", request);
@@ -314,7 +313,7 @@ public class Connection implements Closeable {
         request.getHeaders().add(COMET_SDK_API_HEADER, apiKey);
         String endpoint = request.getUrl();
         return this.asyncHttpClient.executeRequest(request,
-                new AsyncCompletionInventoryHandler(this.requestsInventory, this.logger, endpoint));
+                new AsyncCompletionInventoryHandler(this.requestsInventory, this.logger, endpoint, downloadListener));
     }
 
     /**
