@@ -118,6 +118,9 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     @Override
     public FileAsset download(@NonNull Path dir, @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactException {
+        if (this.isRemote()) {
+            throw new ArtifactException("Can not download remote asset. Please use its URI to download directly!");
+        }
         return this.artifact.downloadAsset(this, dir, file, overwriteStrategy);
     }
 }

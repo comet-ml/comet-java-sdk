@@ -12,6 +12,7 @@ import java.util.Map;
 import static ml.comet.experiment.impl.constants.QueryParamName.ALIAS;
 import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_VERSION_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.ASSET_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONSUMER_EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
@@ -82,7 +83,7 @@ public class ArtifactUtils {
         Map<QueryParamName, String> queryParams = new HashMap<>();
         queryParams.put(EXPERIMENT_KEY, experimentKey);
         queryParams.put(ASSET_ID, options.getAssetId());
-        queryParams.put(VERSION_ID, options.getArtifactVersionId());
+        queryParams.put(ARTIFACT_VERSION_ID, options.getArtifactVersionId());
         return queryParams;
     }
 }

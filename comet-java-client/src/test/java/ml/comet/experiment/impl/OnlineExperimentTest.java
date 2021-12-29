@@ -4,7 +4,6 @@ import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.artifact.Artifact;
-import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.context.ExperimentContext;
@@ -13,6 +12,7 @@ import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
+import ml.comet.experiment.model.FileAsset;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
@@ -21,9 +21,12 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -710,6 +713,58 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             //
             Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
             validateLoggedArtifactAssets(artifact.getAssets(), loggedAssets);
+
+        } catch (Throwable t) {
+            fail(t);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndDownloadArtifactAsset() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            List<String> aliases = Arrays.asList("alias1", "alias2");
+            List<String> tags = Arrays.asList("tag1", "tag2");
+            String artifactName = "someArtifact";
+            String artifactType = "someType";
+            ArtifactImpl artifact = (ArtifactImpl) Artifact
+                    .newArtifact(artifactName, artifactType)
+                    .withAliases(aliases)
+                    .withVersionTags(tags)
+                    .withMetadata(SOME_METADATA)
+                    .build();
+
+            // add local assets
+            //
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
+                    IMAGE_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // get artifact details from server
+            //
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
+                    loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
+
+            // get logged assets and download to local dir
+            //
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
+
+            Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifactAsset");
+            tmpDir.toFile().deleteOnExit();
+            FileAsset fileAsset = loggedAssets.iterator().next().download(tmpDir);
+
+            assertNotNull(fileAsset, "file asset expected");
+            assertEquals(IMAGE_FILE_NAME, fileAsset.getFile().getFileName().toString(), "wrong file name");
+            assertEquals(IMAGE_FILE_SIZE, Files.size(fileAsset.getFile()), "wrong file size");
+            assertEquals(SOME_METADATA, fileAsset.getMetadata(), "wrong metadata");
+            assertEquals(UNKNOWN.type(), fileAsset.getAssetType(), "wrong asset type");
+
+            System.out.println(fileAsset);
 
         } catch (Throwable t) {
             fail(t);

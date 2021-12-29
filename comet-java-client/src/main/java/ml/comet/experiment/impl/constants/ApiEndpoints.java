@@ -39,5 +39,5 @@ public final class ApiEndpoints {
     public static final String WORKSPACES = READ_API_URL + "/workspaces";
     public static final String GET_ARTIFACT_VERSION_DETAIL = READ_API_URL + "/artifacts/version";
     public static final String GET_ARTIFACT_VERSION_FILES = READ_API_URL + "/artifacts/version/files";
-    public static final String GET_EXPERIMENT_ASSET = READ_API_URL + "experiment/asset/get-asset";
+    public static final String GET_EXPERIMENT_ASSET = READ_API_URL + "/experiment/asset/get-asset";
 }
