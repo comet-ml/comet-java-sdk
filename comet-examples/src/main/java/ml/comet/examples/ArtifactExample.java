@@ -3,11 +3,14 @@ package ml.comet.examples;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.LoggedArtifact;
+import ml.comet.experiment.artifact.LoggedArtifactAsset;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +95,29 @@ public class ArtifactExample implements BaseExample {
         LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
 
         System.out.printf("\n\nArtifact upload complete, new artifact version: %s\n\n", loggedArtifact.getVersion());
+
+        // get logged assets
+        //
+        Collection<LoggedArtifactAsset> loggedAssets = loggedArtifact.readAssets();
+        System.out.printf(
+                "Received %d logged artifact assets from the Comet server. Downloading asset files...\n\n",
+                loggedAssets.size());
+
+        // download artifact assets to the local directory
+        //
+        Path tmpDir = Files.createTempDirectory("ArtifactExample");
+        loggedAssets.forEach(loggedArtifactAsset -> {
+            if (!loggedArtifactAsset.isRemote()) {
+                loggedArtifactAsset.download(tmpDir);
+            } else {
+                URI uri = loggedArtifactAsset.getLink().orElse(null);
+                System.out.printf(
+                        "Skipping download of the remote asset %s. It must be downloaded using its URI '%s'\n",
+                        loggedArtifactAsset.getFileName(), uri);
+            }
+        });
+
+        System.out.printf("\nArtifact assets successfully downloaded to the folder %s\n\n", tmpDir);
 
         System.out.println("===== Experiment completed ====");
     }
