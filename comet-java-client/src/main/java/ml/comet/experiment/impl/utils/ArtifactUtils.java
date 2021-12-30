@@ -38,17 +38,11 @@ public class ArtifactUtils {
      */
     public static Map<QueryParamName, String> versionDetailsParams(
             @NonNull final GetArtifactOptions options, @NonNull String experimentKey) {
-        Map<QueryParamName, String> queryParams = new HashMap<>();
-        queryParams.put(EXPERIMENT_KEY, experimentKey);
-        queryParams.put(WORKSPACE, options.getWorkspace());
-        queryParams.put(PROJECT, options.getProject());
-        queryParams.put(ARTIFACT_NAME, options.getArtifactName());
-        queryParams.put(ARTIFACT_ID, options.getArtifactId());
-        queryParams.put(VERSION_ID, options.getVersionId());
-        queryParams.put(VERSION, options.getVersion());
-        queryParams.put(ALIAS, options.getAlias());
-        queryParams.put(VERSION_OR_ALIAS, options.getVersionOrAlias());
+        Map<QueryParamName, String> queryParams = versionParams(options);
         queryParams.put(CONSUMER_EXPERIMENT_KEY, options.getConsumerExperimentKey());
+        queryParams.put(EXPERIMENT_KEY, experimentKey);
+        queryParams.put(PROJECT, options.getProject());
+        queryParams.put(VERSION_OR_ALIAS, options.getVersionOrAlias());
         return queryParams;
     }
 
@@ -60,13 +54,17 @@ public class ArtifactUtils {
      * @return the map with query parameters.
      */
     public static Map<QueryParamName, String> versionFilesParams(@NonNull final GetArtifactOptions options) {
+        return versionParams(options);
+    }
+
+    static Map<QueryParamName, String> versionParams(@NonNull final GetArtifactOptions options) {
         Map<QueryParamName, String> queryParams = new HashMap<>();
-        queryParams.put(WORKSPACE, options.getWorkspace());
-        queryParams.put(ARTIFACT_NAME, options.getArtifactName());
+        queryParams.put(ALIAS, options.getAlias());
         queryParams.put(ARTIFACT_ID, options.getArtifactId());
+        queryParams.put(ARTIFACT_NAME, options.getArtifactName());
         queryParams.put(VERSION_ID, options.getVersionId());
         queryParams.put(VERSION, options.getVersion());
-        queryParams.put(ALIAS, options.getAlias());
+        queryParams.put(WORKSPACE, options.getWorkspace());
         return queryParams;
     }
 
@@ -78,7 +76,7 @@ public class ArtifactUtils {
      * @param experimentKey the current experiment's key
      * @return the map with query parameters.
      */
-    public static Map<QueryParamName, String> downloadArtifactAssetParams(
+    public static Map<QueryParamName, String> downloadAssetParams(
             @NonNull final DownloadArtifactAssetOptions options, @NonNull String experimentKey) {
         Map<QueryParamName, String> queryParams = new HashMap<>();
         queryParams.put(EXPERIMENT_KEY, experimentKey);

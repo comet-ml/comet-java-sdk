@@ -87,7 +87,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.http.ConnectionUtils.checkResponseStatus;
-import static ml.comet.experiment.impl.utils.ArtifactUtils.downloadArtifactAssetParams;
+import static ml.comet.experiment.impl.utils.ArtifactUtils.downloadAssetParams;
 import static ml.comet.experiment.impl.utils.ArtifactUtils.versionDetailsParams;
 import static ml.comet.experiment.impl.utils.ArtifactUtils.versionFilesParams;
 
@@ -275,7 +275,7 @@ final class RestApiClient implements Disposable {
     }
 
     Single<RestApiResponse> downloadArtifactAsset(final DownloadArtifactAssetOptions options, String experimentKey) {
-        Map<QueryParamName, String> queryParams = downloadArtifactAssetParams(options, experimentKey);
+        Map<QueryParamName, String> queryParams = downloadAssetParams(options, experimentKey);
         return this.singleFromAsyncDownload(options.getFile(), GET_EXPERIMENT_ASSET, queryParams);
     }
 
