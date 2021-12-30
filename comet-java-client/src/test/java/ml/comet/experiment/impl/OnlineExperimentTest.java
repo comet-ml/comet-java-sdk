@@ -16,6 +16,7 @@ import ml.comet.experiment.model.FileAsset;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
+import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -41,6 +43,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -721,7 +725,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
     @Test
     @Timeout(value = 300, unit = SECONDS)
-    public void testLogAndDownloadArtifactAsset() {
+    public void testLogAndDownloadArtifactAsset() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifactAsset");
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
             List<String> aliases = Arrays.asList("alias1", "alias2");
             List<String> tags = Arrays.asList("tag1", "tag2");
@@ -754,8 +759,6 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
-            Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifactAsset");
-            tmpDir.toFile().deleteOnExit();
             FileAsset fileAsset = loggedAssets.iterator().next().download(tmpDir);
 
             assertNotNull(fileAsset, "file asset expected");
@@ -768,6 +771,72 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
         } catch (Throwable t) {
             fail(t);
+        } finally {
+            PathUtils.delete(tmpDir);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndDownloadArtifact() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifact");
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            List<String> aliases = Arrays.asList("alias1", "alias2");
+            List<String> tags = Arrays.asList("tag1", "tag2");
+            String artifactName = "someArtifact";
+            String artifactType = "someType";
+            ArtifactImpl artifact = (ArtifactImpl) Artifact
+                    .newArtifact(artifactName, artifactType)
+                    .withAliases(aliases)
+                    .withVersionTags(tags)
+                    .withMetadata(SOME_METADATA)
+                    .build();
+
+            // add remote assets
+            //
+            URI firstAssetLink = new URI("s3://bucket/folder/firstAssetFile.extension");
+            String firstAssetFileName = "firstAssetFileName";
+            artifact.addRemoteAsset(firstAssetLink, firstAssetFileName);
+
+            List<Path> assetsToDownload = new ArrayList<>(assetFolderFiles);
+            // add local assets
+            //
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
+                    IMAGE_FILE_NAME, false, SOME_METADATA);
+            assetsToDownload.add(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)).toPath());
+
+            // add assets folder
+            //
+            artifact.addAssetFolder(assetsFolder.toFile(), true, true);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // download artifact and check results
+            //
+            Collection<LoggedArtifactAsset> assets = loggedArtifact.download(tmpDir);
+
+            // check that all assets returned including the remote ones
+            validateLoggedArtifactAssets(artifact.getAssets(), assets);
+
+            // check that file assets was saved to the folder
+            assetsToDownload = assetsToDownload.stream()
+                    .map(Path::getFileName)
+                    .collect(Collectors.toList());
+            try (Stream<Path> files = Files.walk(tmpDir)) {
+                assertTrue(files
+                        .filter(Files::isRegularFile)
+                        .peek(System.out::println)
+                        .map(Path::getFileName)
+                        .allMatch(assetsToDownload::contains));
+            }
+
+        } catch (Throwable t) {
+            fail(t);
+        } finally {
+            PathUtils.delete(tmpDir);
         }
     }
 

@@ -34,7 +34,7 @@ public class FileUtils {
         if (recursive) {
             try (Stream<Path> files = Files.walk(folder.toPath())) {
                 res = files.collect(ArrayList::new, (paths, path) -> {
-                    if (!path.toFile().isDirectory()) {
+                    if (Files.isRegularFile(path)) {
                         paths.add(path);
                     }
                 }, ArrayList::addAll);
