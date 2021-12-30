@@ -7,6 +7,7 @@ import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -129,6 +130,16 @@ public class ArtifactExample implements BaseExample {
         System.out.printf(
                 "Artifact successfully downloaded. Received %d logged artifact assets from the Comet server.\n\n",
                 assets.size());
+
+        // load content of the artifact asset into the memory
+        //
+        LoggedArtifactAsset asset = assets.iterator().next();
+        System.out.printf("Loading content of the artifact asset '%s' into memory\n", asset.getAssetId());
+
+        ByteBuffer assetData = asset.load();
+
+        System.out.printf(
+                "Asset's content successfully loaded into memory, data size: %d.\n\n", assetData.array().length);
 
         System.out.println("===== Experiment completed ====");
     }
