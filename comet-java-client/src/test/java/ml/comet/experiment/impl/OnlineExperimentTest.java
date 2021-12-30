@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -648,17 +649,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     @Test
     public void testLogAndGetArtifact() {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
-
-            List<String> aliases = Arrays.asList("alias1", "alias2");
-            List<String> tags = Arrays.asList("tag1", "tag2");
-            String artifactName = "someArtifact";
-            String artifactType = "someType";
-            ArtifactImpl artifact = (ArtifactImpl) Artifact
-                    .newArtifact(artifactName, artifactType)
-                    .withAliases(aliases)
-                    .withVersionTags(tags)
-                    .withMetadata(SOME_METADATA)
-                    .build();
+            ArtifactImpl artifact = createArtifact();
 
             // add remote assets
             //
@@ -687,28 +678,29 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             // the artifact validator
             BiFunction<LoggedArtifact, List<String>, Void> artifactValidator = (actual, expectedAliases) -> {
                 assertNotNull(actual, "logged artifact expected");
-                assertEquals(artifactType, actual.getArtifactType(), "wrong artifact type");
+                assertEquals(artifact.getType(), actual.getArtifactType(), "wrong artifact type");
                 assertEquals(new HashSet<>(expectedAliases), actual.getAliases(), "wrong aliases");
                 assertEquals(SOME_METADATA, actual.getMetadata(), "wrong metadata");
-                assertEquals(new HashSet<>(tags), actual.getVersionTags(), "wrong version tags");
+                assertEquals(new HashSet<>(artifact.getVersionTags()), actual.getVersionTags(), "wrong version tags");
                 assertEquals(WORKSPACE_NAME, actual.getWorkspace(), "wrong workspace");
                 assertEquals(experiment.getExperimentKey(), actual.getSourceExperimentKey(), "wrong experiment key");
-                assertEquals(artifactName, actual.getName(), "wrong artifact name");
+                assertEquals(artifact.getName(), actual.getName(), "wrong artifact name");
                 return null;
             };
 
             // log artifact and check results
             //
+            List<String> expectedAliases = new ArrayList<>(artifact.getAliases());
+
             CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
             LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
-            artifactValidator.apply(loggedArtifact, aliases);
+            artifactValidator.apply(loggedArtifact, expectedAliases);
 
 
             // get artifact details from server and check its correctness
             //
             LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
                     loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
-            List<String> expectedAliases = new ArrayList<>(aliases);
             expectedAliases.add("Latest"); // added by the backend automatically
 
             artifactValidator.apply(loggedArtifactFromServer, expectedAliases);
@@ -728,16 +720,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     public void testLogAndDownloadArtifactAsset() throws IOException {
         Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifactAsset");
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
-            List<String> aliases = Arrays.asList("alias1", "alias2");
-            List<String> tags = Arrays.asList("tag1", "tag2");
-            String artifactName = "someArtifact";
-            String artifactType = "someType";
-            ArtifactImpl artifact = (ArtifactImpl) Artifact
-                    .newArtifact(artifactName, artifactType)
-                    .withAliases(aliases)
-                    .withVersionTags(tags)
-                    .withMetadata(SOME_METADATA)
-                    .build();
+            ArtifactImpl artifact = createArtifact();
 
             // add local assets
             //
@@ -762,8 +745,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             FileAsset fileAsset = loggedAssets.iterator().next().download(tmpDir);
 
             assertNotNull(fileAsset, "file asset expected");
-            assertEquals(IMAGE_FILE_NAME, fileAsset.getFile().getFileName().toString(), "wrong file name");
-            assertEquals(IMAGE_FILE_SIZE, Files.size(fileAsset.getFile()), "wrong file size");
+            assertEquals(IMAGE_FILE_NAME, fileAsset.getPath().getFileName().toString(), "wrong file name");
+            assertEquals(IMAGE_FILE_SIZE, Files.size(fileAsset.getPath()), "wrong file size");
             assertEquals(SOME_METADATA, fileAsset.getMetadata(), "wrong metadata");
             assertEquals(UNKNOWN.type(), fileAsset.getAssetType(), "wrong asset type");
 
@@ -781,16 +764,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     public void testLogAndDownloadArtifact() throws IOException {
         Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifact");
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
-            List<String> aliases = Arrays.asList("alias1", "alias2");
-            List<String> tags = Arrays.asList("tag1", "tag2");
-            String artifactName = "someArtifact";
-            String artifactType = "someType";
-            ArtifactImpl artifact = (ArtifactImpl) Artifact
-                    .newArtifact(artifactName, artifactType)
-                    .withAliases(aliases)
-                    .withVersionTags(tags)
-                    .withMetadata(SOME_METADATA)
-                    .build();
+            ArtifactImpl artifact = createArtifact();
+            List<Path> assetsToDownload = new ArrayList<>(assetFolderFiles);
 
             // add remote assets
             //
@@ -798,7 +773,6 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             String firstAssetFileName = "firstAssetFileName";
             artifact.addRemoteAsset(firstAssetLink, firstAssetFileName);
 
-            List<Path> assetsToDownload = new ArrayList<>(assetFolderFiles);
             // add local assets
             //
             artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
@@ -840,6 +814,42 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         }
     }
 
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndLoadArtifactAsset() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add local assets
+            //
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
+                    IMAGE_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // get artifact details from server
+            //
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
+                    loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
+
+            // get logged assets and load asset content
+            //
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
+
+            ByteBuffer assetData = loggedAssets.iterator().next().load();
+
+            assertNotNull(assetData, "asset data expected");
+            assertEquals(IMAGE_FILE_SIZE, assetData.remaining(), "wrong asset data size");
+
+        } catch (Throwable t) {
+            fail(t);
+        }
+    }
+
     static final class OnCompleteAction implements Action, BooleanSupplier {
         boolean completed;
 
@@ -852,6 +862,19 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         public boolean getAsBoolean() {
             return this.completed;
         }
+    }
+
+    static ArtifactImpl createArtifact() {
+        List<String> aliases = Arrays.asList("alias1", "alias2");
+        List<String> tags = Arrays.asList("tag1", "tag2");
+        String artifactName = "someArtifact";
+        String artifactType = "someType";
+        return (ArtifactImpl) Artifact
+                .newArtifact(artifactName, artifactType)
+                .withAliases(aliases)
+                .withVersionTags(tags)
+                .withMetadata(SOME_METADATA)
+                .build();
     }
 
     static OnlineExperiment onlineExperiment(String experimentKey) {
