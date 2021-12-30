@@ -633,11 +633,13 @@ abstract class BaseExperiment implements Experiment {
         try {
             resolved = FileUtils.resolveAssetPath(dir, file, overwriteStrategy);
         } catch (FileAlreadyExistsException e) {
+            this.getLogger().error(
+                    getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
             throw new ArtifactDownloadException(
                     getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
         } catch (IOException e) {
-            throw new ArtifactDownloadException(
-                    getString(FAILED_TO_RESOLVE_ASSET_FILE, file, asset), e);
+            this.getLogger().error(getString(FAILED_TO_RESOLVE_ASSET_FILE, file, asset), e);
+            throw new ArtifactDownloadException(getString(FAILED_TO_RESOLVE_ASSET_FILE, file, asset), e);
         }
 
         DownloadArtifactAssetOptions opts = new DownloadArtifactAssetOptions(
@@ -646,6 +648,7 @@ abstract class BaseExperiment implements Experiment {
                 .concatMap(experimentKey -> getRestApiClient().downloadArtifactAsset(opts, experimentKey))
                 .blockingGet();
         if (response.hasFailed()) {
+            this.getLogger().error(getString(FAILED_TO_DOWNLOAD_ASSET, asset, response));
             throw new ArtifactDownloadException(getString(FAILED_TO_DOWNLOAD_ASSET, asset, response));
         }
 
@@ -654,8 +657,8 @@ abstract class BaseExperiment implements Experiment {
         try {
             return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
         } catch (IOException e) {
-            throw new ArtifactDownloadException(
-                    getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
+            this.getLogger().error(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
+            throw new ArtifactDownloadException(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
         }
     }
 

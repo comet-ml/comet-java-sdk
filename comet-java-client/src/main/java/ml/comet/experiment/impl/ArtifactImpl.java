@@ -49,7 +49,8 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
         this.prefixWithFolderName = true;
     }
 
-    Collection<ArtifactAsset> getAssets() {
+    @Override
+    public Collection<ArtifactAsset> getAssets() {
         return this.assetsMap.values();
     }
 

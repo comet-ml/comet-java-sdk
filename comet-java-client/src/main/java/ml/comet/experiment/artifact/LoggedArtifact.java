@@ -1,5 +1,6 @@
 package ml.comet.experiment.artifact;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -102,4 +103,19 @@ public interface LoggedArtifact {
      * @throws ArtifactException if failed to read assets from Comet.
      */
     Collection<LoggedArtifactAsset> readAssets() throws ArtifactException;
+
+    /**
+     * Download the current Artifact Version assets to a given directory.
+     * This downloads only non-remote assets.
+     * You can access remote assets links using returned list of assets.
+     *
+     * @param folder            the path to the folder to keep downloaded files of the assets.
+     * @param overwriteStrategy the overwriting strategy to apply when conflicting file name found.
+     * @return the list of all associated assets.
+     * @throws ArtifactException thrown if operation failed.
+     */
+    Collection<LoggedArtifactAsset> download(
+            Path folder, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
+
+    Collection<LoggedArtifactAsset> download(Path folder) throws ArtifactException;
 }

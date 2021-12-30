@@ -2,10 +2,12 @@ package ml.comet.experiment.artifact;
 
 import lombok.NonNull;
 import ml.comet.experiment.impl.ArtifactImpl;
+import ml.comet.experiment.impl.asset.ArtifactAsset;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -93,6 +95,13 @@ public interface Artifact {
     void addAssetFolder(File folder, boolean logFilePath) throws ConflictingArtifactAssetNameException, IOException;
 
     void addAssetFolder(File folder) throws ConflictingArtifactAssetNameException, IOException;
+
+    /**
+     * Returns assets associated with this artifact.
+     *
+     * @return the assets associated with this artifact.
+     */
+    Collection<ArtifactAsset> getAssets();
 
     /**
      * Creates new {@link ArtifactBuilder} instance which can be used to create properly initialized instances of the
