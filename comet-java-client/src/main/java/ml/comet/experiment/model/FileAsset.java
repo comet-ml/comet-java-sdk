@@ -14,7 +14,7 @@ import java.util.Map;
 @AllArgsConstructor
 @ToString
 public class FileAsset {
-    Path file;
+    Path path;
     long size;
     Map<String, Object> metadata;
     String assetType;

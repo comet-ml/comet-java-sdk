@@ -6,15 +6,21 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
+import ml.comet.experiment.artifact.ArtifactDownloadException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.model.FileAsset;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
@@ -129,9 +135,9 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         Observable<FileAsset> observable = Observable.fromStream(assets.stream())
                 .filter(loggedArtifactAsset -> !loggedArtifactAsset.isRemote())
                 .flatMap(loggedArtifactAsset ->
-                                Observable.just(loggedArtifactAsset)
-                                        .subscribeOn(Schedulers.io()) // make it parallel on IO scheduler
-                                        .map(asset -> asset.download(folder, overwriteStrategy)), true);
+                        Observable.just(loggedArtifactAsset)
+                                .subscribeOn(Schedulers.io()) // make it parallel on IO scheduler
+                                .map(asset -> asset.download(folder, overwriteStrategy)), true);
 
         // subscribe and wait for processing results
         observable
@@ -155,5 +161,40 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
                             @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactException {
         return this.baseExperiment.downloadArtifactAsset(asset, dir, file, overwriteStrategy);
+    }
+
+    /**
+     * The maximum size of array to allocate.
+     * Some VMs reserve some header words in an array.
+     * Attempts to allocate larger arrays may result in
+     * OutOfMemoryError: Requested array size exceeds VM limit
+     */
+    private static final int MAX_BUFFER_SIZE = Integer.MAX_VALUE - 8;
+
+    ByteBuffer load(@NonNull LoggedArtifactAssetImpl asset) throws ArtifactException, OutOfMemoryError {
+        Path tmpDir = null;
+        try {
+            tmpDir = Files.createTempDirectory(null);
+            Path file = FileSystems.getDefault().getPath(asset.getFileName());
+
+            FileAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
+            if (downloaded.getSize() > (long) MAX_BUFFER_SIZE) {
+                throw new OutOfMemoryError("The asset file size is too large to be loaded as byte array");
+            }
+            return ByteBuffer.wrap(FileUtils.readFileToByteArray(downloaded.getPath().toFile()));
+
+        } catch (IOException e) {
+            this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
+            throw new ArtifactDownloadException("Failed to create temporary file to store asset's content.", e);
+        } finally {
+            // delete temporary file
+            if (tmpDir != null) {
+                try {
+                    FileUtils.deleteDirectory(tmpDir.toFile());
+                } catch (IOException e) {
+                    this.logger.warn("Failed to clean the temporary directory while loading asset's content.", e);
+                }
+            }
+        }
     }
 }

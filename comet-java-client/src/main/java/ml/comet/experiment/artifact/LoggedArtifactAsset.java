@@ -3,6 +3,7 @@ package ml.comet.experiment.artifact;
 import ml.comet.experiment.model.FileAsset;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -89,4 +90,13 @@ public interface LoggedArtifactAsset {
     FileAsset download(Path dir, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
 
     FileAsset download(Path dir) throws ArtifactException;
+
+    /**
+     * Allows loading of the asset bytes from the Comet server into the {@link ByteBuffer}.
+     *
+     * @return the {@link ByteBuffer} with content of this asset.
+     * @throws ArtifactException if operation failed.
+     * @throws OutOfMemoryError  if asset's data is larger than 2GB.
+     */
+    ByteBuffer load() throws ArtifactException, OutOfMemoryError;
 }

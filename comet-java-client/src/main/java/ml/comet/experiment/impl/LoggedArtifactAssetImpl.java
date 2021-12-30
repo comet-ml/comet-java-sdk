@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -122,5 +123,10 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
             throw new ArtifactException("Can not download remote asset. Please use its URI to download directly!");
         }
         return this.artifact.downloadAsset(this, dir, file, overwriteStrategy);
+    }
+
+    @Override
+    public ByteBuffer load() throws ArtifactException {
+        return this.artifact.load(this);
     }
 }

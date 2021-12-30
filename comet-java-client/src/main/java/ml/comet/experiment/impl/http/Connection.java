@@ -22,9 +22,10 @@ import org.slf4j.Logger;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -227,7 +228,7 @@ public class Connection implements Closeable {
 
         try {
             return this.executeDownloadAsync(request, new AsyncFileDownloadHandler(file, this.logger));
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             this.logger.error("Failed to start download to the file {}", file.getPath(), e);
             return new ListenableFuture.CompletedFailure<>(e);
         }
@@ -539,7 +540,12 @@ public class Connection implements Closeable {
         final RandomAccessFile file;
         final Logger logger;
 
-        AsyncFileDownloadHandler(File file, Logger logger) throws FileNotFoundException {
+        AsyncFileDownloadHandler(File file, Logger logger) throws IOException {
+            Path path = file.toPath();
+            if (Files.exists(file.toPath())) {
+                // make sure to remove file if it is already exists
+                Files.delete(path);
+            }
             this.outFile = file;
             this.file = new RandomAccessFile(file, "rw");
             this.logger = logger;
