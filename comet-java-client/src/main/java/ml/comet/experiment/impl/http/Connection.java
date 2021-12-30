@@ -122,8 +122,13 @@ public class Connection implements Closeable {
     public Optional<String> sendGetWithRetries(
             @NonNull String endpoint, @NonNull Map<QueryParamName, String> params, boolean throwOnFailure)
             throws CometApiException {
-        return executeRequestSyncWithRetries(
-                createGetRequest(this.buildCometUrl(endpoint), params), throwOnFailure);
+        try {
+            this.requestsInventory.incrementAndGet();
+            return executeRequestSyncWithRetries(
+                    createGetRequest(this.buildCometUrl(endpoint), params), throwOnFailure);
+        } finally {
+            this.requestsInventory.decrementAndGet();
+        }
     }
 
     /**
@@ -143,7 +148,12 @@ public class Connection implements Closeable {
         if (logger.isDebugEnabled()) {
             logger.debug("sending JSON {} to {}", json, url);
         }
-        return executeRequestSyncWithRetries(createPostJsonRequest(json, url), throwOnFailure);
+        try {
+            this.requestsInventory.incrementAndGet();
+            return executeRequestSyncWithRetries(createPostJsonRequest(json, url), throwOnFailure);
+        } finally {
+            this.requestsInventory.decrementAndGet();
+        }
     }
 
     /**
