@@ -236,12 +236,16 @@ public class Connection implements Closeable {
                                                     @NonNull Map<QueryParamName, String> params) {
         Request request = createGetRequest(this.buildCometUrl(endpoint), params);
 
+        AsyncFileDownloadHandler handler = new AsyncFileDownloadHandler(file, this.logger);
         try {
-            return this.executeDownloadAsync(request, new AsyncFileDownloadHandler(file, this.logger));
-        } catch (IOException e) {
+            handler.open();
+        } catch (Throwable e) {
             this.logger.error("Failed to start download to the file {}", file.getPath(), e);
+            // make sure to release resources
+            handler.close();
             return new ListenableFuture.CompletedFailure<>(e);
         }
+        return this.executeDownloadAsync(request, handler);
     }
 
     /**
@@ -547,18 +551,21 @@ public class Connection implements Closeable {
     static final class AsyncFileDownloadHandler implements DownloadListener {
 
         final File outFile;
-        final RandomAccessFile file;
         final Logger logger;
+        RandomAccessFile file;
 
-        AsyncFileDownloadHandler(File file, Logger logger) throws IOException {
-            Path path = file.toPath();
-            if (Files.exists(file.toPath())) {
+        AsyncFileDownloadHandler(File file, Logger logger) {
+            this.outFile = file;
+            this.logger = logger;
+        }
+
+        void open() throws IOException {
+            Path path = this.outFile.toPath();
+            if (Files.exists(this.outFile.toPath())) {
                 // make sure to remove file if it is already exists
                 Files.delete(path);
             }
-            this.outFile = file;
-            this.file = new RandomAccessFile(file, "rw");
-            this.logger = logger;
+            this.file = new RandomAccessFile(this.outFile, "rw");
         }
 
         @Override
@@ -583,9 +590,11 @@ public class Connection implements Closeable {
             this.close();
         }
 
-        private void close() {
+        void close() {
             try {
-                this.file.close();
+                if (this.file != null) {
+                    this.file.close();
+                }
             } catch (IOException e) {
                 this.logger.error("Failed to close the download file {}", this.outFile.getPath(), e);
             }
