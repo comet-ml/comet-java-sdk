@@ -560,12 +560,11 @@ public class Connection implements Closeable {
         }
 
         void open() throws IOException {
-            Path path = this.outFile.toPath();
-            if (Files.exists(this.outFile.toPath())) {
-                // make sure to remove file if it is already exists
-                Files.delete(path);
-            }
             this.file = new RandomAccessFile(this.outFile, "rw");
+            if (Files.exists(this.outFile.toPath())) {
+                // truncate existing file
+                this.file.setLength(0);
+            }
         }
 
         @Override
