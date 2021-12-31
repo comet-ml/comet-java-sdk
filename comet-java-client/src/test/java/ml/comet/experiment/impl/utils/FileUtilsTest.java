@@ -13,10 +13,12 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -122,7 +124,8 @@ public class FileUtilsTest {
         String fileName = "not_existing_file" + someExtension;
         Path subSubDir = subDir.resolve("not_existing_dir");
         Path file = subSubDir.resolve(fileName);
-        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.FAIL);
+        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.FAIL).orElse(null);
+        assertNotNull(resolved, "path expected");
         assertEquals(file.getFileName(), resolved.getFileName());
 
         assertTrue(Files.isDirectory(subSubDir), "parent dir expected");
@@ -132,7 +135,8 @@ public class FileUtilsTest {
     public void testResolveAssetPath_OVERWRITE() throws IOException {
         String prefix = "file_to_overwrite";
         Path file = Files.createTempFile(subDir, prefix, someExtension);
-        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.OVERWRITE);
+        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.OVERWRITE).orElse(null);
+        assertNotNull(resolved, "path expected");
         assertEquals(file.getFileName(), resolved.getFileName());
 
         // check that resolved file doesn't exist
@@ -150,18 +154,8 @@ public class FileUtilsTest {
     public void testResolveAssetPath_PRESERVE() throws IOException {
         String prefix = "file_to_preserve";
         Path file = Files.createTempFile(subDir, prefix, someExtension);
-        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.PRESERVE);
-        assertEquals(file.getFileName(), resolved.getFileName());
-
-        // check that resolved file doesn't exist yet
-        assertFalse(Files.isRegularFile(resolved));
-
-        // check that original file was renamed
-        try (Stream<Path> files = Files.walk(subDir)) {
-            assertTrue(files
-                    .peek(System.out::println)
-                    .anyMatch(path -> path.getFileName().toString().startsWith(prefix)));
-        }
+        Optional<Path> resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.PRESERVE);
+        assertFalse(resolved.isPresent(), "empty path expected");
     }
 
     @Test

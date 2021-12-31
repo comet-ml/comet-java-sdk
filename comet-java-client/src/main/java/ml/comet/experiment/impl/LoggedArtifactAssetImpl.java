@@ -54,7 +54,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     private String artifactVersionId;
 
     private Map<String, Object> metadata;
-    private final LoggedArtifactImpl artifact;
+    final LoggedArtifactImpl artifact;
 
     LoggedArtifactAssetImpl(LoggedArtifactImpl artifact) {
         this.artifact = artifact;

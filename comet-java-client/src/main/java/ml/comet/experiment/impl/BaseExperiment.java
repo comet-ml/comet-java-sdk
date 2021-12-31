@@ -61,6 +61,7 @@ import static java.util.Optional.empty;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosed;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_DETAILS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_FOUND;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_READY;
@@ -631,7 +632,17 @@ abstract class BaseExperiment implements Experiment {
             throws ArtifactDownloadException {
         Path resolved;
         try {
-            resolved = FileUtils.resolveAssetPath(dir, file, overwriteStrategy);
+            Optional<Path> optionalPath = FileUtils.resolveAssetPath(dir, file, overwriteStrategy);
+            if (optionalPath.isPresent()) {
+                resolved = optionalPath.get();
+            } else {
+                // preventing original file - just warning and return FileAsset pointing to it
+                resolved = dir.resolve(file);
+                this.getLogger().warn(
+                        getString(ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING, resolved, asset.artifact.getWorkspace(),
+                                asset.artifact.getName(), asset.artifact.getVersion()));
+                return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
+            }
         } catch (FileAlreadyExistsException e) {
             this.getLogger().error(
                     getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
