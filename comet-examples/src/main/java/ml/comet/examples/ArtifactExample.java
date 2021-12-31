@@ -139,7 +139,7 @@ public class ArtifactExample implements BaseExample {
         ByteBuffer assetData = asset.load();
 
         System.out.printf(
-                "Asset's content successfully loaded into memory, data size: %d.\n\n", assetData.array().length);
+                "Asset's content successfully loaded into memory, data size: %d.\n\n", assetData.remaining());
 
         System.out.println("===== Experiment completed ====");
     }
