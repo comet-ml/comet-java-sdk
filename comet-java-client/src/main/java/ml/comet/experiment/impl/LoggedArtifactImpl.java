@@ -25,6 +25,9 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_ASSETS_DOWNLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_ASSETS_TO_DOWNLOAD;
@@ -140,19 +143,37 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
                                 .map(asset -> asset.download(folder, overwriteStrategy)), true);
 
         // subscribe and wait for processing results
+        CompletableFuture<Void> result = new CompletableFuture<>();
         observable
                 .ignoreElements() // ignore items - we are only interested in overall result
                 .blockingSubscribe(
-                        () -> logger.info(
-                                getString(ARTIFACT_ASSETS_DOWNLOAD_COMPLETED,
-                                        this.getWorkspace(), this.getName(), this.getVersion(),
-                                        assetsToDownload, folder)),
-                        throwable -> logger.error(
-                                getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS,
-                                        this.getWorkspace(), this.getName(), this.getVersion(), folder),
-                                throwable
-                        )
+                        () -> {
+                            logger.info(
+                                    getString(ARTIFACT_ASSETS_DOWNLOAD_COMPLETED,
+                                            this.getWorkspace(), this.getName(), this.getVersion(),
+                                            assetsToDownload, folder));
+                            result.complete(null);
+                        },
+
+                        throwable -> {
+                            logger.error(
+                                    getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS,
+                                            this.getWorkspace(), this.getName(), this.getVersion(), folder),
+                                    throwable);
+                            result.completeExceptionally(throwable);
+                        }
                 );
+
+        // check if any exception was raised during download and raise ArtifactException
+        try {
+            result.get();
+        } catch (ExecutionException ex) {
+            throw new ArtifactException(getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS,
+                    this.getWorkspace(), this.getName(), this.getVersion(), folder), ex.getCause());
+        } catch (InterruptedException ex) {
+            throw new ArtifactException(getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS,
+                    this.getWorkspace(), this.getName(), this.getVersion(), folder), ex);
+        }
 
         return assets;
     }
