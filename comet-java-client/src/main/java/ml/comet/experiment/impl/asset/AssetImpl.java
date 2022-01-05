@@ -2,6 +2,7 @@ package ml.comet.experiment.impl.asset;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.model.AssetType;
 
@@ -13,13 +14,18 @@ import java.util.Map;
  */
 @Data
 @NoArgsConstructor
+@ToString(onlyExplicitlyIncluded = true)
 public class AssetImpl implements Asset {
+    @ToString.Include
     private File file;
     private byte[] fileLikeData;
     private String fileExtension;
 
+    @ToString.Include
     String fileName;
+    @ToString.Include
     AssetType type;
+    @ToString.Include
     Boolean overwrite;
     ExperimentContext experimentContext;
     Map<String, Object> metadata;

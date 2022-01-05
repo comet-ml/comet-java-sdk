@@ -7,10 +7,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -111,20 +111,11 @@ public class FileUtilsTest {
     }
 
     @Test
-    public void testRenameWithTimestamp() throws IOException {
-        Path file = Files.createTempFile(root, "file_to_rename", ".txt");
-        Instant now = Instant.now();
-        Path renamed = FileUtils.renameWithTimestamp(file, now);
-        assertTrue(Files.isRegularFile(renamed));
-        assertFalse(Files.isRegularFile(file));
-    }
-
-    @Test
     public void testResolveAssetPath() throws IOException {
         String fileName = "not_existing_file" + someExtension;
         Path subSubDir = subDir.resolve("not_existing_dir");
         Path file = subSubDir.resolve(fileName);
-        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.FAIL).orElse(null);
+        Path resolved = FileUtils.resolveAssetPath(subDir, file, AssetOverwriteStrategy.FAIL_IF_DIFFERENT).orElse(null);
         assertNotNull(resolved, "path expected");
         assertEquals(file.getFileName(), resolved.getFileName());
 
@@ -161,6 +152,20 @@ public class FileUtilsTest {
     @Test
     public void testResolveAssetPath_FAIL() {
         assertThrows(FileAlreadyExistsException.class, () ->
-                FileUtils.resolveAssetPath(subDir, subFolderFile, AssetOverwriteStrategy.FAIL));
+                FileUtils.resolveAssetPath(subDir, subFolderFile, AssetOverwriteStrategy.FAIL_IF_DIFFERENT));
+    }
+
+    @Test
+    public void testFileContentsEquals() throws IOException {
+        Path firstFile = topFiles.get(0);
+        Files.write(firstFile, "first string".getBytes(StandardCharsets.UTF_8));
+        Path secondFile = topFiles.get(1);
+        Files.write(secondFile, "second string".getBytes(StandardCharsets.UTF_8));
+
+        boolean res = FileUtils.fileContentsEquals(root, firstFile, secondFile);
+        assertFalse(res);
+
+        res = FileUtils.fileContentsEquals(root, firstFile, firstFile);
+        assertTrue(res);
     }
 }

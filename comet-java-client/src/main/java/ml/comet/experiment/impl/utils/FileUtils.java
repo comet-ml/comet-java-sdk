@@ -3,6 +3,7 @@ package ml.comet.experiment.impl.utils;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
+import org.apache.commons.io.file.PathUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,7 +11,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
@@ -69,7 +69,7 @@ public class FileUtils {
     public static Optional<Path> resolveAssetPath(@NonNull Path dir, @NonNull Path file,
                                                   @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws FileAlreadyExistsException, IOException {
-        Path assetPath = dir.resolve(file);
+        Path assetPath = assetFilePath(dir, file);
         if (Files.isRegularFile(assetPath)) {
             // the file already exists
             switch (overwriteStrategy) {
@@ -80,7 +80,7 @@ public class FileUtils {
                     // remove existing file
                     Files.delete(assetPath);
                     return Optional.of(assetPath);
-                case FAIL:
+                case FAIL_IF_DIFFERENT:
                     throw new FileAlreadyExistsException(assetPath.toString());
             }
         }
@@ -90,13 +90,23 @@ public class FileUtils {
         return Optional.of(assetPath);
     }
 
-    static Path renameWithTimestamp(@NonNull Path file, @NonNull Instant instant) throws IOException {
-        String name = instant.toString().replace(":", "-");
-        name = String.format("%s_%s", file.getFileName(), name);
+    /**
+     * Allows checking if content of asset file is equal to the content of the specified file.
+     *
+     * @param assetDir  the parent directory of the asset file
+     * @param assetFile the relative path to the asset file
+     * @param otherPath the path to the other file
+     * @return {@code true} if contents of both files are equal.
+     * @throws IOException thrown if any I/O exception occured during the operation.
+     */
+    public static boolean fileContentsEquals(@NonNull Path assetDir, @NonNull Path assetFile, @NonNull Path otherPath)
+            throws IOException {
+        Path assetPath = assetFilePath(assetDir, assetFile);
+        return PathUtils.fileContentEquals(assetPath, otherPath);
+    }
 
-        Path target = file.resolveSibling(name);
-        Files.move(file, target);
-        return target;
+    static Path assetFilePath(@NonNull Path assetDir, @NonNull Path assetFile) {
+        return assetDir.resolve(assetFile);
     }
 
     static String resolveAssetFileName(File folder, Path path, boolean logFilePath,

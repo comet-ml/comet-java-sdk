@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_ASSETS_DOWNLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_ASSETS_TO_DOWNLOAD;
@@ -38,7 +37,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.getString;
 /**
  * The implementation of the {@link LoggedArtifact}.
  */
-@ToString
+@ToString(onlyExplicitlyIncluded = true)
 public final class LoggedArtifactImpl extends BaseArtifactImpl implements LoggedArtifact {
     @Getter
     private final Logger logger = LoggerFactory.getLogger(LoggedArtifact.class);
@@ -48,13 +47,17 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Setter
     long sizeInBytes;
     @Setter
+    @ToString.Include
     String experimentKey;
     @Setter
+    @ToString.Include
     String workspace;
     @Setter
+    @ToString.Include
     String artifactVersionId;
     @Setter
     @Getter
+    @ToString.Include
     String artifactId;
 
     final BaseExperiment baseExperiment;
@@ -112,7 +115,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
 
     @Override
     public Collection<LoggedArtifactAsset> download(Path folder) {
-        return this.download(folder, AssetOverwriteStrategy.FAIL);
+        return this.download(folder, AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
     }
 
     @Override

@@ -3,6 +3,7 @@ package ml.comet.experiment.impl;
 import com.vdurmont.semver4j.Semver;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import ml.comet.experiment.impl.utils.DataModelUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -16,14 +17,17 @@ import java.util.Set;
  */
 abstract class BaseArtifactImpl {
     @Getter
+    @ToString.Include
     private final String name;
     @Getter
+    @ToString.Include
     private final String type;
     @Getter
     @Setter
     Set<String> aliases;
     @Getter
     @Setter
+    @ToString.Include
     Semver semanticVersion;
     @Getter
     @Setter

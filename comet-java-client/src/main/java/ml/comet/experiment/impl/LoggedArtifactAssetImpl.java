@@ -25,32 +25,39 @@ import java.util.Optional;
 /**
  * Implementation of the {@link LoggedArtifactAsset}.
  */
-@ToString
+@ToString(onlyExplicitlyIncluded = true)
 public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
 
     private final Logger logger = LoggerFactory.getLogger(LoggedArtifactAsset.class);
 
     @Getter
     @Setter
+    @ToString.Include
     private boolean remote;
     @Getter
     @Setter
+    @ToString.Include
     private String assetType;
     @Getter
     @Setter
+    @ToString.Include
     private String assetId;
     @Setter
     private String metadataJson;
     @Setter
     @Getter
+    @ToString.Include
     private String fileName;
     @Setter
     private Long fileSize;
     @Setter
+    @ToString.Include
     private String remoteUri;
     @Setter
+    @ToString.Include
     private String artifactId;
     @Setter
+    @ToString.Include
     private String artifactVersionId;
 
     private Map<String, Object> metadata;
@@ -108,7 +115,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
 
     @Override
     public FileAsset download(Path dir) throws ArtifactException {
-        return this.download(dir, AssetOverwriteStrategy.FAIL);
+        return this.download(dir, AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
     }
 
     @Override
