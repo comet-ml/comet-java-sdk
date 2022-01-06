@@ -13,9 +13,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -133,7 +133,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     }
 
     @Override
-    public ByteBuffer load() throws ArtifactException {
-        return this.artifact.load(this);
+    public void writeTo(OutputStream out) throws ArtifactException {
+        this.artifact.loadTo(this, out);
     }
 }

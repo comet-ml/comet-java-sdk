@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.OutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -187,26 +187,15 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         return this.baseExperiment.downloadArtifactAsset(asset, dir, file, overwriteStrategy);
     }
 
-    /**
-     * The maximum size of array to allocate.
-     * Some VMs reserve some header words in an array.
-     * Attempts to allocate larger arrays may result in
-     * OutOfMemoryError: Requested array size exceeds VM limit
-     */
-    private static final int MAX_BUFFER_SIZE = Integer.MAX_VALUE - 8;
-
-    ByteBuffer load(@NonNull LoggedArtifactAssetImpl asset) throws ArtifactException, OutOfMemoryError {
+    void loadTo(@NonNull LoggedArtifactAssetImpl asset, @NonNull OutputStream out) throws ArtifactException {
         Path tmpDir = null;
         try {
             tmpDir = Files.createTempDirectory(null);
             Path file = FileSystems.getDefault().getPath(asset.getFileName());
 
             FileAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
-            if (downloaded.getSize() > (long) MAX_BUFFER_SIZE) {
-                throw new OutOfMemoryError("The asset file size is too large to be loaded as byte array");
-            }
-            return ByteBuffer.wrap(FileUtils.readFileToByteArray(downloaded.getPath().toFile()));
-
+            Files.copy(downloaded.getPath(), out);
+            out.flush();
         } catch (IOException e) {
             this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
             throw new ArtifactDownloadException("Failed to create temporary file to store asset's content.", e);

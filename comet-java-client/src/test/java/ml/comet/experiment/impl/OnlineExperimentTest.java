@@ -24,9 +24,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -816,7 +816,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
     @Test
     @Timeout(value = 300, unit = SECONDS)
-    public void testLogAndLoadArtifactAsset() {
+    public void testLogAndWriteToArtifactAsset() {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
             ArtifactImpl artifact = createArtifact();
 
@@ -840,10 +840,10 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
-            ByteBuffer assetData = loggedAssets.iterator().next().load();
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            loggedAssets.iterator().next().writeTo(out);
 
-            assertNotNull(assetData, "asset data expected");
-            assertEquals(IMAGE_FILE_SIZE, assetData.remaining(), "wrong asset data size");
+            assertEquals(IMAGE_FILE_SIZE, out.size(), "wrong asset data size");
 
         } catch (Throwable t) {
             fail(t);

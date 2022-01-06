@@ -6,8 +6,8 @@ import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -140,10 +140,11 @@ public class ArtifactExample implements BaseExample {
         if (asset != null) {
             System.out.printf("Loading content of the artifact asset '%s' into memory\n", asset.getAssetId());
 
-            ByteBuffer assetData = asset.load();
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            asset.writeTo(out);
 
             System.out.printf(
-                    "Asset's content successfully loaded into memory, data size: %d.\n\n", assetData.remaining());
+                    "Asset's content successfully loaded into memory, data size: %d.\n\n", out.size());
         }
 
         System.out.println("===== Experiment completed ====");
