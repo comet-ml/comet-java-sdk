@@ -6,11 +6,11 @@ package ml.comet.experiment.artifact;
  */
 public enum AssetOverwriteStrategy {
     /**
-     * If an asset file already exists raises exception.
+     * If an asset file already exists and its content is different - raises exception.
      */
-    FAIL,
+    FAIL_IF_DIFFERENT,
     /**
-     * If an asset file already exists, preserve the existing content (by renaming the original file).
+     * If an asset file already exists, preserve the existing file.
      */
     PRESERVE,
     /**

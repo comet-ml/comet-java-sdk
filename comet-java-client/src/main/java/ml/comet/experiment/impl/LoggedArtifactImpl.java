@@ -109,6 +109,11 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     }
 
     @Override
+    public String getFullName() {
+        return String.format("%s/%s:%s", this.getWorkspace(), this.getName(), this.getVersion());
+    }
+
+    @Override
     public Collection<LoggedArtifactAsset> readAssets() throws ArtifactException {
         return this.baseExperiment.readArtifactAssets(this);
     }
@@ -129,8 +134,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
                 .sum();
         if (assetsToDownload == 0) {
             // show warning and return
-            this.logger.warn(getString(
-                    ARTIFACT_HAS_NO_ASSETS_TO_DOWNLOAD, this.getWorkspace(), this.getName(), this.getVersion()));
+            this.logger.warn(getString(ARTIFACT_HAS_NO_ASSETS_TO_DOWNLOAD, this.getFullName()));
             return assets;
         }
 
@@ -151,17 +155,14 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
                 .ignoreElements() // ignore items - we are only interested in overall result
                 .blockingSubscribe(
                         () -> {
-                            logger.info(
-                                    getString(ARTIFACT_ASSETS_DOWNLOAD_COMPLETED,
-                                            this.getWorkspace(), this.getName(), this.getVersion(),
-                                            assetsToDownload, folder));
+                            logger.info(getString(ARTIFACT_ASSETS_DOWNLOAD_COMPLETED,
+                                    this.getFullName(), assetsToDownload, folder));
                             result.complete(null);
                         },
 
                         throwable -> {
                             logger.error(
-                                    getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS,
-                                            this.getWorkspace(), this.getName(), this.getVersion(), folder),
+                                    getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS, this.getFullName(), folder),
                                     throwable);
                             result.completeExceptionally(throwable);
                         }
@@ -171,11 +172,10 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         try {
             result.get();
         } catch (ExecutionException ex) {
-            throw new ArtifactException(getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS,
-                    this.getWorkspace(), this.getName(), this.getVersion(), folder), ex.getCause());
+            throw new ArtifactException(getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS, this.getFullName(), folder),
+                    ex.getCause());
         } catch (InterruptedException ex) {
-            throw new ArtifactException(getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS,
-                    this.getWorkspace(), this.getName(), this.getVersion(), folder), ex);
+            throw new ArtifactException(getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS, this.getFullName(), folder), ex);
         }
 
         return assets;

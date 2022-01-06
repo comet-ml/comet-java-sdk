@@ -62,13 +62,18 @@ import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionSt
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_DOWNLOAD_FILE_OVERWRITTEN;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_DETAILS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_FOUND;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_READY;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITH_PREVIOUS;
+import static ml.comet.experiment.impl.resources.LogMessages.COMPLETED_DOWNLOAD_ARTIFACT_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_COMPARE_CONTENT_OF_FILES;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_CREATE_TEMPORARY_ASSET_DOWNLOAD_FILE;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_TEMPORARY_ASSET_FILE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_READ_DOWNLOADED_FILE_SIZE;
@@ -610,8 +615,7 @@ abstract class BaseExperiment implements Experiment {
                                             new LoggedArtifactAssetImpl((LoggedArtifactImpl) artifact))),
                             ArrayList::addAll);
         } catch (Throwable t) {
-            String message = getString(FAILED_TO_READ_LOGGED_ARTIFACT_ASSETS, artifact.getWorkspace(),
-                    artifact.getName(), artifact.getVersion());
+            String message = getString(FAILED_TO_READ_LOGGED_ARTIFACT_ASSETS, artifact.getFullName());
             this.getLogger().error(message, t);
             throw new ArtifactException(message, t);
         }
@@ -631,23 +635,42 @@ abstract class BaseExperiment implements Experiment {
                                     @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactDownloadException {
         Path resolved;
+        boolean fileAlreadyExists = false;
         try {
             Optional<Path> optionalPath = FileUtils.resolveAssetPath(dir, file, overwriteStrategy);
             if (optionalPath.isPresent()) {
+                // new or overwrite
                 resolved = optionalPath.get();
+                if (overwriteStrategy == AssetOverwriteStrategy.OVERWRITE) {
+                    getLogger().warn(getString(ARTIFACT_DOWNLOAD_FILE_OVERWRITTEN, resolved, asset.getFileName(),
+                            asset.artifact.getFullName()));
+                }
             } else {
                 // preventing original file - just warning and return FileAsset pointing to it
                 resolved = dir.resolve(file);
                 this.getLogger().warn(
-                        getString(ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING, resolved, asset.artifact.getWorkspace(),
-                                asset.artifact.getName(), asset.artifact.getVersion()));
+                        getString(ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING, resolved, asset.artifact.getFullName()));
                 return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
             }
         } catch (FileAlreadyExistsException e) {
-            this.getLogger().error(
-                    getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
-            throw new ArtifactDownloadException(
-                    getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
+            if (overwriteStrategy == AssetOverwriteStrategy.FAIL_IF_DIFFERENT) {
+                try {
+                    resolved = Files.createTempFile(asset.getFileName(), null);
+                    this.getLogger().debug(
+                            "File '{}' already exists for asset {} and FAIL override strategy selected. "
+                                    + "Start downloading to the temporary file '{}'", file, asset, resolved);
+                } catch (IOException ex) {
+                    String msg = getString(FAILED_TO_CREATE_TEMPORARY_ASSET_DOWNLOAD_FILE, file, asset);
+                    this.getLogger().error(msg, ex);
+                    throw new ArtifactDownloadException(msg, ex);
+                }
+                fileAlreadyExists = true;
+            } else {
+                this.getLogger().error(
+                        getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
+                throw new ArtifactDownloadException(
+                        getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
+            }
         } catch (IOException e) {
             this.getLogger().error(getString(FAILED_TO_RESOLVE_ASSET_FILE, file, asset), e);
             throw new ArtifactDownloadException(getString(FAILED_TO_RESOLVE_ASSET_FILE, file, asset), e);
@@ -663,7 +686,31 @@ abstract class BaseExperiment implements Experiment {
             throw new ArtifactDownloadException(getString(FAILED_TO_DOWNLOAD_ASSET, asset, response));
         }
 
-        getLogger().info("Successfully downloaded artifact asset '{}' to file {}", asset.getFileName(), resolved);
+        // check the content of the downloaded file in case of FAIL overwrite strategy when file already exists
+        // this is just to mirror the Python SDK's behavior - potential performance bottleneck and system resource eater
+        if (fileAlreadyExists) {
+            Path assetFilePath = FileUtils.assetFilePath(dir, file);
+            try {
+                if (!FileUtils.fileContentsEquals(assetFilePath, resolved)) {
+                    this.getLogger().error(
+                            getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file));
+                    throw new ArtifactDownloadException(
+                            getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file));
+                }
+            } catch (IOException e) {
+                this.getLogger().error(getString(FAILED_TO_COMPARE_CONTENT_OF_FILES, file, resolved), e);
+                throw new ArtifactDownloadException(getString(FAILED_TO_COMPARE_CONTENT_OF_FILES, file, resolved), e);
+            } finally {
+                try {
+                    Files.deleteIfExists(resolved);
+                } catch (IOException e) {
+                    this.getLogger().error(getString(FAILED_TO_DELETE_TEMPORARY_ASSET_FILE, resolved, asset), e);
+                }
+            }
+            resolved = assetFilePath;
+        }
+
+        getLogger().info(getString(COMPLETED_DOWNLOAD_ARTIFACT_ASSET, asset.getFileName(), resolved));
 
         try {
             return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());

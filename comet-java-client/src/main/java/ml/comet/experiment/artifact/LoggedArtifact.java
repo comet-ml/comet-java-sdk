@@ -55,6 +55,13 @@ public interface LoggedArtifact {
     String getName();
 
     /**
+     * Returns the fully qualified name of the artifact in form 'workspace/name:version'.
+     *
+     * @return the fully qualified name of the artifact.
+     */
+    String getFullName();
+
+    /**
      * Returns the total size of logged artifact version; it is the sum of all the artifact version assets.
      *
      * @return the total size of logged artifact version; it is the sum of all the artifact version assets.

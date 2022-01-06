@@ -93,19 +93,24 @@ public class FileUtils {
     /**
      * Allows checking if content of asset file is equal to the content of the specified file.
      *
-     * @param assetDir  the parent directory of the asset file
      * @param assetFile the relative path to the asset file
      * @param otherPath the path to the other file
      * @return {@code true} if contents of both files are equal.
      * @throws IOException thrown if any I/O exception occured during the operation.
      */
-    public static boolean fileContentsEquals(@NonNull Path assetDir, @NonNull Path assetFile, @NonNull Path otherPath)
+    public static boolean fileContentsEquals(@NonNull Path assetFile, @NonNull Path otherPath)
             throws IOException {
-        Path assetPath = assetFilePath(assetDir, assetFile);
-        return PathUtils.fileContentEquals(assetPath, otherPath);
+        return PathUtils.fileContentEquals(assetFile, otherPath);
     }
 
-    static Path assetFilePath(@NonNull Path assetDir, @NonNull Path assetFile) {
+    /**
+     * Allows building path to the asset file.
+     *
+     * @param assetDir  the parent directory of the asset file
+     * @param assetFile the relative path to the asset file
+     * @return the {@link Path} to the asset file.
+     */
+    public static Path assetFilePath(@NonNull Path assetDir, @NonNull Path assetFile) {
         return assetDir.resolve(assetFile);
     }
 

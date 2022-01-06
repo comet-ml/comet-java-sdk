@@ -458,7 +458,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         final ArtifactEntry entry = super.upsertArtifact(artifact);
 
         // get new artifact's version details
-        final LoggedArtifact loggedArtifact = this.getArtifactVersionDetail(
+        final LoggedArtifactImpl loggedArtifact = (LoggedArtifactImpl) this.getArtifactVersionDetail(
                 Op().artifactId(entry.getArtifactId()).versionId(entry.getArtifactVersionId()).build());
 
         // try to log artifact assets asynchronously
@@ -469,8 +469,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         getLogger().info(
-                getString(ARTIFACT_UPLOAD_STARTED, loggedArtifact.getWorkspace(),
-                        loggedArtifact.getName(), loggedArtifact.getVersion(), artifactImpl.getAssets().size()));
+                getString(ARTIFACT_UPLOAD_STARTED, loggedArtifact.getFullName(), artifactImpl.getAssets().size()));
 
         CompletableFuture<LoggedArtifact> future = new CompletableFuture<>();
 
@@ -499,8 +498,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                 .subscribe(
                         () -> {
                             getLogger().info(
-                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getWorkspace(),
-                                            loggedArtifact.getName(), loggedArtifact.getVersion(), count.get()));
+                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(), count.get()));
                             // mark artifact version status as closed
                             this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
                             // mark future as completed
@@ -510,8 +508,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         },
                         (throwable) -> {
                             getLogger().error(
-                                    getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getWorkspace(),
-                                            loggedArtifact.getName(), loggedArtifact.getVersion()), throwable);
+                                    getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getFullName()),
+                                    throwable);
                             // mark artifact version status as failed
                             this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR, future);
                             // mark future as failed
@@ -537,9 +535,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         try {
             super.updateArtifactVersionState(loggedArtifact.getVersionId(), state);
         } catch (Throwable t) {
-            getLogger().error(
-                    getString(FAILED_TO_FINALIZE_ARTIFACT_VERSION, loggedArtifact.getWorkspace(),
-                            loggedArtifact.getName(), loggedArtifact.getVersion()), t);
+            getLogger().error(getString(FAILED_TO_FINALIZE_ARTIFACT_VERSION, loggedArtifact.getFullName()), t);
             future.completeExceptionally(t);
         }
     }

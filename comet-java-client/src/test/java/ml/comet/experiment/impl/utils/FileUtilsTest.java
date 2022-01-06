@@ -157,15 +157,15 @@ public class FileUtilsTest {
 
     @Test
     public void testFileContentsEquals() throws IOException {
-        Path firstFile = topFiles.get(0);
+        Path firstFile = FileUtils.assetFilePath(root, topFiles.get(0));
         Files.write(firstFile, "first string".getBytes(StandardCharsets.UTF_8));
-        Path secondFile = topFiles.get(1);
+        Path secondFile = FileUtils.assetFilePath(root, topFiles.get(1));
         Files.write(secondFile, "second string".getBytes(StandardCharsets.UTF_8));
 
-        boolean res = FileUtils.fileContentsEquals(root, firstFile, secondFile);
+        boolean res = FileUtils.fileContentsEquals(firstFile, secondFile);
         assertFalse(res);
 
-        res = FileUtils.fileContentsEquals(root, firstFile, firstFile);
+        res = FileUtils.fileContentsEquals(firstFile, firstFile);
         assertTrue(res);
     }
 }
