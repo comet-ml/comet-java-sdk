@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test cases to test {@link ml.comet.experiment.artifact.Artifact} implementation.
  */
 @DisplayName("Artifact")
-public class ArtifactTest extends AssetsBaseTest {
+public class ArtifactImplTest extends AssetsBaseTest {
 
     static String SOME_ARTIFACT_NAME = "artifactName";
     static String SOME_ARTIFACT_TYPE = "artifactType";
