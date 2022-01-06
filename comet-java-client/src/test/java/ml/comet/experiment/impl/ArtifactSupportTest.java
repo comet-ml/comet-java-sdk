@@ -1,6 +1,8 @@
 package ml.comet.experiment.impl;
 
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAsset;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -35,11 +38,15 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static ml.comet.experiment.impl.ArtifactImplTest.SOME_METADATA;
 import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.model.AssetType.ASSET;
 import static ml.comet.experiment.model.AssetType.UNKNOWN;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -50,6 +57,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 @DisplayName("ArtifactSupportTest INTEGRATION")
 @Tag("integration")
 public class ArtifactSupportTest extends AssetsBaseTest {
+
+    static final String ALIAS_LATEST = "Latest";
+
     @Test
     public void testLogAndGetArtifact() {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
@@ -105,7 +115,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             //
             LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
                     loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
-            expectedAliases.add("Latest"); // added by the backend automatically
+            expectedAliases.add(ALIAS_LATEST); // added by the backend automatically
 
             artifactValidator.apply(loggedArtifactFromServer, expectedAliases);
 
@@ -210,6 +220,120 @@ public class ArtifactSupportTest extends AssetsBaseTest {
                         .map(Path::getFileName)
                         .allMatch(assetsToDownload::contains));
             }
+
+        } catch (Throwable t) {
+            fail(t);
+        } finally {
+            PathUtils.delete(tmpDir);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndDownloadArtifact_FAIL_error() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifact_FAIL_error");
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add local assets
+            //
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
+                    IMAGE_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // Create a conflicting file in the target directory
+            //
+            Path conflictPath = tmpDir.resolve(new File(IMAGE_FILE_NAME).toPath());
+            Files.write(conflictPath, "some data".getBytes(StandardCharsets.UTF_8));
+
+            // download artifact and check that appropriate exception is thrown
+            //
+            Exception ex = assertThrows(ArtifactException.class, () -> loggedArtifact.download(
+                    tmpDir, AssetOverwriteStrategy.FAIL_IF_DIFFERENT));
+
+            String message = getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS, loggedArtifact.getFullName(), tmpDir);
+            assertEquals(message, ex.getMessage());
+
+        } catch (Throwable t) {
+            fail(t);
+        } finally {
+            PathUtils.delete(tmpDir);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndDownloadArtifact_OVERWRITE() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifact_OVERWRITE");
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add local assets
+            //
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
+                    IMAGE_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // Create a conflicting file in the target directory
+            //
+            Path conflictPath = tmpDir.resolve(new File(IMAGE_FILE_NAME).toPath());
+            Files.write(conflictPath, "some data".getBytes(StandardCharsets.UTF_8));
+
+            // download artifact and check that file was overwritten
+            //
+            Collection<LoggedArtifactAsset> assets = loggedArtifact.download(tmpDir, AssetOverwriteStrategy.OVERWRITE);
+            assertEquals(1, assets.size());
+
+            LoggedArtifactAsset asset = assets.iterator().next();
+            Path assetFile = tmpDir.resolve(asset.getFileName());
+            assertTrue(PathUtils.fileContentEquals(
+                    Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)).toPath(), assetFile));
+
+        } catch (Throwable t) {
+            fail(t);
+        } finally {
+            PathUtils.delete(tmpDir);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndDownloadArtifact_PRESERVE() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifact_PREVENT");
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add local assets
+            //
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
+                    IMAGE_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // Create a conflicting file in the target directory
+            //
+            Path conflictPath = tmpDir.resolve(new File(IMAGE_FILE_NAME).toPath());
+            byte[] someData = "some data".getBytes(StandardCharsets.UTF_8);
+            Files.write(conflictPath, someData);
+
+            // download artifact and check that file was preserved
+            //
+            Collection<LoggedArtifactAsset> assets = loggedArtifact.download(tmpDir, AssetOverwriteStrategy.PRESERVE);
+            assertEquals(1, assets.size());
+
+            byte[] fileData = Files.readAllBytes(conflictPath);
+            assertArrayEquals(someData, fileData);
 
         } catch (Throwable t) {
             fail(t);

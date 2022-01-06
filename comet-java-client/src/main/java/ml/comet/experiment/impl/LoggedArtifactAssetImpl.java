@@ -54,10 +54,8 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     @ToString.Include
     private String remoteUri;
     @Setter
-    @ToString.Include
     private String artifactId;
     @Setter
-    @ToString.Include
     private String artifactVersionId;
 
     private Map<String, Object> metadata;
@@ -135,5 +133,10 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     @Override
     public void writeTo(OutputStream out) throws ArtifactException {
         this.artifact.loadTo(this, out);
+    }
+
+    @ToString.Include
+    String artifactFullName() {
+        return this.artifact.getFullName();
     }
 }
