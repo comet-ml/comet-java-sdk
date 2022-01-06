@@ -96,7 +96,7 @@ public class ArtifactExample implements BaseExample {
         CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
         LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
 
-        System.out.printf("\nArtifact upload complete, new artifact version: %s\n\n", loggedArtifact.getVersion());
+        System.out.printf("\nArtifact upload complete: %s\n\n", loggedArtifact.getFullName());
 
         // get logged assets
         //
@@ -124,22 +124,27 @@ public class ArtifactExample implements BaseExample {
         // download artifact to the local directory
         //
         final Path artifactTmpDir = Files.createTempDirectory("ArtifactExampleArtifact");
-        System.out.printf("Downloading artifact to the folder: %s\n", artifactTmpDir);
+        System.out.printf("Downloading artifact to the folder: %s\n", artifactTmpDir.toFile().getAbsoluteFile());
 
-        Collection<LoggedArtifactAsset> assets = loggedArtifact.download(artifactTmpDir, AssetOverwriteStrategy.FAIL);
+        Collection<LoggedArtifactAsset> assets = loggedArtifact.download(artifactTmpDir,
+                AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
         System.out.printf(
                 "Artifact successfully downloaded. Received %d logged artifact assets from the Comet server.\n\n",
                 assets.size());
 
         // load content of the artifact asset into the memory
         //
-        LoggedArtifactAsset asset = assets.iterator().next();
-        System.out.printf("Loading content of the artifact asset '%s' into memory\n", asset.getAssetId());
+        LoggedArtifactAsset asset = assets.stream()
+                .filter(loggedArtifactAsset -> !loggedArtifactAsset.isRemote())
+                .findFirst().orElse(null);
+        if (asset != null) {
+            System.out.printf("Loading content of the artifact asset '%s' into memory\n", asset.getAssetId());
 
-        ByteBuffer assetData = asset.load();
+            ByteBuffer assetData = asset.load();
 
-        System.out.printf(
-                "Asset's content successfully loaded into memory, data size: %d.\n\n", assetData.remaining());
+            System.out.printf(
+                    "Asset's content successfully loaded into memory, data size: %d.\n\n", assetData.remaining());
+        }
 
         System.out.println("===== Experiment completed ====");
     }
