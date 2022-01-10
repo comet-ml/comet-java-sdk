@@ -249,6 +249,30 @@ public class AssetUtilsTest {
         assets.forEach(asset -> checkAssetFilename(asset, logFilePath, recursive, prefixWithFolderName));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "all, ALL",
+            "unknown, UNKNOWN",
+            "asset, ASSET",
+            "source_code, SOURCE_CODE",
+            "3d-points, POINTS_3D",
+            "embeddings, EMBEDDINGS",
+            "dataframe, DATAFRAME",
+            "dataframe-profile, DATAFRAME_PROFILE",
+            "histogram3d, HISTOGRAM3D",
+            "confusion-matrix, CONFUSION_MATRIX",
+            "curve, CURVE",
+            "notebook, NOTEBOOK",
+            "model-element, MODEL_ELEMENT",
+            "text-sample, TEXT_SAMPLE",
+            "not-existing-type, UNKNOWN"
+    })
+    public void testToAssetType(String typeName, String expectedName) {
+        AssetType assetType = AssetUtils.toAssetType(typeName);
+        AssetType expected = Enum.valueOf(AssetType.class, expectedName);
+        assertEquals(expected, assetType, String.format("wrong type parsed for name: %s", typeName));
+    }
+
     void checkAssetFilename(Asset asset, boolean logFilePath, boolean recursive, boolean prefixWithFolderName) {
         String name = asset.getLogicalPath();
         if (logFilePath && prefixWithFolderName) {

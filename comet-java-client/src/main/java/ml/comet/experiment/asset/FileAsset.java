@@ -17,5 +17,5 @@ public class FileAsset {
     Path path;
     long size;
     Map<String, Object> metadata;
-    String assetType;
+    AssetType assetType;
 }

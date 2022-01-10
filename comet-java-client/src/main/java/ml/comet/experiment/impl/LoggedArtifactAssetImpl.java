@@ -7,8 +7,9 @@ import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.impl.utils.DataModelUtils;
+import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.asset.FileAsset;
+import ml.comet.experiment.impl.utils.DataModelUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     @Getter
     @Setter
     @ToString.Include
-    private String assetType;
+    private AssetType assetType;
     @Getter
     @Setter
     @ToString.Include

@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.LoggedArtifactAssetImpl;
+import ml.comet.experiment.impl.utils.AssetUtils;
 
 @Data
 @NoArgsConstructor
@@ -28,7 +29,7 @@ public class ArtifactVersionAsset {
      */
     public LoggedArtifactAsset copyTo(LoggedArtifactAssetImpl asset) {
         asset.setAssetId(this.assetId);
-        asset.setAssetType(this.type);
+        asset.setAssetType(AssetUtils.toAssetType(this.type));
         asset.setFileName(this.fileName);
         asset.setFileSize(this.fileSize);
         asset.setRemoteUri(this.link);

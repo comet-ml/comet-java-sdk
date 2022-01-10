@@ -2,14 +2,14 @@ package ml.comet.experiment.impl.utils;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
-import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.asset.Asset;
-import ml.comet.experiment.impl.asset.AssetImpl;
+import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.asset.RemoteAsset;
+import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
-import ml.comet.experiment.asset.AssetType;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -18,10 +18,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static ml.comet.experiment.asset.AssetType.POINTS_3D;
+import static ml.comet.experiment.asset.AssetType.UNKNOWN;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
 import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
@@ -54,7 +57,7 @@ public class AssetUtils {
      * @throws IOException if an I/O exception occurred.
      */
     public static Stream<AssetImpl> walkFolderAssets(@NonNull File folder, boolean logFilePath,
-                                                 boolean recursive, boolean prefixWithFolderName)
+                                                     boolean recursive, boolean prefixWithFolderName)
             throws IOException {
         // list files in the directory and process each file as an asset
         return FileUtils.listFiles(folder, recursive)
@@ -192,6 +195,26 @@ public class AssetUtils {
         asset.setType(type.orElse(AssetType.ASSET));
 
         return asset;
+    }
+
+    /**
+     * Allows converting type name to the {@link AssetType}.
+     *
+     * @param typeName the type name.
+     * @return the appropriate {@link AssetType} enum value or {@code UNKNOWN} value if failed.
+     */
+    public static AssetType toAssetType(@NonNull String typeName) {
+        if (typeName.equals(POINTS_3D.type())) {
+            // special case
+            return POINTS_3D;
+        }
+        typeName = typeName.toUpperCase(Locale.ROOT);
+        typeName = typeName.replace("-", "_");
+        try {
+            return Enum.valueOf(AssetType.class, typeName);
+        } catch (IllegalArgumentException e) {
+            return UNKNOWN;
+        }
     }
 
     static String remoteAssetFileName(URI uri) {

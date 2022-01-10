@@ -1,5 +1,6 @@
 package ml.comet.experiment.artifact;
 
+import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.asset.FileAsset;
 
 import java.io.InputStream;
@@ -39,7 +40,7 @@ public interface LoggedArtifactAsset {
      *
      * @return the type of this asset.
      */
-    String getAssetType();
+    AssetType getAssetType();
 
     /**
      * Returns the asset file name.
