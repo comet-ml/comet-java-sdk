@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactDownloadException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.ArtifactNotFoundException;
@@ -16,9 +17,11 @@ import ml.comet.experiment.artifact.InvalidArtifactStateException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.asset.AssetType;
+import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
 import ml.comet.experiment.impl.http.Connection;
@@ -37,9 +40,7 @@ import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.FileUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
-import ml.comet.experiment.asset.FileAsset;
 import ml.comet.experiment.model.GitMetaData;
-import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -628,11 +629,11 @@ abstract class BaseExperiment implements Experiment {
      * @param dir               the parent directory where asset file should be stored.
      * @param file              the relative path to the asset file.
      * @param overwriteStrategy the overwrite strategy to be applied if file already exists.
-     * @return the {@link FileAsset} instance with details about downloaded asset file.
+     * @return the {@link ArtifactAsset} instance with details about downloaded asset file.
      * @throws ArtifactDownloadException if failed to download asset.
      */
-    FileAsset downloadArtifactAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
-                                    @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
+    ArtifactAsset downloadArtifactAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
+                                        @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactDownloadException {
         if (asset.isRemote()) {
             throw new ArtifactDownloadException(getString(REMOTE_ASSET_CANNOT_BE_DOWNLOADED, asset));
@@ -654,7 +655,8 @@ abstract class BaseExperiment implements Experiment {
                 resolved = dir.resolve(file);
                 this.getLogger().warn(
                         getString(ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING, resolved, asset.artifact.getFullName()));
-                return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
+                return new ArtifactAssetImpl(asset.getFileName(), resolved, Files.size(resolved),
+                        asset.getMetadata(), asset.getAssetType());
             }
         } catch (FileAlreadyExistsException e) {
             if (overwriteStrategy == AssetOverwriteStrategy.FAIL_IF_DIFFERENT) {
@@ -717,7 +719,8 @@ abstract class BaseExperiment implements Experiment {
         getLogger().info(getString(COMPLETED_DOWNLOAD_ARTIFACT_ASSET, asset.getFileName(), resolved));
 
         try {
-            return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
+            return new ArtifactAssetImpl(asset.getFileName(), resolved, Files.size(resolved),
+                    asset.getMetadata(), asset.getAssetType());
         } catch (IOException e) {
             this.getLogger().error(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
             throw new ArtifactDownloadException(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);

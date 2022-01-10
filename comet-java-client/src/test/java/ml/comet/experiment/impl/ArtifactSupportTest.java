@@ -1,14 +1,13 @@
 package ml.comet.experiment.impl;
 
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.asset.FileAsset;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.DisplayName;
@@ -37,14 +36,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static ml.comet.experiment.asset.AssetType.ASSET;
+import static ml.comet.experiment.asset.AssetType.UNKNOWN;
 import static ml.comet.experiment.impl.ArtifactImplTest.SOME_METADATA;
 import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
-import static ml.comet.experiment.asset.AssetType.ASSET;
-import static ml.comet.experiment.asset.AssetType.UNKNOWN;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -206,13 +205,14 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
-            FileAsset fileAsset = loggedAssets.iterator().next().download(tmpDir);
+            ArtifactAsset fileAsset = loggedAssets.iterator().next().download(tmpDir);
 
             assertNotNull(fileAsset, "file asset expected");
-            assertEquals(IMAGE_FILE_NAME, fileAsset.getPath().getFileName().toString(), "wrong file name");
-            assertEquals(IMAGE_FILE_SIZE, Files.size(fileAsset.getPath()), "wrong file size");
+            assertEquals(IMAGE_FILE_NAME, fileAsset.getFile().getName(), "wrong file name");
+            assertEquals(IMAGE_FILE_SIZE, Files.size(fileAsset.getFile().toPath()), "wrong downloaded file size");
+            assertEquals(IMAGE_FILE_SIZE, fileAsset.getSize().orElse(0L), "wrong file size");
             assertEquals(SOME_METADATA, fileAsset.getMetadata(), "wrong metadata");
-            assertEquals(UNKNOWN.type(), fileAsset.getAssetType(), "wrong asset type");
+            assertEquals(UNKNOWN, fileAsset.getType(), "wrong asset type");
 
             System.out.println(fileAsset);
 
@@ -589,9 +589,9 @@ public class ArtifactSupportTest extends AssetsBaseTest {
                         assertEquals(0, loggedArtifactAsset.getMetadata().size(), "empty metadata expected");
                     }
                     if (asset.getType() == ASSET) {
-                        assertEquals(UNKNOWN.type(), loggedArtifactAsset.getAssetType());
+                        assertEquals(UNKNOWN, loggedArtifactAsset.getAssetType());
                     } else {
-                        assertEquals(asset.getType().type(), loggedArtifactAsset.getAssetType(), "wrong asset type");
+                        assertEquals(asset.getType(), loggedArtifactAsset.getAssetType(), "wrong asset type");
                     }
                 });
         assertTrue(matchFound.get(), String.format("no match found for %s", loggedArtifactAsset));

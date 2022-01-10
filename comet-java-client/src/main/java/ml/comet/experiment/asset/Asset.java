@@ -31,13 +31,6 @@ public interface Asset {
     String getLogicalPath();
 
     /**
-     * Sets the {@link ExperimentContext} to be associated with this asset.
-     *
-     * @param context the {@link ExperimentContext} to be associated with this asset.
-     */
-    void setExperimentContext(ExperimentContext context);
-
-    /**
      * Returns the {@link ExperimentContext} associated with this asset.
      *
      * @return the {@link ExperimentContext} associated with this asset or {@code null} if no context assigned.
@@ -64,11 +57,4 @@ public interface Asset {
      * @return the metadata associated with this asset or {@code null} if there is no metadata.
      */
     Map<String, Object> getMetadata();
-
-    /**
-     * Associates provided metadata with this asset.
-     *
-     * @param metadata the metadata to be associated.
-     */
-    void setMetadata(Map<String, Object> metadata);
 }

@@ -5,6 +5,11 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactAsset;
+import ml.comet.experiment.asset.AssetType;
+
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Describes artifact's asset data.
@@ -15,6 +20,24 @@ import ml.comet.experiment.artifact.ArtifactAsset;
 @ToString(callSuper = true)
 public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
     String artifactVersionId;
+    Long fileSize;
+
+    /**
+     * Creates new instance with specified parameters.
+     *
+     * @param name      the logical path/name of the asset.
+     * @param filePath  the path to the asset file.
+     * @param size      the size of the asset file.
+     * @param metadata  the meta-data associated with asset.
+     * @param assetType the type of the asset.
+     */
+    public ArtifactAssetImpl(String name, Path filePath, long size, Map<String, Object> metadata, AssetType assetType) {
+        this.setLogicalPath(name);
+        this.setFile(filePath.toFile());
+        this.fileSize = size;
+        this.metadata = metadata;
+        this.setType(assetType);
+    }
 
     /**
      * The copy constructor.
@@ -29,5 +52,10 @@ public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
         this.type = asset.getType();
         this.overwrite = asset.getOverwrite();
         this.metadata = asset.getMetadata();
+    }
+
+    @Override
+    public Optional<Long> getSize() {
+        return Optional.ofNullable(this.fileSize);
     }
 }

@@ -6,12 +6,12 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactDownloadException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.asset.FileAsset;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -153,7 +153,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
 
         // create parallel execution flow with errors delaying
         // allowing processing of items even if some of them failed
-        Observable<FileAsset> observable = Observable.fromStream(assets.stream())
+        Observable<ArtifactAsset> observable = Observable.fromStream(assets.stream())
                 .filter(loggedArtifactAsset -> !loggedArtifactAsset.isRemote())
                 .flatMap(loggedArtifactAsset ->
                         Observable.just(loggedArtifactAsset)
@@ -192,7 +192,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         return assets;
     }
 
-    FileAsset downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
+    ArtifactAsset downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
                             @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactException {
         return this.baseExperiment.downloadArtifactAsset(asset, dir, file, overwriteStrategy);
@@ -204,8 +204,8 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
             tmpDir = Files.createTempDirectory(null);
             Path file = FileSystems.getDefault().getPath(asset.getFileName());
 
-            FileAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
-            Files.copy(downloaded.getPath(), out);
+            ArtifactAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
+            Files.copy(downloaded.getFile().toPath(), out);
             out.flush();
         } catch (IOException e) {
             this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
@@ -228,8 +228,8 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
             Path file = FileSystems.getDefault().getPath(asset.getFileName());
             file.toFile().deleteOnExit(); // make sure to delete temporary file
 
-            FileAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
-            return Files.newInputStream(downloaded.getPath(), READ);
+            ArtifactAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
+            return Files.newInputStream(downloaded.getFile().toPath(), READ);
         } catch (IOException e) {
             this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
             throw new ArtifactDownloadException("Failed to create temporary file to store asset's content.", e);

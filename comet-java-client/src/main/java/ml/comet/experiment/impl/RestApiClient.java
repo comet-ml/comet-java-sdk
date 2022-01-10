@@ -9,6 +9,7 @@ import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.exception.CometApiException;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
 import ml.comet.experiment.impl.constants.FormParamName;
@@ -219,7 +220,7 @@ final class RestApiClient implements Disposable {
         Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters((AssetImpl) asset, experimentKey);
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
         if (asset instanceof ArtifactAsset) {
-            queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAsset) asset).getArtifactVersionId());
+            queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAssetImpl) asset).getArtifactVersionId());
         }
 
         // call appropriate send method
@@ -242,7 +243,7 @@ final class RestApiClient implements Disposable {
         Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters((AssetImpl) asset, experimentKey);
         queryParams.put(IS_REMOTE, Boolean.TRUE.toString());
         if (asset instanceof ArtifactAsset) {
-            queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAsset) asset).getArtifactVersionId());
+            queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAssetImpl) asset).getArtifactVersionId());
         }
 
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);

@@ -31,7 +31,6 @@ public class AssetImpl implements Asset {
     ExperimentContext experimentContext;
     Map<String, Object> metadata;
 
-    @Override
     public void setExperimentContext(ExperimentContext context) {
         this.experimentContext = new ExperimentContext(context);
     }

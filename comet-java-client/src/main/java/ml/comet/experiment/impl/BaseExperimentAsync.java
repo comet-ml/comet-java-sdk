@@ -9,22 +9,23 @@ import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
-import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.Asset;
-import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.asset.RemoteAsset;
+import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactVersionState;
 import ml.comet.experiment.impl.rest.HtmlRest;
-import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.LogOtherRest;
 import ml.comet.experiment.impl.rest.MetricRest;
 import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
+import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.model.GitMetaData;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static ml.comet.experiment.artifact.GetArtifactOptions.Op;
+import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_LOGGED_WITHOUT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_STARTED;
@@ -68,7 +70,6 @@ import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherReques
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
-import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
 
 /**
  * The base class for all asynchronous experiment implementations providing implementation of common routines
@@ -479,7 +480,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         AtomicInteger count = new AtomicInteger();
         Stream<ArtifactAsset> assets = artifactImpl.getAssets().stream()
                 .peek(asset -> {
-                    asset.setArtifactVersionId(artifactVersionId);
+                    ((ArtifactAssetImpl) asset).setArtifactVersionId(artifactVersionId);
                     count.incrementAndGet();
                 });
 
@@ -565,7 +566,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T extends Asset> void logAsset(final BiFunction<T, String, Single<RestApiResponse>> func,
                                             @NonNull final T asset, @NonNull Optional<Action> onComplete) {
-        asset.setExperimentContext(this.baseContext);
+        ((AssetImpl) asset).setExperimentContext(this.baseContext);
         Single<RestApiResponse> single = this.sendAssetAsync(func, asset);
 
         if (onComplete.isPresent()) {

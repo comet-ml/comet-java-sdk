@@ -23,7 +23,7 @@ public class ArtifactRemoteAssetImpl extends ArtifactAssetImpl implements Remote
      *
      * @param asset the {@link RemoteAssetImpl} to copy relevant data from.
      */
-    public ArtifactRemoteAssetImpl(RemoteAsset asset) {
+    public ArtifactRemoteAssetImpl(RemoteAssetImpl asset) {
         this.setLink(asset.getLink());
         this.logicalPath = asset.getLogicalPath();
         this.type = asset.getType();
