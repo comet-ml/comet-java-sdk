@@ -1,4 +1,4 @@
 /**
- * Contains all interfaces describing the Comet assets.
+ * Contains all interfaces and classes describing the Comet assets.
  */
 package ml.comet.experiment.asset;

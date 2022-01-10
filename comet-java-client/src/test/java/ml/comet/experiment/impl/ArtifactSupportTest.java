@@ -8,7 +8,7 @@ import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.impl.utils.TestUtils;
-import ml.comet.experiment.model.FileAsset;
+import ml.comet.experiment.asset.FileAsset;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.DisplayName;

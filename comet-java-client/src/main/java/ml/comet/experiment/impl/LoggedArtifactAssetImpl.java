@@ -8,7 +8,7 @@ import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.utils.DataModelUtils;
-import ml.comet.experiment.model.FileAsset;
+import ml.comet.experiment.asset.FileAsset;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

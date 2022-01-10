@@ -37,7 +37,7 @@ import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.FileUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
-import ml.comet.experiment.model.FileAsset;
+import ml.comet.experiment.asset.FileAsset;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;

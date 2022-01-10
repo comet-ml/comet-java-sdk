@@ -1,6 +1,6 @@
 package ml.comet.experiment.artifact;
 
-import ml.comet.experiment.model.FileAsset;
+import ml.comet.experiment.asset.FileAsset;
 
 import java.io.InputStream;
 import java.io.OutputStream;

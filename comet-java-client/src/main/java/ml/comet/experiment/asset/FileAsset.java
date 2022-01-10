@@ -1,4 +1,4 @@
-package ml.comet.experiment.model;
+package ml.comet.experiment.asset;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
