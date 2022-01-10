@@ -4,8 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-import ml.comet.experiment.asset.ArtifactAsset;
-import ml.comet.experiment.asset.Asset;
+import ml.comet.experiment.artifact.ArtifactAsset;
 
 /**
  * Describes artifact's asset data.

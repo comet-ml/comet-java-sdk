@@ -12,7 +12,7 @@ import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.asset.ArtifactAsset;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.asset.RemoteAsset;

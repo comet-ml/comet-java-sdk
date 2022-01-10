@@ -4,7 +4,7 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.GetArtifactOptions;
-import ml.comet.experiment.asset.ArtifactAsset;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.asset.RemoteAsset;

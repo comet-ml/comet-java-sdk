@@ -5,7 +5,7 @@ import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.asset.ArtifactAsset;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.FileAsset;

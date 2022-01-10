@@ -1,4 +1,4 @@
-package ml.comet.experiment.asset;
+package ml.comet.experiment.artifact;
 
 import ml.comet.experiment.asset.Asset;
 

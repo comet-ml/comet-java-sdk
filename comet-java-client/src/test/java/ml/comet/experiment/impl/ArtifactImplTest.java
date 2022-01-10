@@ -4,7 +4,7 @@ import com.vdurmont.semver4j.SemverException;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
-import ml.comet.experiment.asset.ArtifactAsset;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
 import ml.comet.experiment.asset.Asset;
