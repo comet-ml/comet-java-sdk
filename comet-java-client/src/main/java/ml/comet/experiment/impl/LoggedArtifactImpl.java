@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -116,7 +117,15 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     }
 
     @Override
-    public Collection<LoggedArtifactAsset> readAssets() throws ArtifactException {
+    public Collection<LoggedArtifactAsset> getRemoteAssets() throws ArtifactException {
+        return this.baseExperiment.readArtifactAssets(this)
+                .stream()
+                .filter(LoggedArtifactAsset::isRemote)
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+    }
+
+    @Override
+    public Collection<LoggedArtifactAsset> getAssets() throws ArtifactException {
         return this.baseExperiment.readArtifactAssets(this);
     }
 
@@ -129,7 +138,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     public Collection<LoggedArtifactAsset> download(
             @NonNull Path folder, @NonNull AssetOverwriteStrategy overwriteStrategy) throws ArtifactException {
         // read all assets associated with this artifact
-        Collection<LoggedArtifactAsset> assets = this.readAssets();
+        Collection<LoggedArtifactAsset> assets = this.getAssets();
         int assetsToDownload = assets.stream()
                 .filter(loggedArtifactAsset -> !loggedArtifactAsset.isRemote())
                 .mapToInt(value -> 1)

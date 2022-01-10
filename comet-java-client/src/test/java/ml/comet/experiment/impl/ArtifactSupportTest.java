@@ -124,8 +124,55 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // check that correct assets was logged
             //
-            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
             validateLoggedArtifactAssets(artifact.getAssets(), loggedAssets);
+
+        } catch (Throwable t) {
+            fail(t);
+        }
+    }
+
+    @Test
+    public void testLogAndGetArtifact_getRemoteAssets() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add remote assets
+            //
+            URI firstAssetLink = new URI("s3://bucket/folder/firstAssetFile.extension");
+            String firstRemoteAssetFileName = "firstAssetFileName";
+            artifact.addRemoteAsset(firstAssetLink, firstRemoteAssetFileName);
+
+            String secondRemoteAssetFileName = "secondAssetFile.extension";
+            URI secondAssetLink = new URI("s3://bucket/folder/" + secondRemoteAssetFileName);
+            artifact.addRemoteAsset(secondAssetLink, secondRemoteAssetFileName);
+
+            // add local assets
+            //
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)),
+                    IMAGE_FILE_NAME, false, SOME_METADATA);
+            artifact.addAsset(Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)),
+                    CODE_FILE_NAME, false);
+            byte[] someData = "some data".getBytes(StandardCharsets.UTF_8);
+            String someDataName = "someDataName";
+            artifact.addAsset(someData, someDataName);
+
+            // add assets folder
+            //
+            artifact.addAssetFolder(assetsFolder.toFile(), true, true);
+
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // check that correct assets was logged
+            //
+            Collection<LoggedArtifactAsset> loggedRemoteAssets = loggedArtifact.getRemoteAssets();
+            assertEquals(2, loggedRemoteAssets.size(), "wrong number of remote assets returned");
+            assertTrue(loggedRemoteAssets
+                    .stream()
+                    .allMatch(loggedArtifactAsset -> loggedArtifactAsset.isRemote()
+                            && (loggedArtifactAsset.getFileName().equals(firstRemoteAssetFileName) ||
+                            loggedArtifactAsset.getFileName().equals(secondRemoteAssetFileName))));
 
         } catch (Throwable t) {
             fail(t);
@@ -156,7 +203,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // get logged assets and download to local dir
             //
-            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
             FileAsset fileAsset = loggedAssets.iterator().next().download(tmpDir);
@@ -201,7 +248,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // get logged assets and download to local dir
             //
-            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
             LoggedArtifactAsset asset = loggedAssets.iterator().next();
@@ -409,7 +456,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // get logged assets and load asset content
             //
-            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -446,7 +493,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // get logged assets and load asset content
             //
-            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
             LoggedArtifactAsset asset = loggedAssets.iterator().next();
@@ -490,7 +537,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // get logged assets and load asset content
             //
-            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
             LoggedArtifactAsset asset = loggedAssets.iterator().next();

@@ -103,7 +103,7 @@ public class ArtifactExample implements BaseExample {
 
         // get logged assets
         //
-        Collection<LoggedArtifactAsset> loggedAssets = loggedArtifact.readAssets();
+        Collection<LoggedArtifactAsset> loggedAssets = loggedArtifact.getAssets();
         System.out.printf(
                 "Received %d logged artifact assets from the Comet server. Downloading asset files...\n",
                 loggedAssets.size());
