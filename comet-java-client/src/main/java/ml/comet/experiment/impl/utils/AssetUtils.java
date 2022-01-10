@@ -3,13 +3,13 @@ package ml.comet.experiment.impl.utils;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
-import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
-import ml.comet.experiment.model.AssetType;
+import ml.comet.experiment.asset.AssetType;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -79,7 +79,7 @@ public class AssetUtils {
                                                     Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
         RemoteAssetImpl asset = new RemoteAssetImpl();
         asset.setLink(uri);
-        asset.setFileName(fileName.orElse(remoteAssetFileName(uri)));
+        asset.setLogicalPath(fileName.orElse(remoteAssetFileName(uri)));
 
         return (RemoteAssetImpl) updateAsset(asset, overwrite, metadata, type);
     }
@@ -102,7 +102,7 @@ public class AssetUtils {
         String logicalFileName = fileName.orElse(file.getName());
         AssetImpl asset = new AssetImpl();
         asset.setFile(file);
-        asset.setFileName(logicalFileName);
+        asset.setLogicalPath(logicalFileName);
         asset.setFileExtension(FilenameUtils.getExtension(logicalFileName));
 
         return updateAsset(asset, overwrite, metadata, type);
@@ -125,7 +125,7 @@ public class AssetUtils {
                                                 @NonNull Optional<AssetType> type) {
         AssetImpl asset = new AssetImpl();
         asset.setFileLikeData(data);
-        asset.setFileName(fileName);
+        asset.setLogicalPath(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
 
         return updateAsset(asset, overwrite, metadata, type);
@@ -134,18 +134,18 @@ public class AssetUtils {
     /**
      * Extracts query parameters from the provided {@link Asset}.
      *
-     * @param asset         the {@link Asset} to extract HTTP query parameters from.
+     * @param asset         the {@link AssetImpl} to extract HTTP query parameters from.
      * @param experimentKey the key of the Comet experiment.
      * @return the map with query parameters.
      */
     public static Map<QueryParamName, String> assetQueryParameters(
-            @NonNull final Asset asset, @NonNull String experimentKey) {
+            @NonNull final AssetImpl asset, @NonNull String experimentKey) {
         Map<QueryParamName, String> queryParams = new HashMap<>();
         queryParams.put(EXPERIMENT_KEY, experimentKey);
         queryParams.put(TYPE, asset.getType().type());
 
         putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
-        putNotNull(queryParams, FILE_NAME, asset.getFileName());
+        putNotNull(queryParams, FILE_NAME, asset.getLogicalPath());
         putNotNull(queryParams, EXTENSION, asset.getFileExtension());
 
         ExperimentContext context = asset.getExperimentContext();
@@ -213,7 +213,7 @@ public class AssetUtils {
         AssetImpl asset = new AssetImpl();
         asset.setFile(assetPath.toFile());
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);
-        asset.setFileName(fileName);
+        asset.setLogicalPath(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
         asset.setType(AssetType.ASSET);
         return asset;

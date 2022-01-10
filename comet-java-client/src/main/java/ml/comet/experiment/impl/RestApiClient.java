@@ -4,11 +4,13 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.GetArtifactOptions;
+import ml.comet.experiment.asset.ArtifactAsset;
+import ml.comet.experiment.asset.Asset;
+import ml.comet.experiment.asset.AssetType;
+import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.exception.CometApiException;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
-import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
-import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.http.Connection;
@@ -33,16 +35,15 @@ import ml.comet.experiment.impl.rest.GetProjectsResponse;
 import ml.comet.experiment.impl.rest.GetWorkspacesResponse;
 import ml.comet.experiment.impl.rest.GitMetadataRest;
 import ml.comet.experiment.impl.rest.HtmlRest;
-import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.LogOtherRest;
 import ml.comet.experiment.impl.rest.MetricRest;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
+import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.TagsResponse;
 import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.impl.utils.JsonUtils;
-import ml.comet.experiment.model.AssetType;
 
 import java.io.File;
 import java.util.Collections;
@@ -215,7 +216,7 @@ final class RestApiClient implements Disposable {
     }
 
     <T extends Asset> Single<RestApiResponse> logAsset(final T asset, String experimentKey) {
-        Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
+        Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters((AssetImpl) asset, experimentKey);
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
         if (asset instanceof ArtifactAsset) {
             queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAsset) asset).getArtifactVersionId());
@@ -238,7 +239,7 @@ final class RestApiClient implements Disposable {
     }
 
     <T extends RemoteAsset> Single<RestApiResponse> logRemoteAsset(final T asset, String experimentKey) {
-        Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters(asset, experimentKey);
+        Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters((AssetImpl) asset, experimentKey);
         queryParams.put(IS_REMOTE, Boolean.TRUE.toString());
         if (asset instanceof ArtifactAsset) {
             queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAsset) asset).getArtifactVersionId());

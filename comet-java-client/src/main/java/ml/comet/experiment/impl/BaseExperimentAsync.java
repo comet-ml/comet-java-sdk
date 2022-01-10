@@ -12,10 +12,11 @@ import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
-import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.asset.ArtifactAsset;
+import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
-import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.asset.RemoteAsset;
+import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactVersionState;
 import ml.comet.experiment.impl.rest.HtmlRest;
@@ -67,7 +68,7 @@ import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherReques
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
-import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
 
 /**
  * The base class for all asynchronous experiment implementations providing implementation of common routines
@@ -393,10 +394,10 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
-        RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata, empty());
+        RemoteAssetImpl asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata, empty());
         this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
 
-        if (Objects.equals(asset.getFileName(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
+        if (Objects.equals(asset.getLogicalPath(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
             getLogger().warn(
                     getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
         }

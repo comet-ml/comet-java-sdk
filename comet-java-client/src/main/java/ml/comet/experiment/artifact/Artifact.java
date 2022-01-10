@@ -2,7 +2,7 @@ package ml.comet.experiment.artifact;
 
 import lombok.NonNull;
 import ml.comet.experiment.impl.ArtifactImpl;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
+import ml.comet.experiment.asset.ArtifactAsset;
 
 import java.io.File;
 import java.io.IOException;

@@ -6,11 +6,12 @@ import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactBuilder;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
+import ml.comet.experiment.asset.ArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
-import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.asset.Asset;
+import ml.comet.experiment.asset.RemoteAsset;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +78,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private void addAsset(@NonNull File file, @NonNull String name,
                           boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
-        Asset asset = createAssetFromFile(file, Optional.of(name), overwrite, metadata, empty());
+        AssetImpl asset = createAssetFromFile(file, Optional.of(name), overwrite, metadata, empty());
         this.appendAsset(new ArtifactAssetImpl(asset));
     }
 
@@ -99,7 +100,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private void addAsset(byte[] data, @NonNull String name,
                           boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
-        Asset asset = createAssetFromData(data, name, overwrite, metadata, empty());
+        AssetImpl asset = createAssetFromData(data, name, overwrite, metadata, empty());
         this.appendAsset(new ArtifactAssetImpl(asset));
     }
 
@@ -162,7 +163,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
     private <T extends ArtifactAsset> void appendAsset(@NonNull final T asset)
             throws ConflictingArtifactAssetNameException {
-        String key = asset.getFileName();
+        String key = asset.getLogicalPath();
         ArtifactAsset a = this.assetsMap.get(key);
         if (a != null) {
             throw new ConflictingArtifactAssetNameException(

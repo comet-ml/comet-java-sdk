@@ -15,10 +15,10 @@ import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.InvalidArtifactStateException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
+import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
-import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
 import ml.comet.experiment.impl.http.Connection;
@@ -36,7 +36,6 @@ import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.FileUtils;
-import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.FileAsset;
 import ml.comet.experiment.model.GitMetaData;
@@ -58,6 +57,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
+import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosed;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
@@ -98,7 +98,6 @@ import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherReques
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
-import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 
 /**
  * The base class for all synchronous experiment implementations providing implementation of common routines
@@ -401,7 +400,7 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("log raw source code, file name: {}", fileName);
         }
 
-        Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
+        AssetImpl asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
                 empty(), Optional.of(SOURCE_CODE));
         this.logAsset(asset, context);
     }
@@ -416,7 +415,7 @@ abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("log source code from file {}", file.getName());
         }
-        Asset asset = createAssetFromFile(file, empty(), false,
+        AssetImpl asset = createAssetFromFile(file, empty(), false,
                 empty(), Optional.of(SOURCE_CODE));
         this.logAsset(asset, context);
     }
@@ -433,7 +432,7 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("uploadAsset from file {}, name {}, override {}, context {}",
                     file.getName(), fileName, overwrite, context);
         }
-        Asset asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
+        AssetImpl asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
         this.logAsset(asset, context);
     }
 
@@ -457,7 +456,7 @@ abstract class BaseExperiment implements Experiment {
      *
      * @param asset the {@link AssetImpl} to be uploaded
      */
-    void logAsset(@NonNull final Asset asset, @NonNull ExperimentContext context) {
+    void logAsset(@NonNull final AssetImpl asset, @NonNull ExperimentContext context) {
         asset.setExperimentContext(context);
 
         sendSynchronously(restApiClient::logAsset, asset);

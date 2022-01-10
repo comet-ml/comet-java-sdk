@@ -1,9 +1,9 @@
 package ml.comet.experiment.impl.utils;
 
-import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
-import ml.comet.experiment.impl.asset.RemoteAsset;
-import ml.comet.experiment.model.AssetType;
+import ml.comet.experiment.asset.RemoteAsset;
+import ml.comet.experiment.asset.AssetType;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -37,9 +37,9 @@ import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
 import static ml.comet.experiment.impl.utils.AssetUtils.createRemoteAsset;
 import static ml.comet.experiment.impl.utils.AssetUtils.updateAsset;
-import static ml.comet.experiment.model.AssetType.ASSET;
-import static ml.comet.experiment.model.AssetType.NOTEBOOK;
-import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.asset.AssetType.ASSET;
+import static ml.comet.experiment.asset.AssetType.NOTEBOOK;
+import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -85,11 +85,11 @@ public class AssetUtilsTest {
     @Test
     public void testMapToFileAsset() {
         Path file = subFolderFiles.get(0);
-        Asset asset = AssetUtils.mapToFileAsset(
+        AssetImpl asset = AssetUtils.mapToFileAsset(
                 root.toFile(), file, false, false);
         assertNotNull(asset, "asset expected");
         assertEquals(asset.getFile(), file.toFile(), "wrong asset file");
-        assertEquals(asset.getFileName(), file.getFileName().toString(), "wrong asset file name");
+        assertEquals(asset.getLogicalPath(), file.getFileName().toString(), "wrong asset file name");
         assertEquals(someFileExtension, asset.getFileExtension(), "wrong file extension");
         assertEquals(ASSET, asset.getType(), "wrong asset type");
     }
@@ -117,7 +117,7 @@ public class AssetUtilsTest {
     public void testCreateRemoteAsset_fileNameSelection(URI uri, String fileName, String expectedFileName) {
         RemoteAsset asset = createRemoteAsset(uri, ofNullable(fileName), false, empty(), empty());
         assertNotNull(asset);
-        assertEquals(expectedFileName, asset.getFileName());
+        assertEquals(expectedFileName, asset.getLogicalPath());
     }
 
     @Test
@@ -141,11 +141,11 @@ public class AssetUtilsTest {
         String extension = "someExtension";
         String fileName = "someFileName." + extension;
         File file = allFolderFiles.get(0).toFile();
-        Asset asset = createAssetFromFile(file, Optional.of(fileName),
+        AssetImpl asset = createAssetFromFile(file, Optional.of(fileName),
                 false, empty(), empty());
         assertNotNull(asset);
         assertEquals(file, asset.getFile(), "wrong file");
-        assertEquals(fileName, asset.getFileName(), "wrong file name");
+        assertEquals(fileName, asset.getLogicalPath(), "wrong file name");
         assertEquals(extension, asset.getFileExtension(), "wrong file extension");
         assertEquals(ASSET, asset.getType());
 
@@ -157,7 +157,7 @@ public class AssetUtilsTest {
         extension = FilenameUtils.getExtension(fileName);
         assertNotNull(asset);
         assertEquals(file, asset.getFile(), "wrong file");
-        assertEquals(fileName, asset.getFileName(), "wrong file name");
+        assertEquals(fileName, asset.getLogicalPath(), "wrong file name");
         assertEquals(extension, asset.getFileExtension(), "wrong file extension");
         assertEquals(ASSET, asset.getType());
     }
@@ -183,14 +183,14 @@ public class AssetUtilsTest {
         Asset asset = createAssetFromData(data, fileName, false, empty(), empty());
         assertNotNull(asset);
         assertEquals(data, asset.getFileLikeData());
-        assertEquals(fileName, asset.getFileName());
+        assertEquals(fileName, asset.getLogicalPath());
         assertEquals(ASSET, asset.getType());
 
         AssetType expected = SOURCE_CODE;
         asset = createAssetFromData(data, fileName, false, empty(), Optional.of(expected));
         assertNotNull(asset);
         assertEquals(data, asset.getFileLikeData());
-        assertEquals(fileName, asset.getFileName());
+        assertEquals(fileName, asset.getLogicalPath());
         assertEquals(expected, asset.getType());
     }
 
@@ -239,7 +239,7 @@ public class AssetUtilsTest {
         assertTrue(
                 assets.allMatch(
                         asset -> Objects.equals(asset.getFileExtension(), someFileExtension)
-                                && StringUtils.isNotBlank(asset.getFileName())
+                                && StringUtils.isNotBlank(asset.getLogicalPath())
                                 && asset.getFile() != null),
                 "wrong asset data");
 
@@ -250,7 +250,7 @@ public class AssetUtilsTest {
     }
 
     void checkAssetFilename(Asset asset, boolean logFilePath, boolean recursive, boolean prefixWithFolderName) {
-        String name = asset.getFileName();
+        String name = asset.getLogicalPath();
         if (logFilePath && prefixWithFolderName) {
             assertTrue(name.startsWith(root.getFileName().toString()), "must have folder name prefix");
         }

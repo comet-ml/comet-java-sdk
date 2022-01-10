@@ -5,8 +5,8 @@ import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
-import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.asset.ArtifactAsset;
+import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.FileAsset;
 import org.apache.commons.io.IOUtils;
@@ -43,8 +43,8 @@ import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperim
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
-import static ml.comet.experiment.model.AssetType.ASSET;
-import static ml.comet.experiment.model.AssetType.UNKNOWN;
+import static ml.comet.experiment.asset.AssetType.ASSET;
+import static ml.comet.experiment.asset.AssetType.UNKNOWN;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -573,7 +573,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
     static void validateLoggedArtifactAsset(LoggedArtifactAsset loggedArtifactAsset, Collection<ArtifactAsset> assets) {
         AtomicBoolean matchFound = new AtomicBoolean(false);
         assets.stream()
-                .filter(asset -> Objects.equals(asset.getFileName(), loggedArtifactAsset.getFileName()))
+                .filter(asset -> Objects.equals(asset.getLogicalPath(), loggedArtifactAsset.getFileName()))
                 .forEach(asset -> {
                     matchFound.set(true);
                     if (asset instanceof RemoteAsset) {

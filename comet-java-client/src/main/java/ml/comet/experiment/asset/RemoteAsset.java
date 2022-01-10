@@ -1,4 +1,6 @@
-package ml.comet.experiment.impl.asset;
+package ml.comet.experiment.asset;
+
+import ml.comet.experiment.asset.Asset;
 
 import java.net.URI;
 

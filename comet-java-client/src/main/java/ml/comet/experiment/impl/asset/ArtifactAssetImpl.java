@@ -4,6 +4,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import ml.comet.experiment.asset.ArtifactAsset;
+import ml.comet.experiment.asset.Asset;
 
 /**
  * Describes artifact's asset data.
@@ -20,11 +22,11 @@ public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
      *
      * @param asset the {@link AssetImpl} to copy data from.
      */
-    public ArtifactAssetImpl(Asset asset) {
+    public ArtifactAssetImpl(AssetImpl asset) {
         this.setFile(asset.getFile());
         this.setFileLikeData(asset.getFileLikeData());
         this.setFileExtension(asset.getFileExtension());
-        this.fileName = asset.getFileName();
+        this.logicalPath = asset.getLogicalPath();
         this.type = asset.getType();
         this.overwrite = asset.getOverwrite();
         this.metadata = asset.getMetadata();

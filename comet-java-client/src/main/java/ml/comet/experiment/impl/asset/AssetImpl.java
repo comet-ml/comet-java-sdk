@@ -3,8 +3,9 @@ package ml.comet.experiment.impl.asset;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.model.AssetType;
+import ml.comet.experiment.asset.AssetType;
 
 import java.io.File;
 import java.util.Map;
@@ -22,7 +23,7 @@ public class AssetImpl implements Asset {
     private String fileExtension;
 
     @ToString.Include
-    String fileName;
+    String logicalPath;
     @ToString.Include
     AssetType type;
     @ToString.Include

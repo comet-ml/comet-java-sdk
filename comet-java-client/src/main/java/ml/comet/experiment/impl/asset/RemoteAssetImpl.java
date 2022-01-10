@@ -3,6 +3,7 @@ package ml.comet.experiment.impl.asset;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import ml.comet.experiment.asset.RemoteAsset;
 
 import java.net.URI;
 

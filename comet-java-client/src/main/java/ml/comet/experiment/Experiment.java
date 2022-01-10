@@ -3,7 +3,7 @@ package ml.comet.experiment;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.model.AssetType;
+import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.LoggedExperimentAsset;

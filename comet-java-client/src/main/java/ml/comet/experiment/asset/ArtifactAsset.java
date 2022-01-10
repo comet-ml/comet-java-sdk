@@ -1,4 +1,6 @@
-package ml.comet.experiment.impl.asset;
+package ml.comet.experiment.asset;
+
+import ml.comet.experiment.asset.Asset;
 
 /**
  * Defines the public contract of the asset associated with specific artifact.

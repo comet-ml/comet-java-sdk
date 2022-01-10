@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import ml.comet.experiment.asset.RemoteAsset;
 
 import java.net.URI;
 
@@ -24,7 +25,7 @@ public class ArtifactRemoteAssetImpl extends ArtifactAssetImpl implements Remote
      */
     public ArtifactRemoteAssetImpl(RemoteAsset asset) {
         this.setLink(asset.getLink());
-        this.fileName = asset.getFileName();
+        this.logicalPath = asset.getLogicalPath();
         this.type = asset.getType();
         this.overwrite = asset.getOverwrite();
         this.metadata = asset.getMetadata();

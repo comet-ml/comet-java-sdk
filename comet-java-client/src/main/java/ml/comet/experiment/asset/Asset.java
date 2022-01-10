@@ -1,7 +1,6 @@
-package ml.comet.experiment.impl.asset;
+package ml.comet.experiment.asset;
 
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.model.AssetType;
 
 import java.io.File;
 import java.util.Map;
@@ -29,14 +28,7 @@ public interface Asset {
      *
      * @return the custom file name for this asset or {@code null} if default should be used.
      */
-    String getFileName();
-
-    /**
-     * Returns the file name extension or {@code null} if not applicable.
-     *
-     * @return the file name extension or {@code null} if not applicable.
-     */
-    String getFileExtension();
+    String getLogicalPath();
 
     /**
      * Sets the {@link ExperimentContext} to be associated with this asset.
