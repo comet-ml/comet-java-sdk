@@ -5,8 +5,11 @@ import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
+import org.apache.commons.io.IOUtils;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -135,16 +138,27 @@ public class ArtifactExample implements BaseExample {
         // load content of the artifact asset into the memory
         //
         LoggedArtifactAsset asset = assets.stream()
-                .filter(loggedArtifactAsset -> !loggedArtifactAsset.isRemote())
+                .filter(loggedArtifactAsset -> {
+                    Long size = loggedArtifactAsset.getFileSize().orElse(0L);
+                    return !loggedArtifactAsset.isRemote() && size > 0;
+                })
                 .findFirst().orElse(null);
         if (asset != null) {
             System.out.printf("Loading content of the artifact asset '%s' into memory\n", asset.getAssetId());
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            asset.writeTo(out);
-
-            System.out.printf(
-                    "Asset's content successfully loaded into memory, data size: %d.\n\n", out.size());
+            int buffSize = 512;
+            try (InputStream in = new BufferedInputStream(asset.openStream(), buffSize)) {
+                // work with input stream
+                byte[] buff = IOUtils.byteArray(buffSize);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                for (int count; (count = in.read(buff)) > 0; ) {
+                    out.write(buff, 0, count);
+                }
+                System.out.printf(
+                        "Asset's content successfully loaded into memory, data size: %d.\n\n", out.size());
+            } catch (Throwable t) {
+                System.err.printf("Failed to read asset data, reason: %s\n\n", t);
+            }
         }
 
         System.out.println("===== Experiment completed ====");
