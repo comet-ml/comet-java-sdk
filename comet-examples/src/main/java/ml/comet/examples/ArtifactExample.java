@@ -2,6 +2,7 @@ package ml.comet.examples;
 
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
@@ -113,7 +114,9 @@ public class ArtifactExample implements BaseExample {
         final Path assetsTmpDir = Files.createTempDirectory("ArtifactExampleAssets");
         loggedAssets.forEach(loggedArtifactAsset -> {
             if (!loggedArtifactAsset.isRemote()) {
-                loggedArtifactAsset.download(assetsTmpDir);
+                ArtifactAsset asset = loggedArtifactAsset.download(assetsTmpDir);
+                System.out.printf("Downloaded asset '%s' of size %d bytes to '%s'\n",
+                        asset.getLogicalPath(), asset.getSize().orElse(0L), asset.getFile());
             } else {
                 URI uri = loggedArtifactAsset.getLink().orElse(null);
                 System.out.printf(
