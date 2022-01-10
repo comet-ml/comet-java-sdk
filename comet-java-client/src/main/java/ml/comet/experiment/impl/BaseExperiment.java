@@ -82,6 +82,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_RESOLVE_A
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPSERT_ARTIFACT;
 import static ml.comet.experiment.impl.resources.LogMessages.GET_ARTIFACT_FAILED_UNEXPECTEDLY;
+import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
@@ -634,6 +635,10 @@ abstract class BaseExperiment implements Experiment {
     FileAsset downloadArtifactAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
                                     @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactDownloadException {
+        if (asset.isRemote()) {
+            throw new ArtifactDownloadException(getString(REMOTE_ASSET_CANNOT_BE_DOWNLOADED, asset));
+        }
+
         Path resolved;
         boolean fileAlreadyExists = false;
         try {

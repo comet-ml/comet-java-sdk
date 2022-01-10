@@ -2,6 +2,7 @@ package ml.comet.experiment.artifact;
 
 import ml.comet.experiment.model.FileAsset;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.Path;
@@ -98,4 +99,15 @@ public interface LoggedArtifactAsset {
      * @throws ArtifactException if operation failed.
      */
     void writeTo(OutputStream out) throws ArtifactException;
+
+    /**
+     * Opens a connection to this {@code LoggedArtifactAsset} and returns an {@link InputStream} for reading from
+     * this connection.
+     *
+     * <p>NOTE: You are responsible to close an {@link InputStream} to avoid resource leak.
+     *
+     * @return an input stream for reading asset's data bytes.
+     * @throws ArtifactException if operation failed.
+     */
+    InputStream openStream() throws ArtifactException;
 }

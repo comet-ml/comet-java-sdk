@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -21,6 +22,9 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+
+import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
 /**
  * Implementation of the {@link LoggedArtifactAsset}.
@@ -124,19 +128,30 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     @Override
     public FileAsset download(@NonNull Path dir, @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactException {
-        if (this.isRemote()) {
-            throw new ArtifactException("Can not download remote asset. Please use its URI to download directly!");
-        }
+        this.validateNotRemote();
         return this.artifact.downloadAsset(this, dir, file, overwriteStrategy);
     }
 
     @Override
     public void writeTo(OutputStream out) throws ArtifactException {
-        this.artifact.loadTo(this, out);
+        this.validateNotRemote();
+        this.artifact.writeAssetTo(this, out);
+    }
+
+    @Override
+    public InputStream openStream() throws ArtifactException {
+        this.validateNotRemote();
+        return this.artifact.openAssetStream(this);
     }
 
     @ToString.Include
     String artifactFullName() {
         return this.artifact.getFullName();
+    }
+
+    void validateNotRemote() {
+        if (this.isRemote()) {
+            throw new ArtifactException(getString(REMOTE_ASSET_CANNOT_BE_DOWNLOADED, this));
+        }
     }
 }

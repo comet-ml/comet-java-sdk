@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import static java.nio.file.StandardOpenOption.READ;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_ASSETS_DOWNLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_ASSETS_TO_DOWNLOAD;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS;
@@ -187,7 +189,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         return this.baseExperiment.downloadArtifactAsset(asset, dir, file, overwriteStrategy);
     }
 
-    void loadTo(@NonNull LoggedArtifactAssetImpl asset, @NonNull OutputStream out) throws ArtifactException {
+    void writeAssetTo(@NonNull LoggedArtifactAssetImpl asset, @NonNull OutputStream out) throws ArtifactException {
         Path tmpDir = null;
         try {
             tmpDir = Files.createTempDirectory(null);
@@ -208,6 +210,20 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
                     this.logger.warn("Failed to clean the temporary directory while loading asset's content.", e);
                 }
             }
+        }
+    }
+
+    InputStream openAssetStream(@NonNull LoggedArtifactAssetImpl asset) throws ArtifactException {
+        try {
+            Path tmpDir = Files.createTempDirectory(null);
+            Path file = FileSystems.getDefault().getPath(asset.getFileName());
+            file.toFile().deleteOnExit(); // make sure to delete temporary file
+
+            FileAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
+            return Files.newInputStream(downloaded.getPath(), READ);
+        } catch (IOException e) {
+            this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
+            throw new ArtifactDownloadException("Failed to create temporary file to store asset's content.", e);
         }
     }
 }

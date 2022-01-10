@@ -9,6 +9,7 @@ import ml.comet.experiment.impl.asset.ArtifactAsset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.FileAsset;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Timeout;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,6 +41,7 @@ import static ml.comet.experiment.impl.ArtifactImplTest.SOME_METADATA;
 import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS;
+import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.model.AssetType.ASSET;
 import static ml.comet.experiment.model.AssetType.UNKNOWN;
@@ -165,6 +168,47 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             assertEquals(UNKNOWN.type(), fileAsset.getAssetType(), "wrong asset type");
 
             System.out.println(fileAsset);
+
+        } catch (Throwable t) {
+            fail(t);
+        } finally {
+            PathUtils.delete(tmpDir);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndDownloadArtifactAsset_failForRemote() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testLogAndDownloadArtifactAsset");
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add remote assets
+            //
+            URI firstAssetLink = new URI("s3://bucket/folder/firstAssetFile.extension");
+            String firstAssetFileName = "firstAssetFileName";
+            artifact.addRemoteAsset(firstAssetLink, firstAssetFileName);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // get artifact details from server
+            //
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
+                    loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
+
+            // get logged assets and download to local dir
+            //
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
+
+            LoggedArtifactAsset asset = loggedAssets.iterator().next();
+            assertNotNull(asset);
+
+            ArtifactException ex = assertThrows(ArtifactException.class, () -> asset.download(tmpDir));
+            assertEquals(getString(REMOTE_ASSET_CANNOT_BE_DOWNLOADED, asset), ex.getMessage());
 
         } catch (Throwable t) {
             fail(t);
@@ -377,6 +421,89 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             fail(t);
         }
     }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndOpenStreamToArtifactAsset() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add local assets
+            //
+            File imageFile = TestUtils.getFile(IMAGE_FILE_NAME);
+            assertNotNull(imageFile);
+            artifact.addAsset(imageFile, IMAGE_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // get artifact details from server
+            //
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
+                    loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
+
+            // get logged assets and load asset content
+            //
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
+
+            LoggedArtifactAsset asset = loggedAssets.iterator().next();
+            assertNotNull(asset);
+
+            try (InputStream in = asset.openStream()) {
+                byte[] data = IOUtils.readFully(in, (int) IMAGE_FILE_SIZE);
+                byte[] expectedData = Files.readAllBytes(imageFile.toPath());
+
+                assertArrayEquals(expectedData, data, "wrong asset data read");
+            } catch (Throwable t) {
+                fail(t);
+            }
+
+        } catch (Throwable t) {
+            fail(t);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogAndOpenStreamToArtifactAsset_failedForRemote() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add remote assets
+            //
+            URI firstAssetLink = new URI("s3://bucket/folder/firstAssetFile.extension");
+            String firstAssetFileName = "firstAssetFileName";
+            artifact.addRemoteAsset(firstAssetLink, firstAssetFileName);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // get artifact details from server
+            //
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
+                    loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
+
+            // get logged assets and load asset content
+            //
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.readAssets();
+            assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
+
+            LoggedArtifactAsset asset = loggedAssets.iterator().next();
+            assertNotNull(asset);
+
+            ArtifactException ex = assertThrows(ArtifactException.class, asset::openStream);
+            assertEquals(getString(REMOTE_ASSET_CANNOT_BE_DOWNLOADED, asset), ex.getMessage());
+
+        } catch (Throwable t) {
+            fail(t);
+        }
+    }
+
 
     static ArtifactImpl createArtifact() {
         List<String> aliases = Arrays.asList("alias1", "alias2");
