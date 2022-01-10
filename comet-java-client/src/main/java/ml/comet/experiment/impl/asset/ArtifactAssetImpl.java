@@ -7,6 +7,7 @@ import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.AssetType;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import java.util.Optional;
 public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
     String artifactVersionId;
     Long fileSize;
+    private URI link;
 
     /**
      * Creates new instance with specified parameters.
@@ -54,8 +56,32 @@ public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
         this.metadata = asset.getMetadata();
     }
 
+    /**
+     * The copy constructor.
+     *
+     * @param asset the {@link RemoteAssetImpl} to copy relevant data from.
+     */
+    public ArtifactAssetImpl(RemoteAssetImpl asset) {
+        this.setLink(asset.getLink());
+        this.logicalPath = asset.getLogicalPath();
+        this.type = asset.getType();
+        this.overwrite = asset.getOverwrite();
+        this.metadata = asset.getMetadata();
+    }
+
+
     @Override
     public Optional<Long> getSize() {
         return Optional.ofNullable(this.fileSize);
+    }
+
+    @Override
+    public boolean isRemote() {
+        return this.link != null;
+    }
+
+    @Override
+    public URI getLink() {
+        return this.link;
     }
 }

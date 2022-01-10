@@ -576,10 +576,10 @@ public class ArtifactSupportTest extends AssetsBaseTest {
                 .filter(asset -> Objects.equals(asset.getLogicalPath(), loggedArtifactAsset.getFileName()))
                 .forEach(asset -> {
                     matchFound.set(true);
-                    if (asset instanceof RemoteAsset) {
+                    if (asset.isRemote()) {
                         assertTrue(loggedArtifactAsset.isRemote());
                         assertTrue(loggedArtifactAsset.getLink().isPresent(), "remote link expected");
-                        assertEquals(((RemoteAsset) asset).getLink(), loggedArtifactAsset.getLink().get(), "wrong URI");
+                        assertEquals(asset.getLink(), loggedArtifactAsset.getLink().get(), "wrong URI");
                     } else {
                         assertFalse(loggedArtifactAsset.isRemote());
                     }

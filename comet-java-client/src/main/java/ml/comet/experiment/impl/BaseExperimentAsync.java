@@ -615,7 +615,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     private <T extends ArtifactAsset> Single<RestApiResponse> sendArtifactAssetAsync(@NonNull final T asset) {
         Single<RestApiResponse> single;
         Scheduler scheduler = Schedulers.io();
-        if (asset instanceof RemoteAsset) {
+        if (asset.isRemote()) {
             // remote asset
             single = validateAndGetExperimentKey()
                     .subscribeOn(scheduler)

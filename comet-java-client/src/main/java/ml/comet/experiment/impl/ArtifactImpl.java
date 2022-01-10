@@ -4,12 +4,10 @@ import com.vdurmont.semver4j.Semver;
 import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactBuilder;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
-import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
-import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
-import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import org.slf4j.Logger;
@@ -124,7 +122,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     private void addRemoteAsset(@NonNull URI uri, @NonNull String name,
                                 boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
         RemoteAssetImpl asset = createRemoteAsset(uri, Optional.of(name), overwrite, metadata, empty());
-        this.appendAsset(new ArtifactRemoteAssetImpl(asset));
+        this.appendAsset(new ArtifactAssetImpl(asset));
     }
 
     @Override
