@@ -6,7 +6,7 @@ import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
-import ml.comet.experiment.model.LoggedExperimentAsset;
+import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 
 import java.io.File;

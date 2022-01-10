@@ -39,7 +39,7 @@ import ml.comet.experiment.impl.utils.FileUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.asset.FileAsset;
 import ml.comet.experiment.model.GitMetaData;
-import ml.comet.experiment.model.LoggedExperimentAsset;
+import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -819,7 +819,7 @@ abstract class BaseExperiment implements Experiment {
                 .getAssets()
                 .stream()
                 .collect(ArrayList::new,
-                        (assets, experimentAssetLink) -> assets.add(experimentAssetLink.toExperimentAsset()),
+                        (assets, experimentAssetLink) -> assets.add(experimentAssetLink.toExperimentAsset(getLogger())),
                         ArrayList::addAll);
     }
 

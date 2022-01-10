@@ -5,11 +5,18 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ml.comet.experiment.model.LoggedExperimentAsset;
+import ml.comet.experiment.asset.LoggedExperimentAsset;
+import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.utils.AssetUtils;
+import ml.comet.experiment.impl.utils.DataModelUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -43,21 +50,46 @@ public class ExperimentAssetLink {
      *
      * @return the initialized {@link LoggedExperimentAsset} instance.
      */
-    public LoggedExperimentAsset toExperimentAsset() {
+    public LoggedExperimentAsset toExperimentAsset(Logger logger) {
         LoggedExperimentAsset a = new LoggedExperimentAsset();
         a.setAssetId(this.assetId);
-        a.setFileName(this.fileName);
+        a.setLogicalPath(this.fileName);
         a.setLink(this.link);
         a.setRemote(this.remote);
         a.setFileSize(this.fileSize);
-        a.setStep(this.step);
-        a.setContext(this.runContext);
+        a.setExperimentContext(this.readContext());
+        a.setMetadata(this.parseMetadata(logger));
+        a.setType(AssetUtils.toAssetType(this.type));
+        a.setCurlDownload(this.curlDownload);
+
         if (this.createdAt != null) {
             a.setCreatedAt(Instant.ofEpochMilli(this.createdAt.getTime()));
         }
-        a.setType(this.type);
-        a.setMetadataJson(this.metadata);
-        a.setCurlDownload(this.curlDownload);
+
         return a;
+    }
+
+    private ExperimentContext readContext() {
+        long ctxStep = 0;
+        String ctxStr = "";
+        if (this.step != null) {
+            ctxStep = this.step;
+        }
+        if (StringUtils.isNotBlank(this.runContext)) {
+            ctxStr = this.runContext;
+        }
+
+        return new ExperimentContext(ctxStep, 0, ctxStr);
+    }
+
+    private Map<String, Object> parseMetadata(Logger logger) {
+        if (StringUtils.isNotBlank(this.metadata)) {
+            try {
+                return DataModelUtils.metadataFromJson(this.metadata);
+            } catch (Throwable e) {
+                logger.error("Failed to parse experiment's asset metadata from JSON {}", this.metadata, e);
+            }
+        }
+        return Collections.emptyMap();
     }
 }

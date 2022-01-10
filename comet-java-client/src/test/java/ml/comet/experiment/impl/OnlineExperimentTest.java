@@ -4,11 +4,10 @@ import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
-import ml.comet.experiment.model.LoggedExperimentAsset;
+import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
@@ -441,11 +440,11 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         awaitForCondition(() -> {
             List<LoggedExperimentAsset> assetList = experiment.getAssetList(ALL);
             return assetList.stream()
-                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
+                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getLogicalPath()))
                     .anyMatch(asset ->
                             ANOTHER_TEXT_FILE_SIZE == asset.getFileSize()
-                                    && Objects.equals(asset.getStep(), SOME_FULL_CONTEXT.getStep())
-                                    && asset.getContext().equals(SOME_FULL_CONTEXT.getContext()));
+                                    && Objects.equals(asset.getExperimentContext().getStep(), SOME_FULL_CONTEXT.getStep())
+                                    && asset.getExperimentContext().getContext().equals(SOME_FULL_CONTEXT.getContext()));
         }, "Asset was updated");
 
         experiment.end();
@@ -501,10 +500,10 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             Optional<LoggedExperimentAsset> assetOpt = experiment.getAssetList(ALL)
                     .stream()
-                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getFileName()))
+                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getLogicalPath()))
                     .findFirst();
             assertTrue(assetOpt.isPresent());
-            assertEquals(SOME_TEXT, assetOpt.get().getContext());
+            assertEquals(SOME_TEXT, assetOpt.get().getExperimentContext().getContext());
         } catch (Exception e) {
             fail(e);
         }
@@ -644,30 +643,29 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     static void validateRemoteAssetLink(List<LoggedExperimentAsset> assets, URI uri,
                                         String fileName, Map<String, Object> metadata) {
         if (Objects.nonNull(metadata)) {
-            String metadataJson = JsonUtils.toJson(metadata);
             assertTrue(assets.stream()
                     .filter(asset -> uri.toString().equals(asset.getLink()))
                     .allMatch(asset -> asset.isRemote()
-                            && Objects.equals(asset.getFileName(), fileName)
-                            && Objects.equals(asset.getMetadataJson(), metadataJson)));
+                            && Objects.equals(asset.getLogicalPath(), fileName)
+                            && Objects.equals(asset.getMetadata(), metadata)));
         } else {
             assertTrue(assets.stream()
                     .filter(asset -> uri.toString().equals(asset.getLink()))
                     .allMatch(asset -> asset.isRemote()
-                            && Objects.equals(asset.getFileName(), fileName)
-                            && StringUtils.isEmpty(asset.getMetadataJson())));
+                            && Objects.equals(asset.getLogicalPath(), fileName)
+                            && asset.getMetadata().isEmpty()));
         }
     }
 
     static void validateAsset(List<LoggedExperimentAsset> assets, String expectedAssetName,
                               long expectedSize, ExperimentContext context) {
         assertTrue(assets.stream()
-                .filter(asset -> expectedAssetName.equals(asset.getFileName()))
+                .filter(asset -> expectedAssetName.equals(asset.getLogicalPath()))
                 .anyMatch(asset -> {
                     boolean res = expectedSize == asset.getFileSize()
-                            && Objects.equals(context.getStep(), asset.getStep());
+                            && Objects.equals(context.getStep(), asset.getExperimentContext().getStep());
                     if (StringUtils.isNotBlank(context.getContext())) {
-                        res = res & context.getContext().equals(asset.getContext());
+                        res = res & context.getContext().equals(asset.getExperimentContext().getContext());
                     }
                     return res;
                 }));
