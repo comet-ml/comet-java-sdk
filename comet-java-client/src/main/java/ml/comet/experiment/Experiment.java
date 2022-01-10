@@ -1,10 +1,12 @@
 package ml.comet.experiment;
 
+import ml.comet.experiment.artifact.ArtifactException;
+import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.model.AssetType;
-import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 
 import java.io.File;
@@ -129,6 +131,39 @@ public interface Experiment extends AutoCloseable {
      * @return the list of assets associated with experiment.
      */
     List<LoggedExperimentAsset> getAssetList(AssetType type);
+
+    /**
+     * Allows looking for logged artifact using provided search parameters.
+     *
+     * @param name           the short name of the artifact like {@code 'artifact-name'}.
+     * @param workspace      the workspace where artifact was saved.
+     * @param versionOrAlias the artifact version or alias to be returned.
+     * @return the {@link LoggedArtifact} instance.
+     * @throws ArtifactException if failed to get comet artifact.
+     */
+    LoggedArtifact getArtifact(String name, String workspace, String versionOrAlias) throws ArtifactException;
+
+    /**
+     * Allows looking for logged artifact using provided search parameters.
+     *
+     * @param name      the short name of the artifact like {@code 'artifact-name'} or
+     *                  the name of artifact with version or alias like {@code 'artifact-name:versionOrAlias'}.
+     * @param workspace the workspace where artifact was saved.
+     * @return the {@link LoggedArtifact} instance.
+     * @throws ArtifactException if failed to get comet artifact.
+     */
+    LoggedArtifact getArtifact(String name, String workspace) throws ArtifactException;
+
+    /**
+     * Allows looking for logged artifact using provided search parameters.
+     *
+     * @param name the name of the artifact. This could either be a fully
+     *             qualified artifact name like {@code 'workspace/artifact-name:versionOrAlias'}
+     *             or any short forms like {@code 'artifact-name'}, {@code 'artifact-name:versionOrAlias'}.
+     * @return the {@link LoggedArtifact} instance.
+     * @throws ArtifactException if failed to get comet artifact.
+     */
+    LoggedArtifact getArtifact(String name) throws ArtifactException;
 
     /**
      * Sets the experiment name.

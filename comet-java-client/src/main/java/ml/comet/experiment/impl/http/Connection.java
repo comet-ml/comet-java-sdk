@@ -7,10 +7,12 @@ import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.rest.CometWebJavaSdkException;
-import org.asynchttpclient.AsyncCompletionHandler;
+import org.asynchttpclient.AsyncCompletionHandlerBase;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.AsyncHttpClientConfig;
 import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+import org.asynchttpclient.HttpResponseBodyPart;
+import org.asynchttpclient.HttpResponseStatus;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.Response;
@@ -21,6 +23,8 @@ import org.slf4j.Logger;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -117,8 +121,13 @@ public class Connection implements Closeable {
     public Optional<String> sendGetWithRetries(
             @NonNull String endpoint, @NonNull Map<QueryParamName, String> params, boolean throwOnFailure)
             throws CometApiException {
-        return executeRequestSyncWithRetries(
-                createGetRequest(this.buildCometUrl(endpoint), params), throwOnFailure);
+        try {
+            this.requestsInventory.incrementAndGet();
+            return executeRequestSyncWithRetries(
+                    createGetRequest(this.buildCometUrl(endpoint), params), throwOnFailure);
+        } finally {
+            this.requestsInventory.decrementAndGet();
+        }
     }
 
     /**
@@ -138,7 +147,12 @@ public class Connection implements Closeable {
         if (logger.isDebugEnabled()) {
             logger.debug("sending JSON {} to {}", json, url);
         }
-        return executeRequestSyncWithRetries(createPostJsonRequest(json, url), throwOnFailure);
+        try {
+            this.requestsInventory.incrementAndGet();
+            return executeRequestSyncWithRetries(createPostJsonRequest(json, url), throwOnFailure);
+        } finally {
+            this.requestsInventory.decrementAndGet();
+        }
     }
 
     /**
@@ -209,6 +223,31 @@ public class Connection implements Closeable {
     }
 
     /**
+     * Allows downloading remote assets to the provided file.
+     *
+     * @param file     the {@link File} instance to collect received data.
+     * @param endpoint the request path of the endpoint.
+     * @param params   the map with request parameters.
+     * @return the {@link ListenableFuture} which can be used to monitor status of the request execution.
+     */
+    public ListenableFuture<Response> downloadAsync(@NonNull File file,
+                                                    @NonNull String endpoint,
+                                                    @NonNull Map<QueryParamName, String> params) {
+        Request request = createGetRequest(this.buildCometUrl(endpoint), params);
+
+        AsyncFileDownloadHandler handler = new AsyncFileDownloadHandler(file, this.logger);
+        try {
+            handler.open();
+        } catch (Throwable e) {
+            this.logger.error("Failed to start download to the file {}", file.getPath(), e);
+            // make sure to release resources
+            handler.close();
+            return new ListenableFuture.CompletedFailure<>(e);
+        }
+        return this.executeDownloadAsync(request, handler);
+    }
+
+    /**
      * Closes this connection immediately by releasing underlying resources.
      *
      * <p>Please note that some asynchronous post request can still be not processed, which will result in errors.
@@ -246,12 +285,35 @@ public class Connection implements Closeable {
     }
 
     /**
+     * Executes provided download request asynchronously.
+     *
+     * @param request  the request to be executed.
+     * @param listener the {@link DownloadListener} to collect received bytes.
+     * @return the {@link ListenableFuture} which can be used to check request status.
+     */
+    ListenableFuture<Response> executeDownloadAsync(@NonNull Request request, @NonNull DownloadListener listener) {
+        return this.executeRequestAsync(request, listener);
+    }
+
+    /**
      * Executes provided request asynchronously.
      *
      * @param request the request to be executed.
      * @return the {@link ListenableFuture} which can be used to check request status.
      */
     ListenableFuture<Response> executeRequestAsync(@NonNull Request request) {
+        return this.executeRequestAsync(request, null);
+    }
+
+    /**
+     * Executes provided request asynchronously.
+     *
+     * @param request          the request to be executed.
+     * @param downloadListener the {@link DownloadListener} to collect received bytes.
+     * @return the {@link ListenableFuture} which can be used to check request status.
+     */
+    ListenableFuture<Response> executeRequestAsync(@NonNull Request request,
+                                                   DownloadListener downloadListener) {
         // check that client is not closed
         if (this.asyncHttpClient.isClosed()) {
             String msg = String.format("failed to execute request %s connection to the server already closed", request);
@@ -265,7 +327,7 @@ public class Connection implements Closeable {
         request.getHeaders().add(COMET_SDK_API_HEADER, apiKey);
         String endpoint = request.getUrl();
         return this.asyncHttpClient.executeRequest(request,
-                new AsyncCompletionInventoryHandler(this.requestsInventory, this.logger, endpoint));
+                new AsyncCompletionInventoryHandler(this.requestsInventory, this.logger, endpoint, downloadListener));
     }
 
     /**
@@ -360,10 +422,13 @@ public class Connection implements Closeable {
     /**
      * The request completion listener to be used to maintain the current requests' inventory status.
      */
-    static final class AsyncCompletionInventoryHandler extends AsyncCompletionHandler<Response> {
-        AtomicInteger requestInventory;
-        Logger logger;
-        String endpoint;
+    static final class AsyncCompletionInventoryHandler extends AsyncCompletionHandlerBase {
+        final AtomicInteger requestInventory;
+        final Logger logger;
+        final String endpoint;
+        DownloadListener downloadListener;
+        UploadListener uploadListener;
+        HttpResponseStatus status;
 
         AsyncCompletionInventoryHandler(AtomicInteger inventory, Logger logger, String endpoint) {
             this.requestInventory = inventory;
@@ -371,19 +436,64 @@ public class Connection implements Closeable {
             this.endpoint = endpoint;
         }
 
+        AsyncCompletionInventoryHandler(AtomicInteger inventory, Logger logger, String endpoint,
+                                        DownloadListener downloadListener) {
+            this(inventory, logger, endpoint);
+            this.downloadListener = downloadListener;
+        }
+
+        AsyncCompletionInventoryHandler(AtomicInteger inventory, Logger logger, String endpoint,
+                                        UploadListener uploadListener) {
+            this(inventory, logger, endpoint);
+            this.uploadListener = uploadListener;
+        }
+
+        @Override
+        public State onStatusReceived(HttpResponseStatus status) throws Exception {
+            this.status = status;
+            return super.onStatusReceived(status);
+        }
+
         @Override
         public Response onCompleted(Response response) {
             // check response status and throw exception if failed
             try {
                 ConnectionUtils.checkResponseStatus(response);
+                // decrease inventory only after check passed,
+                // if it was not passed it will be decreased in onThrowable()
+                this.decreaseInventory();
             } catch (CometWebJavaSdkException ex) {
                 throw new CometApiException(response.getStatusCode(), ex.getMessage(), ex.getSdkErrorCode());
+            } finally {
+                // make sure to notify all registered listeners
+                this.fireOnEnd();
             }
-
-            // decrease inventory only after check passed,
-            // if it was not passed it will be decreased in onThrowable()
-            this.decreaseInventory();
             return response;
+        }
+
+        @Override
+        public State onBodyPartReceived(final HttpResponseBodyPart content) throws Exception {
+            if (this.downloadListener != null && this.status.getStatusCode() == 200) {
+                try {
+                    this.downloadListener.onBytesReceived(content.getBodyPartBytes());
+                } catch (Throwable t) {
+                    this.downloadListener.onThrowable(t);
+                    throw t;
+                }
+            }
+            return super.onBodyPartReceived(content);
+        }
+
+        @Override
+        public State onContentWriteProgress(long amount, long current, long total) {
+            if (this.uploadListener != null) {
+                try {
+                    this.uploadListener.onBytesSent(amount, current, total);
+                } catch (Throwable t) {
+                    this.uploadListener.onThrowable(t);
+                }
+            }
+            return super.onContentWriteProgress(amount, current, total);
         }
 
         @Override
@@ -391,10 +501,101 @@ public class Connection implements Closeable {
             // decrease inventory
             this.decreaseInventory();
             this.logger.error("failed to execute request to the endpoint {}", this.endpoint, t);
+
+            this.fireOnThrowable(t);
         }
 
         private void decreaseInventory() {
             this.requestInventory.decrementAndGet();
+        }
+
+        private void fireOnEnd() {
+            if (this.downloadListener != null) {
+                try {
+                    this.downloadListener.onRequestResponseCompleted();
+                } catch (Throwable t) {
+                    this.downloadListener.onThrowable(t);
+                }
+            }
+            if (this.uploadListener != null) {
+                try {
+                    this.uploadListener.onRequestResponseCompleted();
+                } catch (Throwable t) {
+                    this.uploadListener.onThrowable(t);
+                }
+            }
+        }
+
+        private void fireOnThrowable(Throwable t) {
+            if (this.downloadListener != null) {
+                try {
+                    this.downloadListener.onThrowable(t);
+                } catch (Throwable t2) {
+                    logger.warn("downloadListener.onThrowable", t2);
+                }
+            }
+            if (this.uploadListener != null) {
+                try {
+                    this.uploadListener.onThrowable(t);
+                } catch (Throwable t2) {
+                    logger.warn("uploadListener.onThrowable", t2);
+                }
+            }
+        }
+    }
+
+    /**
+     * The handler to manage downloading to the file.
+     */
+    static final class AsyncFileDownloadHandler implements DownloadListener {
+
+        final File outFile;
+        final Logger logger;
+        RandomAccessFile file;
+
+        AsyncFileDownloadHandler(File file, Logger logger) {
+            this.outFile = file;
+            this.logger = logger;
+        }
+
+        void open() throws IOException {
+            this.file = new RandomAccessFile(this.outFile, "rw");
+            if (Files.exists(this.outFile.toPath())) {
+                // truncate existing file
+                this.file.setLength(0);
+            }
+        }
+
+        @Override
+        public void onBytesReceived(byte[] bytes) throws IOException {
+            try {
+                this.file.seek(this.file.length());
+                this.file.write(bytes);
+            } catch (IOException e) {
+                this.logger.error("Failed to write received bytes to the file {}", this.outFile.getPath(), e);
+                throw e;
+            }
+        }
+
+        @Override
+        public void onRequestResponseCompleted() {
+            this.close();
+        }
+
+        @Override
+        public void onThrowable(Throwable t) {
+            this.logger.error("Failed to download to the file {}", this.outFile.getPath(), t);
+            this.close();
+        }
+
+        void close() {
+            try {
+                if (this.file != null) {
+                    this.file.close();
+                }
+            } catch (IOException e) {
+                this.logger.error("Failed to close the download file {}", this.outFile.getPath(), e);
+            }
         }
     }
 }

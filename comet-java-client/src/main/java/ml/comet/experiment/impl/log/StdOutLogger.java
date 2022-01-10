@@ -25,7 +25,6 @@ public class StdOutLogger implements Runnable, Closeable {
     PrintStream original;
     OnlineExperiment experiment;
     boolean stdOut;
-    boolean running;
 
     /**
      * Creates logger instance that captures StdOut stream for a given OnlineExperiment.
@@ -81,31 +80,41 @@ public class StdOutLogger implements Runnable, Closeable {
         this.inputStream = in;
         this.outputStream = out;
         this.stdOut = stdOut;
-        this.running = true;
     }
 
+    @SuppressWarnings("checkstyle:EmptyCatchBlock")
     private void restoreOriginalAndStop() {
+        // close input stream for graceful interception stop
+        if (this.inputStream != null) {
+            try {
+                this.inputStream.close();
+            } catch (IOException ignore) {
+            }
+        }
+
         if (this.stdOut) {
             System.setOut(original);
         } else {
             System.setErr(original);
         }
-        // mark as not running
-        this.running = false;
     }
 
     @Override
     public void run() {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(this.inputStream))) {
             String line;
-            while (this.running && (line = reader.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 experiment.logLine(line, offset.incrementAndGet(), !stdOut);
             }
         } catch (Throwable t) {
             // restore original
             this.restoreOriginalAndStop();
             // nothing to do except to inform
-            System.out.println(">>>> StdOutLogger error <<<<");
+            if (this.stdOut) {
+                System.out.println("\nStdOut capturing error occurred");
+            } else {
+                System.out.println("\nStdErr capturing error occurred");
+            }
             t.printStackTrace();
         }
 

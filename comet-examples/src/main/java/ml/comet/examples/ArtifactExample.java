@@ -2,12 +2,20 @@ package ml.comet.examples;
 
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
+import ml.comet.experiment.artifact.LoggedArtifactAsset;
+import org.apache.commons.io.IOUtils;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +99,67 @@ public class ArtifactExample implements BaseExample {
         CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
         LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
 
-        System.out.printf("\n\nArtifact upload complete, new artifact version: %s\n\n", loggedArtifact.getVersion());
+        System.out.printf("\nArtifact upload complete: %s\n\n", loggedArtifact.getFullName());
+
+        // get logged assets
+        //
+        Collection<LoggedArtifactAsset> loggedAssets = loggedArtifact.readAssets();
+        System.out.printf(
+                "Received %d logged artifact assets from the Comet server. Downloading asset files...\n",
+                loggedAssets.size());
+
+        // download artifact assets to the local directory
+        //
+        final Path assetsTmpDir = Files.createTempDirectory("ArtifactExampleAssets");
+        loggedAssets.forEach(loggedArtifactAsset -> {
+            if (!loggedArtifactAsset.isRemote()) {
+                loggedArtifactAsset.download(assetsTmpDir);
+            } else {
+                URI uri = loggedArtifactAsset.getLink().orElse(null);
+                System.out.printf(
+                        "Skipping download of the remote asset %s. It must be downloaded using its URI '%s'\n",
+                        loggedArtifactAsset.getFileName(), uri);
+            }
+        });
+
+        System.out.printf("Artifact assets successfully downloaded to the folder: %s\n\n", assetsTmpDir);
+
+        // download artifact to the local directory
+        //
+        final Path artifactTmpDir = Files.createTempDirectory("ArtifactExampleArtifact");
+        System.out.printf("Downloading artifact to the folder: %s\n", artifactTmpDir.toFile().getAbsoluteFile());
+
+        Collection<LoggedArtifactAsset> assets = loggedArtifact.download(artifactTmpDir,
+                AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
+        System.out.printf(
+                "Artifact successfully downloaded. Received %d logged artifact assets from the Comet server.\n\n",
+                assets.size());
+
+        // load content of the artifact asset into the memory
+        //
+        LoggedArtifactAsset asset = assets.stream()
+                .filter(loggedArtifactAsset -> {
+                    Long size = loggedArtifactAsset.getFileSize().orElse(0L);
+                    return !loggedArtifactAsset.isRemote() && size > 0;
+                })
+                .findFirst().orElse(null);
+        if (asset != null) {
+            System.out.printf("Loading content of the artifact asset '%s' into memory\n", asset.getAssetId());
+
+            int buffSize = 512;
+            try (InputStream in = new BufferedInputStream(asset.openStream(), buffSize)) {
+                // work with input stream
+                byte[] buff = IOUtils.byteArray(buffSize);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                for (int count; (count = in.read(buff)) > 0; ) {
+                    out.write(buff, 0, count);
+                }
+                System.out.printf(
+                        "Asset's content successfully loaded into memory, data size: %d.\n\n", out.size());
+            } catch (Throwable t) {
+                System.err.printf("Failed to read asset data, reason: %s\n\n", t);
+            }
+        }
 
         System.out.println("===== Experiment completed ====");
     }

@@ -1,5 +1,7 @@
 package ml.comet.experiment.artifact;
 
+import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,6 +55,13 @@ public interface LoggedArtifact {
     String getName();
 
     /**
+     * Returns the fully qualified name of the artifact in form 'workspace/name:version'.
+     *
+     * @return the fully qualified name of the artifact.
+     */
+    String getFullName();
+
+    /**
      * Returns the total size of logged artifact version; it is the sum of all the artifact version assets.
      *
      * @return the total size of logged artifact version; it is the sum of all the artifact version assets.
@@ -93,4 +102,27 @@ public interface LoggedArtifact {
      * @return the workspace name where artifact was logged.
      */
     String getWorkspace();
+
+    /**
+     * Allows reading list of assets associated with this artifact from Comet backend.
+     *
+     * @return the list of {@link LoggedArtifactAsset} associated with this artifact.
+     * @throws ArtifactException if failed to read assets from Comet.
+     */
+    Collection<LoggedArtifactAsset> readAssets() throws ArtifactException;
+
+    /**
+     * Download the current Artifact Version assets to a given directory.
+     * This downloads only non-remote assets.
+     * You can access remote assets links using returned list of assets.
+     *
+     * @param folder            the path to the folder to keep downloaded files of the assets.
+     * @param overwriteStrategy the overwriting strategy to apply when conflicting file name found.
+     * @return the list of all associated assets.
+     * @throws ArtifactException thrown if operation failed.
+     */
+    Collection<LoggedArtifactAsset> download(
+            Path folder, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
+
+    Collection<LoggedArtifactAsset> download(Path folder) throws ArtifactException;
 }

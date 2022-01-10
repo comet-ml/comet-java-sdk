@@ -7,40 +7,53 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactDownloadException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.ArtifactNotFoundException;
+import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.InvalidArtifactStateException;
 import ml.comet.experiment.artifact.LoggedArtifact;
+import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
+import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
+import ml.comet.experiment.impl.rest.ArtifactDto;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactRequest;
+import ml.comet.experiment.impl.rest.ArtifactVersionAssetResponse;
 import ml.comet.experiment.impl.rest.ArtifactVersionDetail;
 import ml.comet.experiment.impl.rest.ArtifactVersionState;
 import ml.comet.experiment.impl.rest.CreateExperimentRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentResponse;
 import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
-import ml.comet.experiment.impl.rest.LogDataResponse;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
+import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
+import ml.comet.experiment.impl.utils.FileUtils;
 import ml.comet.experiment.model.AssetType;
-import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.ExperimentMetadata;
+import ml.comet.experiment.model.FileAsset;
 import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,16 +61,28 @@ import static java.util.Optional.empty;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosed;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING;
+import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_DOWNLOAD_FILE_OVERWRITTEN;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_DETAILS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_FOUND;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_READY;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITH_PREVIOUS;
+import static ml.comet.experiment.impl.resources.LogMessages.COMPLETED_DOWNLOAD_ARTIFACT_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_COMPARE_CONTENT_OF_FILES;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_CREATE_TEMPORARY_ASSET_DOWNLOAD_FILE;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_TEMPORARY_ASSET_FILE;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ASSET;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_READ_DOWNLOADED_FILE_SIZE;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_READ_LOGGED_ARTIFACT_ASSETS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_RESOLVE_ASSET_FILE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_ARTIFACT_VERSION_STATE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPSERT_ARTIFACT;
 import static ml.comet.experiment.impl.resources.LogMessages.GET_ARTIFACT_FAILED_UNEXPECTEDLY;
+import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
@@ -503,11 +528,13 @@ abstract class BaseExperiment implements Experiment {
                     .concatMap(experimentKey -> getRestApiClient().getArtifactVersionDetail(options, experimentKey))
                     .blockingGet();
 
-            if (detail.getArtifact() == null) {
+            ArtifactDto artifactDto = detail.getArtifact();
+            if (artifactDto == null) {
                 throw new InvalidArtifactStateException(getString(ARTIFACT_HAS_NO_DETAILS, options));
             }
 
-            return detail.toLoggedArtifact(getLogger());
+            return detail.copyToLoggedArtifact(
+                    new LoggedArtifactImpl(artifactDto.getArtifactName(), artifactDto.getArtifactType(), this));
         } catch (CometApiException apiException) {
             switch (apiException.getSdkErrorCode()) {
                 case noArtifactFound:
@@ -520,6 +547,181 @@ abstract class BaseExperiment implements Experiment {
             }
         } catch (Throwable e) {
             throw new ArtifactException(getString(GET_ARTIFACT_FAILED_UNEXPECTEDLY, options), e);
+        }
+    }
+
+
+    @Override
+    public LoggedArtifact getArtifact(@NonNull String name, @NonNull String workspace, @NonNull String versionOrAlias)
+            throws ArtifactException {
+        if (name.contains("/") || name.contains(":")) {
+            throw new IllegalArgumentException(
+                    "Only simple artifact name allowed for this method without slash (/) or colon (:) characters.");
+        }
+        return this.getArtifact(GetArtifactOptions.Op()
+                .name(name)
+                .workspaceName(workspace)
+                .versionOrAlias(versionOrAlias)
+                .consumerExperimentKey(this.experimentKey)
+                .build());
+    }
+
+    @Override
+    public LoggedArtifact getArtifact(@NonNull String name, @NonNull String workspace) throws ArtifactException {
+        if (name.contains("/")) {
+            throw new IllegalArgumentException(
+                    "The name of artifact for this method should not include workspace or workspace separator (/).");
+        }
+        return this.getArtifact(GetArtifactOptions.Op()
+                .fullName(name)
+                .workspaceName(workspace)
+                .consumerExperimentKey(this.experimentKey)
+                .build());
+    }
+
+    @Override
+    public LoggedArtifact getArtifact(@NonNull String name) throws ArtifactException {
+        return this.getArtifact(GetArtifactOptions.Op()
+                .fullName(name)
+                .consumerExperimentKey(this.experimentKey)
+                .build());
+    }
+
+    LoggedArtifact getArtifact(@NonNull GetArtifactOptions options) throws ArtifactException {
+        return this.getArtifactVersionDetail(options);
+    }
+
+    /**
+     * Reads list of assets associated with provided Comet artifact.
+     *
+     * @param artifact the {@link LoggedArtifact} to get assets.
+     * @return the list of assets associated with provided Comet artifact.
+     * @throws ArtifactException if failed to read list of associated assets.
+     */
+    Collection<LoggedArtifactAsset> readArtifactAssets(@NonNull LoggedArtifact artifact) throws ArtifactException {
+        GetArtifactOptions options = GetArtifactOptions.Op()
+                .artifactId(artifact.getArtifactId())
+                .versionId(artifact.getVersionId())
+                .build();
+
+        try {
+            ArtifactVersionAssetResponse response = this.getRestApiClient()
+                    .getArtifactVersionFiles(options)
+                    .blockingGet();
+            return response.getFiles()
+                    .stream()
+                    .collect(ArrayList::new,
+                            (assets, artifactVersionAsset) -> assets.add(
+                                    artifactVersionAsset.copyTo(
+                                            new LoggedArtifactAssetImpl((LoggedArtifactImpl) artifact))),
+                            ArrayList::addAll);
+        } catch (Throwable t) {
+            String message = getString(FAILED_TO_READ_LOGGED_ARTIFACT_ASSETS, artifact.getFullName());
+            this.getLogger().error(message, t);
+            throw new ArtifactException(message, t);
+        }
+    }
+
+    /**
+     * Allows to synchronously download specific {@link LoggedArtifactAsset} to the local file system.
+     *
+     * @param asset             the asset to be downloaded.
+     * @param dir               the parent directory where asset file should be stored.
+     * @param file              the relative path to the asset file.
+     * @param overwriteStrategy the overwrite strategy to be applied if file already exists.
+     * @return the {@link FileAsset} instance with details about downloaded asset file.
+     * @throws ArtifactDownloadException if failed to download asset.
+     */
+    FileAsset downloadArtifactAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
+                                    @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
+            throws ArtifactDownloadException {
+        if (asset.isRemote()) {
+            throw new ArtifactDownloadException(getString(REMOTE_ASSET_CANNOT_BE_DOWNLOADED, asset));
+        }
+
+        Path resolved;
+        boolean fileAlreadyExists = false;
+        try {
+            Optional<Path> optionalPath = FileUtils.resolveAssetPath(dir, file, overwriteStrategy);
+            if (optionalPath.isPresent()) {
+                // new or overwrite
+                resolved = optionalPath.get();
+                if (overwriteStrategy == AssetOverwriteStrategy.OVERWRITE) {
+                    getLogger().warn(getString(ARTIFACT_DOWNLOAD_FILE_OVERWRITTEN, resolved, asset.getFileName(),
+                            asset.artifact.getFullName()));
+                }
+            } else {
+                // preventing original file - just warning and return FileAsset pointing to it
+                resolved = dir.resolve(file);
+                this.getLogger().warn(
+                        getString(ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING, resolved, asset.artifact.getFullName()));
+                return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
+            }
+        } catch (FileAlreadyExistsException e) {
+            if (overwriteStrategy == AssetOverwriteStrategy.FAIL_IF_DIFFERENT) {
+                try {
+                    resolved = Files.createTempFile(asset.getFileName(), null);
+                    this.getLogger().debug(
+                            "File '{}' already exists for asset {} and FAIL override strategy selected. "
+                                    + "Start downloading to the temporary file '{}'", file, asset, resolved);
+                } catch (IOException ex) {
+                    String msg = getString(FAILED_TO_CREATE_TEMPORARY_ASSET_DOWNLOAD_FILE, file, asset);
+                    this.getLogger().error(msg, ex);
+                    throw new ArtifactDownloadException(msg, ex);
+                }
+                fileAlreadyExists = true;
+            } else {
+                this.getLogger().error(
+                        getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
+                throw new ArtifactDownloadException(
+                        getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file), e);
+            }
+        } catch (IOException e) {
+            this.getLogger().error(getString(FAILED_TO_RESOLVE_ASSET_FILE, file, asset), e);
+            throw new ArtifactDownloadException(getString(FAILED_TO_RESOLVE_ASSET_FILE, file, asset), e);
+        }
+
+        DownloadArtifactAssetOptions opts = new DownloadArtifactAssetOptions(
+                asset.getAssetId(), asset.getArtifactVersionId(), resolved.toFile());
+        RestApiResponse response = validateAndGetExperimentKey()
+                .concatMap(experimentKey -> getRestApiClient().downloadArtifactAsset(opts, experimentKey))
+                .blockingGet();
+        if (response.hasFailed()) {
+            this.getLogger().error(getString(FAILED_TO_DOWNLOAD_ASSET, asset, response));
+            throw new ArtifactDownloadException(getString(FAILED_TO_DOWNLOAD_ASSET, asset, response));
+        }
+
+        // check the content of the downloaded file in case of FAIL overwrite strategy when file already exists
+        // this is just to mirror the Python SDK's behavior - potential performance bottleneck and system resource eater
+        if (fileAlreadyExists) {
+            Path assetFilePath = FileUtils.assetFilePath(dir, file);
+            try {
+                if (!FileUtils.fileContentsEquals(assetFilePath, resolved)) {
+                    this.getLogger().error(
+                            getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file));
+                    throw new ArtifactDownloadException(
+                            getString(FAILED_TO_DOWNLOAD_ASSET_FILE_ALREADY_EXISTS, asset, file));
+                }
+            } catch (IOException e) {
+                this.getLogger().error(getString(FAILED_TO_COMPARE_CONTENT_OF_FILES, file, resolved), e);
+                throw new ArtifactDownloadException(getString(FAILED_TO_COMPARE_CONTENT_OF_FILES, file, resolved), e);
+            } finally {
+                try {
+                    Files.deleteIfExists(resolved);
+                } catch (IOException e) {
+                    this.getLogger().error(getString(FAILED_TO_DELETE_TEMPORARY_ASSET_FILE, resolved, asset), e);
+                }
+            }
+            resolved = assetFilePath;
+        }
+
+        getLogger().info(getString(COMPLETED_DOWNLOAD_ARTIFACT_ASSET, asset.getFileName(), resolved));
+
+        try {
+            return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
+        } catch (IOException e) {
+            this.getLogger().error(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
+            throw new ArtifactDownloadException(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
         }
     }
 
@@ -703,9 +905,9 @@ abstract class BaseExperiment implements Experiment {
      * @param <T>     the type of the request data object.
      * @throws CometApiException if received response with error indicating that data was not saved.
      */
-    private <T> void sendSynchronously(final BiFunction<T, String, Single<LogDataResponse>> func,
+    private <T> void sendSynchronously(final BiFunction<T, String, Single<RestApiResponse>> func,
                                        final T request) throws CometApiException {
-        LogDataResponse response = validateAndGetExperimentKey()
+        RestApiResponse response = validateAndGetExperimentKey()
                 .concatMap(experimentKey -> func.apply(request, experimentKey))
                 .blockingGet();
 

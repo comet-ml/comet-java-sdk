@@ -1,6 +1,7 @@
 package ml.comet.experiment.artifact;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.ToString;
 
 /**
@@ -49,7 +50,7 @@ public final class GetArtifactOptions {
          * @param workspace the workspace name/id.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder workspaceName(String workspace) {
+        public GetArtifactOptionsBuilder workspaceName(@NonNull String workspace) {
             this.options.workspace = workspace;
             return this;
         }
@@ -60,7 +61,7 @@ public final class GetArtifactOptions {
          * @param project the project name/id.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder projectName(String project) {
+        public GetArtifactOptionsBuilder projectName(@NonNull String project) {
             this.options.project = project;
             return this;
         }
@@ -68,11 +69,25 @@ public final class GetArtifactOptions {
         /**
          * Creates option with artifact name.
          *
-         * @param artifactName the artifact name.
+         * @param artifactName the short artifact name like {@code 'artifact-name'}.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder name(String artifactName) {
-            this.options.artifactName = artifactName;
+        public GetArtifactOptionsBuilder name(@NonNull String artifactName) {
+            this.parseArtifactName(artifactName);
+            return this;
+        }
+
+        /**
+         * Creates option from fully qualified artifact name. The provided name will be parsed and corresponding options
+         * will be set if defined: name, workspace, and versionOrAlias.
+         *
+         * @param fullArtifactName the fully qualified artifact name
+         *                         like {@code 'workspace/artifact-name:versionOrAlias'} or
+         *                         {@code 'artifact-name:versionOrAlias'}
+         * @return the {@link GetArtifactOptionsBuilder} instance with option set.
+         */
+        public GetArtifactOptionsBuilder fullName(@NonNull String fullArtifactName) {
+            this.parseArtifactName(fullArtifactName);
             return this;
         }
 
@@ -82,7 +97,7 @@ public final class GetArtifactOptions {
          * @param artifactId the ID of the artifact.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder artifactId(String artifactId) {
+        public GetArtifactOptionsBuilder artifactId(@NonNull String artifactId) {
             this.options.artifactId = artifactId;
             return this;
         }
@@ -93,7 +108,7 @@ public final class GetArtifactOptions {
          * @param version the version of the artifact.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder version(String version) {
+        public GetArtifactOptionsBuilder version(@NonNull String version) {
             this.options.version = version;
             return this;
         }
@@ -104,7 +119,7 @@ public final class GetArtifactOptions {
          * @param versionId the ID of specific version of the artifact.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder versionId(String versionId) {
+        public GetArtifactOptionsBuilder versionId(@NonNull String versionId) {
             this.options.versionId = versionId;
             return this;
         }
@@ -115,7 +130,7 @@ public final class GetArtifactOptions {
          * @param alias the artifact version alias.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder alias(String alias) {
+        public GetArtifactOptionsBuilder alias(@NonNull String alias) {
             this.options.alias = alias;
             return this;
         }
@@ -126,7 +141,7 @@ public final class GetArtifactOptions {
          * @param versionOrAlias the alias or version string.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder versionOrAlias(String versionOrAlias) {
+        public GetArtifactOptionsBuilder versionOrAlias(@NonNull String versionOrAlias) {
             this.options.versionOrAlias = versionOrAlias;
             return this;
         }
@@ -137,7 +152,7 @@ public final class GetArtifactOptions {
          * @param consumerExperimentKey the new experiment key to be associated.
          * @return the {@link GetArtifactOptionsBuilder} instance with option set.
          */
-        public GetArtifactOptionsBuilder consumerExperimentKey(String consumerExperimentKey) {
+        public GetArtifactOptionsBuilder consumerExperimentKey(@NonNull String consumerExperimentKey) {
             this.options.consumerExperimentKey = consumerExperimentKey;
             return this;
         }
@@ -149,6 +164,22 @@ public final class GetArtifactOptions {
          */
         public GetArtifactOptions build() {
             return this.options;
+        }
+
+        void parseArtifactName(String name) {
+            String[] parts = name.split("/");
+            String nameAndVersion;
+            if (parts.length == 1) {
+                nameAndVersion = parts[0];
+            } else {
+                this.options.workspace = parts[0];
+                nameAndVersion = parts[1];
+            }
+            parts = nameAndVersion.split(":");
+            this.options.artifactName = parts[0];
+            if (parts.length > 1) {
+                this.options.versionOrAlias = parts[1];
+            }
         }
     }
 }

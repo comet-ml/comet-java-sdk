@@ -29,7 +29,9 @@ public enum QueryParamName {
     VERSION("version"), // string
     ALIAS("alias"), // string
     VERSION_OR_ALIAS("versionOrAlias"), // string
-    CONSUMER_EXPERIMENT_KEY("consumerExperimentKey"); // string
+    CONSUMER_EXPERIMENT_KEY("consumerExperimentKey"), // string
+
+    ASSET_ID("assetId"); // string
 
     private final String paramName;
 

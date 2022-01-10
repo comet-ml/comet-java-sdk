@@ -10,8 +10,6 @@ import lombok.NoArgsConstructor;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.impl.LoggedArtifactImpl;
 import ml.comet.experiment.impl.utils.CometUtils;
-import ml.comet.experiment.impl.utils.DataModelUtils;
-import org.slf4j.Logger;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -34,36 +32,27 @@ public class ArtifactVersionDetail extends BaseExperimentObject {
     ArtifactVersionState state;
     List<String> tags;
     List<String> alias;
-    List<ArtifactVersionAsset> files;
     ArtifactDto artifact;
 
     /**
-     * Converts to the {@link LoggedArtifact} instance.
+     * Copy values to the provided {@link LoggedArtifact} instance.
      *
-     * @param logger the logger for output.
+     * @param artifact the {@link LoggedArtifactImpl} instance to be populated.
      * @return the {@link LoggedArtifact} instance.
      */
-    public LoggedArtifact toLoggedArtifact(Logger logger) {
-        LoggedArtifactImpl a = new LoggedArtifactImpl(this.artifact.getArtifactName(), this.artifact.getArtifactType());
-        a.setSemanticVersion(new Semver(this.artifactVersion));
-        a.setArtifactId(this.artifact.getArtifactId());
-        a.setArtifactVersionId(this.artifactVersionId);
-        a.setExperimentKey(this.experimentKey);
-        a.setSizeInBytes(this.sizeInBytes);
-        a.setWorkspace(this.artifact.getWorkspaceName());
+    public LoggedArtifact copyToLoggedArtifact(LoggedArtifactImpl artifact) {
+        artifact.setSemanticVersion(new Semver(this.artifactVersion));
+        artifact.setArtifactId(this.artifact.getArtifactId());
+        artifact.setArtifactVersionId(this.artifactVersionId);
+        artifact.setExperimentKey(this.experimentKey);
+        artifact.setSizeInBytes(this.sizeInBytes);
+        artifact.setWorkspace(this.artifact.getWorkspaceName());
 
-        a.setAliases(CometUtils.setFromList(this.alias));
-        a.setArtifactTags(CometUtils.setFromList(this.artifact.getTags()));
-        a.setVersionTags(CometUtils.setFromList(this.tags));
+        artifact.setAliases(CometUtils.setFromList(this.alias));
+        artifact.setArtifactTags(CometUtils.setFromList(this.artifact.getTags()));
+        artifact.setVersionTags(CometUtils.setFromList(this.tags));
 
-        if (this.metadata != null) {
-            try {
-                a.setArtifactMetadata(DataModelUtils.metadataFromJson(this.metadata));
-            } catch (Throwable e) {
-                logger.error("Couldn't decode metadata for artifact {}:{}", a.getName(), a.getVersion(), e);
-            }
-        }
-
-        return a;
+        artifact.setMetadataJson(this.metadata);
+        return artifact;
     }
 }

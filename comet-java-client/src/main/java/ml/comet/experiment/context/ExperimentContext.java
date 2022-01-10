@@ -67,7 +67,7 @@ public final class ExperimentContext {
      * @param other the context to be merged into this.
      */
     public void mergeFrom(@NonNull ExperimentContext other) {
-        if (this == other) {
+        if (Objects.equals(this, other)) {
             return;
         }
 

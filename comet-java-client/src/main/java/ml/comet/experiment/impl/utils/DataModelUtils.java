@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl.utils;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.context.ExperimentContext;
@@ -19,7 +20,6 @@ import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.model.GitMetaData;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -201,8 +201,8 @@ public class DataModelUtils {
         if (artifact.getVersionTags() != null && artifact.getVersionTags().size() > 0) {
             r.setVersionTags(artifact.getVersionTags().toArray(new String[0]));
         }
-        if (artifact.getArtifactMetadata() != null) {
-            r.setVersionMetadata(JsonUtils.toJson(artifact.getArtifactMetadata()));
+        if (artifact.getMetadata() != null) {
+            r.setVersionMetadata(JsonUtils.toJson(artifact.getMetadata()));
         }
         return r;
     }
@@ -228,13 +228,8 @@ public class DataModelUtils {
      * @param json the JSON encoded metadata string.
      * @return the instance of the {@link Map} object.
      */
-    @SuppressWarnings("rawtypes")
     public Map<String, Object> metadataFromJson(String json) {
-        HashMap jsonMap = JsonUtils.fromJson(json, HashMap.class);
-
-        Map<String, Object> res = new HashMap<>();
-        jsonMap.forEach((k, v) -> res.put(k.toString(), v));
-
-        return res;
+        return JsonUtils.fromJson(json, new TypeReference<Map<String, Object>>() {
+        });
     }
 }

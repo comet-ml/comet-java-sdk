@@ -50,10 +50,10 @@ public class AssetUtils {
      * @param recursive            if {@code true} then subfolder files will be included recursively.
      * @param prefixWithFolderName if {@code true} then path of each asset file will be prefixed with folder name
      *                             in case if {@code logFilePath} is {@code true}.
-     * @return the stream of {@link Asset} objects.
+     * @return the stream of {@link AssetImpl} objects.
      * @throws IOException if an I/O exception occurred.
      */
-    public static Stream<Asset> walkFolderAssets(@NonNull File folder, boolean logFilePath,
+    public static Stream<AssetImpl> walkFolderAssets(@NonNull File folder, boolean logFilePath,
                                                  boolean recursive, boolean prefixWithFolderName)
             throws IOException {
         // list files in the directory and process each file as an asset
@@ -72,16 +72,16 @@ public class AssetUtils {
      *                  The dictionary values must be JSON compatible.
      * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
      *                  will be assigned.
-     * @return the initialized {@link RemoteAsset} instance.
+     * @return the initialized {@link RemoteAssetImpl} instance.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static RemoteAsset createRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
-                                                Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+    public static RemoteAssetImpl createRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
+                                                    Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
         RemoteAssetImpl asset = new RemoteAssetImpl();
         asset.setLink(uri);
         asset.setFileName(fileName.orElse(remoteAssetFileName(uri)));
 
-        return (RemoteAsset) updateAsset(asset, overwrite, metadata, type);
+        return (RemoteAssetImpl) updateAsset(asset, overwrite, metadata, type);
     }
 
     /**
@@ -93,12 +93,12 @@ public class AssetUtils {
      * @param metadata  the metadata to associate with asset. The dictionary values must be JSON compatible.
      * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET}
      *                  will be assigned.
-     * @return the instance of the {@link Asset} from the local file.
+     * @return the instance of the {@link AssetImpl} from the local file.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static Asset createAssetFromFile(@NonNull File file, Optional<String> fileName, boolean overwrite,
-                                            @NonNull Optional<Map<String, Object>> metadata,
-                                            @NonNull Optional<AssetType> type) {
+    public static AssetImpl createAssetFromFile(@NonNull File file, Optional<String> fileName, boolean overwrite,
+                                                @NonNull Optional<Map<String, Object>> metadata,
+                                                @NonNull Optional<AssetType> type) {
         String logicalFileName = fileName.orElse(file.getName());
         AssetImpl asset = new AssetImpl();
         asset.setFile(file);
@@ -117,12 +117,12 @@ public class AssetUtils {
      * @param metadata  the metadata to associate with asset. The dictionary values must be JSON compatible.
      * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
      *                  will be assigned.
-     * @return the instance of the {@link Asset} from the file-like data.
+     * @return the instance of the {@link AssetImpl} from the file-like data.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static Asset createAssetFromData(byte[] data, @NonNull String fileName, boolean overwrite,
-                                            @NonNull Optional<Map<String, Object>> metadata,
-                                            @NonNull Optional<AssetType> type) {
+    public static AssetImpl createAssetFromData(byte[] data, @NonNull String fileName, boolean overwrite,
+                                                @NonNull Optional<Map<String, Object>> metadata,
+                                                @NonNull Optional<AssetType> type) {
         AssetImpl asset = new AssetImpl();
         asset.setFileLikeData(data);
         asset.setFileName(fileName);
@@ -182,11 +182,11 @@ public class AssetUtils {
      *                  The dictionary values must be JSON compatible.
      * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
      *                  will be assigned.
-     * @return the updated {@link Asset} with values from optionals or with defaults.
+     * @return the updated {@link AssetImpl} with values from optionals or with defaults.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static Asset updateAsset(AssetImpl asset, boolean overwrite,
-                                    Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+    public static AssetImpl updateAsset(AssetImpl asset, boolean overwrite,
+                                        Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
         asset.setOverwrite(overwrite);
         metadata.ifPresent(asset::setMetadata);
         asset.setType(type.orElse(AssetType.ASSET));
@@ -208,8 +208,8 @@ public class AssetUtils {
         }
     }
 
-    static Asset mapToFileAsset(@NonNull File folder, @NonNull Path assetPath,
-                                boolean logFilePath, boolean prefixWithFolderName) {
+    static AssetImpl mapToFileAsset(@NonNull File folder, @NonNull Path assetPath,
+                                    boolean logFilePath, boolean prefixWithFolderName) {
         AssetImpl asset = new AssetImpl();
         asset.setFile(assetPath.toFile());
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);

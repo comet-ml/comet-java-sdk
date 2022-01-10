@@ -11,16 +11,17 @@ import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
 import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.RemoteAsset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
@@ -35,16 +36,22 @@ import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
  * The implementation of the {@link Artifact}.
  */
 public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
-
     @Getter
-    private final List<ArtifactAsset> assets;
+    private final Logger logger = LoggerFactory.getLogger(Artifact.class);
+
+    private final HashMap<String, ArtifactAsset> assetsMap;
 
     private final boolean prefixWithFolderName;
 
     ArtifactImpl(String name, String type) {
         super(name, type);
-        this.assets = new ArrayList<>();
+        this.assetsMap = new HashMap<>();
         this.prefixWithFolderName = true;
+    }
+
+    @Override
+    public Collection<ArtifactAsset> getAssets() {
+        return this.assetsMap.values();
     }
 
     @Override
@@ -155,14 +162,14 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
     private <T extends ArtifactAsset> void appendAsset(@NonNull final T asset)
             throws ConflictingArtifactAssetNameException {
-        this.assets.forEach(a -> {
-            if (Objects.equals(a.getFileName(), asset.getFileName())) {
-                throw new ConflictingArtifactAssetNameException(
-                        getString(CONFLICTING_ARTIFACT_ASSET_NAME, asset, asset.getFileName(), a));
-            }
-        });
+        String key = asset.getFileName();
+        ArtifactAsset a = this.assetsMap.get(key);
+        if (a != null) {
+            throw new ConflictingArtifactAssetNameException(
+                    getString(CONFLICTING_ARTIFACT_ASSET_NAME, asset, key, a));
+        }
 
-        this.assets.add(asset);
+        this.assetsMap.put(key, asset);
     }
 
     /**
@@ -191,7 +198,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
         @Override
         public ArtifactBuilderImpl withMetadata(@NonNull Map<String, Object> metadata) {
-            this.artifact.artifactMetadata = metadata;
+            this.artifact.setMetadata(metadata);
             return this;
         }
 
@@ -209,9 +216,6 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
 
         @Override
         public Artifact build() {
-            if (Objects.isNull(this.artifact.artifactMetadata)) {
-                this.artifact.artifactMetadata = new HashMap<>();
-            }
             return this.artifact;
         }
     }

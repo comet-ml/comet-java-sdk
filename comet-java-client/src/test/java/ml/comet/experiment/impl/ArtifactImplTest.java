@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test cases to test {@link ml.comet.experiment.artifact.Artifact} implementation.
  */
 @DisplayName("Artifact")
-public class ArtifactTest extends AssetsBaseTest {
+public class ArtifactImplTest extends AssetsBaseTest {
 
     static String SOME_ARTIFACT_NAME = "artifactName";
     static String SOME_ARTIFACT_TYPE = "artifactType";
@@ -78,7 +78,7 @@ public class ArtifactTest extends AssetsBaseTest {
                 .withMetadata(SOME_METADATA)
                 .build();
         assertNotNull(artifact);
-        assertEquals(SOME_METADATA, artifact.getArtifactMetadata());
+        assertEquals(SOME_METADATA, artifact.getMetadata());
     }
 
     @Test
@@ -156,7 +156,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct file asset")
             @Order(1)
             void hasFileAsset() {
-                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().get(0);
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
                 assertEquals(this.assetFile, asset.getFile(), "wrong file");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -190,7 +190,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct file-like asset")
             @Order(1)
             void hasFileLikeAsset() {
-                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().get(0);
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
                 assertEquals(this.data, asset.getFileLikeData(), "wrong data");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
@@ -224,7 +224,7 @@ public class ArtifactTest extends AssetsBaseTest {
             @DisplayName("has correct remote asset")
             @Order(1)
             void hasRemoteAsset() {
-                ArtifactRemoteAssetImpl asset = (ArtifactRemoteAssetImpl) artifact.getAssets().get(0);
+                ArtifactRemoteAssetImpl asset = (ArtifactRemoteAssetImpl) artifact.getAssets().iterator().next();
                 assertEquals(this.uri, asset.getLink(), "wrong link");
                 assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");

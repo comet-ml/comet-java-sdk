@@ -189,13 +189,14 @@ public class ConnectionUtils {
      * @throws CometWebJavaSdkException if remote endpoint returned BAD REQUEST error status.
      * @throws CometApiException        is request failed with another error code.
      */
-    static void checkResponseStatus(@NonNull Response response) throws CometWebJavaSdkException {
+    public static void checkResponseStatus(@NonNull Response response)
+            throws CometWebJavaSdkException, CometApiException {
         int statusCode = response.getStatusCode();
         if (isResponseSuccessful(statusCode)) {
             return;
         }
         // check for status code and raise appropriate exception
-        if (statusCode == 400 && response.hasResponseBody()) {
+        if ((statusCode == 400 || statusCode == 403) && response.hasResponseBody()) {
             throw JsonUtils.fromJson(
                     response.getResponseBody(), CometWebJavaSdkException.class);
         }
