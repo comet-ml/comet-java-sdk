@@ -458,7 +458,7 @@ abstract class BaseExperiment implements Experiment {
      * @param asset the {@link AssetImpl} to be uploaded
      */
     void logAsset(@NonNull final AssetImpl asset, @NonNull ExperimentContext context) {
-        asset.setExperimentContext(context);
+        asset.setContext(context);
 
         sendSynchronously(restApiClient::logAsset, asset);
     }

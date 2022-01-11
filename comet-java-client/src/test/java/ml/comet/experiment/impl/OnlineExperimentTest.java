@@ -5,6 +5,7 @@ import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.asset.LoggedExperimentAssetImpl;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
@@ -441,10 +442,13 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             List<LoggedExperimentAsset> assetList = experiment.getAssetList(ALL);
             return assetList.stream()
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getLogicalPath()))
-                    .anyMatch(asset ->
-                            ANOTHER_TEXT_FILE_SIZE == asset.getSize().orElse(0L)
-                                    && Objects.equals(asset.getExperimentContext().getStep(), SOME_FULL_CONTEXT.getStep())
-                                    && asset.getExperimentContext().getContext().equals(SOME_FULL_CONTEXT.getContext()));
+                    .anyMatch(asset -> {
+                        ExperimentContext context = ((LoggedExperimentAssetImpl) asset).getContext();
+                        return ANOTHER_TEXT_FILE_SIZE == asset.getSize().orElse(0L)
+                                && Objects.equals(context.getStep(), SOME_FULL_CONTEXT.getStep())
+                                && context.getContext().equals(SOME_FULL_CONTEXT.getContext());
+                    });
+
         }, "Asset was updated");
 
         experiment.end();
@@ -503,7 +507,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getLogicalPath()))
                     .findFirst();
             assertTrue(assetOpt.isPresent());
-            assertEquals(SOME_TEXT, assetOpt.get().getExperimentContext().getContext());
+            assertTrue(assetOpt.get().getExperimentContext().isPresent(), "experiment context expected");
+            assertEquals(SOME_TEXT, assetOpt.get().getExperimentContext().get().getContext());
         } catch (Exception e) {
             fail(e);
         }
@@ -662,10 +667,11 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         assertTrue(assets.stream()
                 .filter(asset -> expectedAssetName.equals(asset.getLogicalPath()))
                 .anyMatch(asset -> {
+                    ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
                     boolean res = expectedSize == asset.getSize().orElse(0L)
-                            && Objects.equals(context.getStep(), asset.getExperimentContext().getStep());
+                            && Objects.equals(context.getStep(), assetContext.getStep());
                     if (StringUtils.isNotBlank(context.getContext())) {
-                        res = res & context.getContext().equals(asset.getExperimentContext().getContext());
+                        res = res & context.getContext().equals(assetContext.getContext());
                     }
                     return res;
                 }));

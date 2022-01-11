@@ -151,8 +151,8 @@ public class AssetUtils {
         putNotNull(queryParams, FILE_NAME, asset.getLogicalPath());
         putNotNull(queryParams, EXTENSION, asset.getFileExtension());
 
-        ExperimentContext context = asset.getExperimentContext();
-        if (context != null) {
+        if (asset.getExperimentContext().isPresent()) {
+            ExperimentContext context = asset.getExperimentContext().get();
             putNotNull(queryParams, CONTEXT, context.getContext());
             putNotNull(queryParams, STEP, context.getStep());
             putNotNull(queryParams, EPOCH, context.getEpoch());

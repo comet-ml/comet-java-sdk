@@ -11,6 +11,27 @@ import java.util.Optional;
  */
 public interface Asset {
     /**
+     * Returns the logical file path for this asset.
+     *
+     * @return the logical file path for this asset.
+     */
+    String getLogicalPath();
+
+    /**
+     * Returns the type of this asset.
+     *
+     * @return the type of this asset.
+     */
+    AssetType getType();
+
+    /**
+     * Returns metadata associated with this asset or {@link Map} if there is no metadata.
+     *
+     * @return the metadata associated with this asset or empty {@link Map} if there is no metadata.
+     */
+    Map<String, Object> getMetadata();
+
+    /**
      * Returns the optional asset's file.
      *
      * @return the optional asset's file.
@@ -25,31 +46,9 @@ public interface Asset {
     Optional<byte[]> getFileLikeData();
 
     /**
-     * Returns the logical file path for this asset.
+     * Returns the optional {@link ExperimentContext} associated with this asset.
      *
-     * @return the logical file path for this asset.
+     * @return the {@link ExperimentContext} associated with this asset.
      */
-    String getLogicalPath();
-
-    /**
-     * Returns the {@link ExperimentContext} associated with this asset.
-     *
-     * @return the {@link ExperimentContext} associated with this asset or {@code null} if no context assigned.
-     */
-    ExperimentContext getExperimentContext();
-
-    /**
-     * Returns the type of this asset.
-     *
-     * @return the type of this asset.
-     */
-    AssetType getType();
-
-
-    /**
-     * Returns metadata associated with this asset or {@link Map} if there is no metadata.
-     *
-     * @return the metadata associated with this asset or empty {@link Map} if there is no metadata.
-     */
-    Map<String, Object> getMetadata();
+    Optional<ExperimentContext> getExperimentContext();
 }

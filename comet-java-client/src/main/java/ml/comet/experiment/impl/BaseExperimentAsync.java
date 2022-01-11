@@ -329,7 +329,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         try {
             Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> {
-                        asset.setExperimentContext(assetContext);
+                        asset.setContext(assetContext);
                         count.incrementAndGet();
                     });
 
@@ -566,7 +566,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T extends Asset> void logAsset(final BiFunction<T, String, Single<RestApiResponse>> func,
                                             @NonNull final T asset, @NonNull Optional<Action> onComplete) {
-        ((AssetImpl) asset).setExperimentContext(this.baseContext);
+        ((AssetImpl) asset).setContext(this.baseContext);
         Single<RestApiResponse> single = this.sendAssetAsync(func, asset);
 
         if (onComplete.isPresent()) {

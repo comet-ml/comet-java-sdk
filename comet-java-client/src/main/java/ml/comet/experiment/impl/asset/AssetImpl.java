@@ -31,11 +31,11 @@ public class AssetImpl implements Asset {
     @ToString.Include
     Boolean overwrite;
 
-    ExperimentContext experimentContext;
+    ExperimentContext context;
     Map<String, Object> metadata;
 
-    public void setExperimentContext(ExperimentContext context) {
-        this.experimentContext = new ExperimentContext(context);
+    public void setContext(ExperimentContext context) {
+        this.context = new ExperimentContext(context);
     }
 
     @Override
@@ -54,5 +54,10 @@ public class AssetImpl implements Asset {
     @Override
     public Optional<byte[]> getFileLikeData() {
         return Optional.ofNullable(this.rawFileLikeData);
+    }
+
+    @Override
+    public Optional<ExperimentContext> getExperimentContext() {
+        return Optional.ofNullable(this.context);
     }
 }
