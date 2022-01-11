@@ -48,6 +48,8 @@ public class ArtifactImplTest extends AssetsBaseTest {
         put("someString", "string");
         put("someInt", 10);
     }};
+    static String SOME_REMOTE_ASSET_LINK = "s3://bucket/folder/someFile";
+    static String SOME_REMOTE_ASSET_NAME = "someRemoteAsset";
 
     @Test
     @DisplayName("is created with newArtifact()")
@@ -214,8 +216,8 @@ public class ArtifactImplTest extends AssetsBaseTest {
 
             @BeforeEach
             void addRemoteAsset() throws URISyntaxException {
-                this.uri = new URI("s3://bucket/folder/someFile");
-                this.assetFileName = "someRemoteAsset";
+                this.uri = new URI(SOME_REMOTE_ASSET_LINK);
+                this.assetFileName = SOME_REMOTE_ASSET_NAME;
                 artifact.addRemoteAsset(this.uri, this.assetFileName, this.overwrite, SOME_METADATA);
             }
 

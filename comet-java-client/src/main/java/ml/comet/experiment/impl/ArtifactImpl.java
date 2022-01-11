@@ -34,11 +34,11 @@ import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
 /**
  * The implementation of the {@link Artifact}.
  */
-public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
+public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     @Getter
-    private final Logger logger = LoggerFactory.getLogger(Artifact.class);
+    final Logger logger = LoggerFactory.getLogger(Artifact.class);
 
-    private final HashMap<String, ArtifactAsset> assetsMap;
+    final HashMap<String, ArtifactAsset> assetsMap;
 
     private final boolean prefixWithFolderName;
 
@@ -159,7 +159,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
                 .forEach(asset -> this.appendAsset(new ArtifactAssetImpl(asset)));
     }
 
-    private <T extends ArtifactAsset> void appendAsset(@NonNull final T asset)
+    <T extends ArtifactAsset> void appendAsset(@NonNull final T asset)
             throws ConflictingArtifactAssetNameException {
         String key = asset.getLogicalPath();
         ArtifactAsset a = this.assetsMap.get(key);
