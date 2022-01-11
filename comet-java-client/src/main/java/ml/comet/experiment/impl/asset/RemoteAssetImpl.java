@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import ml.comet.experiment.asset.RemoteAsset;
 
 import java.net.URI;
+import java.util.Optional;
 
 /**
  * Describes remote asset data.
@@ -14,5 +15,10 @@ import java.net.URI;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class RemoteAssetImpl extends AssetImpl implements RemoteAsset {
-    private URI link;
+    private URI uri;
+
+    @Override
+    public Optional<URI> getLink() {
+        return Optional.ofNullable(this.uri);
+    }
 }

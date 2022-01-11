@@ -142,7 +142,7 @@ public class ArtifactExample implements BaseExample {
         //
         LoggedArtifactAsset asset = assets.stream()
                 .filter(loggedArtifactAsset -> {
-                    Long size = loggedArtifactAsset.getFileSize().orElse(0L);
+                    Long size = loggedArtifactAsset.getSize().orElse(0L);
                     return !loggedArtifactAsset.isRemote() && size > 0;
                 })
                 .findFirst().orElse(null);

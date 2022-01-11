@@ -3,8 +3,8 @@ package ml.comet.experiment.impl;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.NonNull;
-import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.ArtifactAsset;
+import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.asset.RemoteAsset;
@@ -224,11 +224,11 @@ final class RestApiClient implements Disposable {
         }
 
         // call appropriate send method
-        if (asset.getFile() != null) {
-            return singleFromAsyncPost(asset.getFile(), ADD_ASSET, queryParams,
+        if (asset.getFile().isPresent()) {
+            return singleFromAsyncPost(asset.getFile().get(), ADD_ASSET, queryParams,
                     formParams, RestApiResponse.class);
-        } else if (asset.getFileLikeData() != null) {
-            return singleFromAsyncPost(asset.getFileLikeData(), ADD_ASSET, queryParams,
+        } else if (asset.getFileLikeData().isPresent()) {
+            return singleFromAsyncPost(asset.getFileLikeData().get(), ADD_ASSET, queryParams,
                     formParams, RestApiResponse.class);
         }
 
@@ -247,7 +247,9 @@ final class RestApiClient implements Disposable {
         }
 
         Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
-        formParams.put(LINK, asset.getLink().toASCIIString());
+        if (asset.getLink().isPresent()) {
+            formParams.put(LINK, asset.getLink().get().toASCIIString());
+        }
 
         return singleFromAsyncPost(ADD_ASSET, queryParams, formParams, RestApiResponse.class);
     }

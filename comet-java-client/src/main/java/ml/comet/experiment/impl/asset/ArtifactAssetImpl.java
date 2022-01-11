@@ -7,7 +7,6 @@ import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.AssetType;
 
-import java.net.URI;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -19,10 +18,9 @@ import java.util.Optional;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
+public class ArtifactAssetImpl extends RemoteAssetImpl implements ArtifactAsset {
     String artifactVersionId;
     Long fileSize;
-    private URI link;
 
     /**
      * Creates new instance with specified parameters.
@@ -35,7 +33,7 @@ public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
      */
     public ArtifactAssetImpl(String name, Path filePath, long size, Map<String, Object> metadata, AssetType assetType) {
         this.setLogicalPath(name);
-        this.setFile(filePath.toFile());
+        this.setRawFile(filePath.toFile());
         this.fileSize = size;
         this.metadata = metadata;
         this.setType(assetType);
@@ -47,8 +45,8 @@ public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
      * @param asset the {@link AssetImpl} to copy data from.
      */
     public ArtifactAssetImpl(AssetImpl asset) {
-        this.setFile(asset.getFile());
-        this.setFileLikeData(asset.getFileLikeData());
+        this.setRawFile(asset.getRawFile());
+        this.setRawFileLikeData(asset.getRawFileLikeData());
         this.setFileExtension(asset.getFileExtension());
         this.logicalPath = asset.getLogicalPath();
         this.type = asset.getType();
@@ -62,7 +60,7 @@ public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
      * @param asset the {@link RemoteAssetImpl} to copy relevant data from.
      */
     public ArtifactAssetImpl(RemoteAssetImpl asset) {
-        this.setLink(asset.getLink());
+        this.setUri(asset.getUri());
         this.logicalPath = asset.getLogicalPath();
         this.type = asset.getType();
         this.overwrite = asset.getOverwrite();
@@ -77,11 +75,6 @@ public class ArtifactAssetImpl extends AssetImpl implements ArtifactAsset {
 
     @Override
     public boolean isRemote() {
-        return this.link != null;
-    }
-
-    @Override
-    public URI getLink() {
-        return this.link;
+        return this.getLink().isPresent();
     }
 }

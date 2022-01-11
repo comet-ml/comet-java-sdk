@@ -598,7 +598,7 @@ abstract class BaseExperiment implements Experiment {
      * @return the list of assets associated with provided Comet artifact.
      * @throws ArtifactException if failed to read list of associated assets.
      */
-    Collection<LoggedArtifactAsset> readArtifactAssets(@NonNull LoggedArtifact artifact) throws ArtifactException {
+    Collection<LoggedArtifactAsset> readArtifactAssets(@NonNull LoggedArtifactImpl artifact) throws ArtifactException {
         GetArtifactOptions options = GetArtifactOptions.Op()
                 .artifactId(artifact.getArtifactId())
                 .versionId(artifact.getVersionId())
@@ -612,8 +612,7 @@ abstract class BaseExperiment implements Experiment {
                     .stream()
                     .collect(ArrayList::new,
                             (assets, artifactVersionAsset) -> assets.add(
-                                    artifactVersionAsset.copyTo(
-                                            new LoggedArtifactAssetImpl((LoggedArtifactImpl) artifact))),
+                                    artifactVersionAsset.copyTo(new LoggedArtifactAssetImpl(artifact))),
                             ArrayList::addAll);
         } catch (Throwable t) {
             String message = getString(FAILED_TO_READ_LOGGED_ARTIFACT_ASSETS, artifact.getFullName());
@@ -632,8 +631,8 @@ abstract class BaseExperiment implements Experiment {
      * @return the {@link ArtifactAsset} instance with details about downloaded asset file.
      * @throws ArtifactDownloadException if failed to download asset.
      */
-    ArtifactAsset downloadArtifactAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
-                                        @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
+    ArtifactAssetImpl downloadArtifactAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
+                                            @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactDownloadException {
         if (asset.isRemote()) {
             throw new ArtifactDownloadException(getString(REMOTE_ASSET_CANNOT_BE_DOWNLOADED, asset));

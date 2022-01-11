@@ -156,7 +156,7 @@ public class ArtifactImplTest extends AssetsBaseTest {
             @Order(1)
             void hasFileAsset() {
                 ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
-                assertEquals(this.assetFile, asset.getFile(), "wrong file");
+                assertEquals(this.assetFile, asset.getRawFile(), "wrong file");
                 assertEquals(this.assetFileName, asset.getLogicalPath(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
                 assertEquals(this.overwrite, asset.getOverwrite(), "wrong overwrite");
@@ -190,7 +190,7 @@ public class ArtifactImplTest extends AssetsBaseTest {
             @Order(1)
             void hasFileLikeAsset() {
                 ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
-                assertEquals(this.data, asset.getFileLikeData(), "wrong data");
+                assertEquals(this.data, asset.getRawFileLikeData(), "wrong data");
                 assertEquals(this.assetFileName, asset.getLogicalPath(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
                 assertEquals(this.overwrite, asset.getOverwrite(), "wrong overwrite");
@@ -225,7 +225,7 @@ public class ArtifactImplTest extends AssetsBaseTest {
             void hasRemoteAsset() {
                 ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
                 assertTrue(asset.isRemote(), "must be remote");
-                assertEquals(this.uri, asset.getLink(), "wrong link");
+                assertEquals(this.uri, asset.getUri(), "wrong link");
                 assertEquals(this.assetFileName, asset.getLogicalPath(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
                 assertEquals(this.overwrite, asset.getOverwrite(), "wrong overwrite");

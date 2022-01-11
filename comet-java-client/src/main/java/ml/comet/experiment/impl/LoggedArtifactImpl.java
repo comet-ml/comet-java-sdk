@@ -12,6 +12,7 @@ import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -192,8 +193,8 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         return assets;
     }
 
-    ArtifactAsset downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
-                            @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
+    ArtifactAssetImpl downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
+                                    @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactException {
         return this.baseExperiment.downloadArtifactAsset(asset, dir, file, overwriteStrategy);
     }
@@ -204,8 +205,8 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
             tmpDir = Files.createTempDirectory(null);
             Path file = FileSystems.getDefault().getPath(asset.getFileName());
 
-            ArtifactAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
-            Files.copy(downloaded.getFile().toPath(), out);
+            ArtifactAssetImpl downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
+            Files.copy(downloaded.getRawFile().toPath(), out);
             out.flush();
         } catch (IOException e) {
             this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
@@ -228,8 +229,8 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
             Path file = FileSystems.getDefault().getPath(asset.getFileName());
             file.toFile().deleteOnExit(); // make sure to delete temporary file
 
-            ArtifactAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
-            return Files.newInputStream(downloaded.getFile().toPath(), READ);
+            ArtifactAssetImpl downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
+            return Files.newInputStream(downloaded.getRawFile().toPath(), READ);
         } catch (IOException e) {
             this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
             throw new ArtifactDownloadException("Failed to create temporary file to store asset's content.", e);

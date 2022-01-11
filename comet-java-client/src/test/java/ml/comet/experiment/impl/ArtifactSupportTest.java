@@ -6,6 +6,7 @@ import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.utils.TestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
@@ -204,11 +205,11 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
             assertEquals(1, loggedAssets.size(), "wrong number of assets returned");
 
-            ArtifactAsset fileAsset = loggedAssets.iterator().next().download(tmpDir);
+            ArtifactAssetImpl fileAsset = (ArtifactAssetImpl) loggedAssets.iterator().next().download(tmpDir);
 
             assertNotNull(fileAsset, "file asset expected");
-            assertEquals(IMAGE_FILE_NAME, fileAsset.getFile().getName(), "wrong file name");
-            assertEquals(IMAGE_FILE_SIZE, Files.size(fileAsset.getFile().toPath()), "wrong downloaded file size");
+            assertEquals(IMAGE_FILE_NAME, fileAsset.getRawFile().getName(), "wrong file name");
+            assertEquals(IMAGE_FILE_SIZE, Files.size(fileAsset.getRawFile().toPath()), "wrong downloaded file size");
             assertEquals(IMAGE_FILE_SIZE, fileAsset.getSize().orElse(0L), "wrong file size");
             assertEquals(SOME_METADATA, fileAsset.getMetadata(), "wrong metadata");
             assertEquals(UNKNOWN, fileAsset.getType(), "wrong asset type");
@@ -577,8 +578,9 @@ public class ArtifactSupportTest extends AssetsBaseTest {
                     matchFound.set(true);
                     if (asset.isRemote()) {
                         assertTrue(loggedArtifactAsset.isRemote());
-                        assertTrue(loggedArtifactAsset.getLink().isPresent(), "remote link expected");
-                        assertEquals(asset.getLink(), loggedArtifactAsset.getLink().get(), "wrong URI");
+                        assertTrue(loggedArtifactAsset.getLink().isPresent(), "remote link expected in logged asset");
+                        assertTrue(asset.getLink().isPresent(), "remote link expected in asset");
+                        assertEquals(asset.getLink().get(), loggedArtifactAsset.getLink().get(), "wrong URI");
                     } else {
                         assertFalse(loggedArtifactAsset.isRemote());
                     }

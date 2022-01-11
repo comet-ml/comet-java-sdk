@@ -3,11 +3,11 @@ package ml.comet.experiment.impl;
 import io.reactivex.rxjava3.functions.Action;
 import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.utils.TestUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
-import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
@@ -27,11 +27,11 @@ import java.util.function.BooleanSupplier;
 import static java.util.Optional.empty;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static ml.comet.experiment.asset.AssetType.ALL;
+import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
-import static ml.comet.experiment.asset.AssetType.ALL;
-import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -442,7 +442,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             return assetList.stream()
                     .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getLogicalPath()))
                     .anyMatch(asset ->
-                            ANOTHER_TEXT_FILE_SIZE == asset.getFileSize()
+                            ANOTHER_TEXT_FILE_SIZE == asset.getSize().orElse(0L)
                                     && Objects.equals(asset.getExperimentContext().getStep(), SOME_FULL_CONTEXT.getStep())
                                     && asset.getExperimentContext().getContext().equals(SOME_FULL_CONTEXT.getContext()));
         }, "Asset was updated");
@@ -644,13 +644,13 @@ public class OnlineExperimentTest extends AssetsBaseTest {
                                         String fileName, Map<String, Object> metadata) {
         if (Objects.nonNull(metadata)) {
             assertTrue(assets.stream()
-                    .filter(asset -> uri.toString().equals(asset.getLink()))
+                    .filter(asset -> Objects.equals(uri, asset.getLink().orElse(null)))
                     .allMatch(asset -> asset.isRemote()
                             && Objects.equals(asset.getLogicalPath(), fileName)
                             && Objects.equals(asset.getMetadata(), metadata)));
         } else {
             assertTrue(assets.stream()
-                    .filter(asset -> uri.toString().equals(asset.getLink()))
+                    .filter(asset -> Objects.equals(uri, asset.getLink().orElse(null)))
                     .allMatch(asset -> asset.isRemote()
                             && Objects.equals(asset.getLogicalPath(), fileName)
                             && asset.getMetadata().isEmpty()));
@@ -662,7 +662,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         assertTrue(assets.stream()
                 .filter(asset -> expectedAssetName.equals(asset.getLogicalPath()))
                 .anyMatch(asset -> {
-                    boolean res = expectedSize == asset.getFileSize()
+                    boolean res = expectedSize == asset.getSize().orElse(0L)
                             && Objects.equals(context.getStep(), asset.getExperimentContext().getStep());
                     if (StringUtils.isNotBlank(context.getContext())) {
                         res = res & context.getContext().equals(asset.getExperimentContext().getContext());

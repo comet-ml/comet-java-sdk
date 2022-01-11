@@ -49,11 +49,11 @@ public interface LoggedArtifactAsset {
     String getFileName();
 
     /**
-     * Returns the optional size of the asset file.
+     * Returns the optional size of the asset.
      *
-     * @return the optional size of the asset file.
+     * @return the optional size of the asset.
      */
-    Optional<Long> getFileSize();
+    Optional<Long> getSize();
 
     /**
      * Returns the optional {@link URI} of the asset if this is remote asset.

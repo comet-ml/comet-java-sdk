@@ -81,7 +81,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     }
 
     @Override
-    public Optional<Long> getFileSize() {
+    public Optional<Long> getSize() {
         if (this.fileSize != null) {
             return Optional.of(this.fileSize);
         }

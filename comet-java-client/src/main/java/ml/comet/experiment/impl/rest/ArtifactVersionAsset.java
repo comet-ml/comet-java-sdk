@@ -27,7 +27,7 @@ public class ArtifactVersionAsset {
      *
      * @param asset the {@link LoggedArtifactAssetImpl} instance to be filled.
      */
-    public LoggedArtifactAsset copyTo(LoggedArtifactAssetImpl asset) {
+    public LoggedArtifactAssetImpl copyTo(LoggedArtifactAssetImpl asset) {
         asset.setAssetId(this.assetId);
         asset.setAssetType(AssetUtils.toAssetType(this.type));
         asset.setFileName(this.fileName);

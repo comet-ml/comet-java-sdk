@@ -81,7 +81,7 @@ public class AssetUtils {
     public static RemoteAssetImpl createRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
                                                     Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
         RemoteAssetImpl asset = new RemoteAssetImpl();
-        asset.setLink(uri);
+        asset.setUri(uri);
         asset.setLogicalPath(fileName.orElse(remoteAssetFileName(uri)));
 
         return (RemoteAssetImpl) updateAsset(asset, overwrite, metadata, type);
@@ -104,7 +104,7 @@ public class AssetUtils {
                                                 @NonNull Optional<AssetType> type) {
         String logicalFileName = fileName.orElse(file.getName());
         AssetImpl asset = new AssetImpl();
-        asset.setFile(file);
+        asset.setRawFile(file);
         asset.setLogicalPath(logicalFileName);
         asset.setFileExtension(FilenameUtils.getExtension(logicalFileName));
 
@@ -127,7 +127,7 @@ public class AssetUtils {
                                                 @NonNull Optional<Map<String, Object>> metadata,
                                                 @NonNull Optional<AssetType> type) {
         AssetImpl asset = new AssetImpl();
-        asset.setFileLikeData(data);
+        asset.setRawFileLikeData(data);
         asset.setLogicalPath(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
 
@@ -234,7 +234,7 @@ public class AssetUtils {
     static AssetImpl mapToFileAsset(@NonNull File folder, @NonNull Path assetPath,
                                     boolean logFilePath, boolean prefixWithFolderName) {
         AssetImpl asset = new AssetImpl();
-        asset.setFile(assetPath.toFile());
+        asset.setRawFile(assetPath.toFile());
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);
         asset.setLogicalPath(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
