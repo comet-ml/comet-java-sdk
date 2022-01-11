@@ -1,12 +1,14 @@
 package ml.comet.experiment.impl.asset;
 
-import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.asset.AssetType;
+import ml.comet.experiment.impl.LoggedArtifactAssetImpl;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -14,11 +16,11 @@ import java.util.Optional;
 /**
  * Describes artifact's asset data.
  */
-@Data
-@NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class ArtifactAssetImpl extends RemoteAssetImpl implements ArtifactAsset {
+public final class ArtifactAssetImpl extends RemoteAssetImpl implements ArtifactAsset {
+    @Getter
+    @Setter
     String artifactVersionId;
     Long fileSize;
 
@@ -40,7 +42,7 @@ public class ArtifactAssetImpl extends RemoteAssetImpl implements ArtifactAsset 
     }
 
     /**
-     * The copy constructor.
+     * Creates new instance using values from provided {@link AssetImpl}.
      *
      * @param asset the {@link AssetImpl} to copy data from.
      */
@@ -55,7 +57,7 @@ public class ArtifactAssetImpl extends RemoteAssetImpl implements ArtifactAsset 
     }
 
     /**
-     * The copy constructor.
+     * Creates new instance using values from provided {@link RemoteAssetImpl}.
      *
      * @param asset the {@link RemoteAssetImpl} to copy relevant data from.
      */
@@ -67,6 +69,24 @@ public class ArtifactAssetImpl extends RemoteAssetImpl implements ArtifactAsset 
         this.metadata = asset.getMetadata();
     }
 
+    /**
+     * Creates new instance using values from provided {@link LoggedArtifactAssetImpl}.
+     *
+     * @param asset the {@link LoggedArtifactAssetImpl} to get values from.
+     */
+    public ArtifactAssetImpl(LoggedArtifactAssetImpl asset) {
+        if (asset.getLink().isPresent()) {
+            this.setUri(asset.getLink().get());
+        }
+        if (asset.getSize().isPresent()) {
+            this.fileSize = asset.getSize().get();
+        }
+
+        this.logicalPath = asset.getFileName();
+        this.type = asset.getAssetType();
+        this.metadata = asset.getMetadata();
+        this.artifactVersionId = asset.getArtifactVersionId();
+    }
 
     @Override
     public Optional<Long> getSize() {
