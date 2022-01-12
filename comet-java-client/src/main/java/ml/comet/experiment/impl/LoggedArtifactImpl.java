@@ -10,6 +10,7 @@ import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactDownloadException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
+import ml.comet.experiment.artifact.DownloadedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
@@ -26,7 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -74,7 +75,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Override
     public Set<String> getArtifactTags() {
         if (this.artifactTags == null) {
-            return Collections.emptySet();
+            return new HashSet<>();
         }
         return this.artifactTags;
     }
@@ -131,15 +132,21 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     }
 
     @Override
-    public Collection<LoggedArtifactAsset> download(Path folder) {
+    public DownloadedArtifact download(Path folder) {
         return this.download(folder, AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
     }
 
     @Override
-    public Collection<LoggedArtifactAsset> download(
-            @NonNull Path folder, @NonNull AssetOverwriteStrategy overwriteStrategy) throws ArtifactException {
+    public DownloadedArtifact download(@NonNull Path folder, @NonNull AssetOverwriteStrategy overwriteStrategy)
+            throws ArtifactException {
+        // create downloaded artifact
+        DownloadedArtifactImpl artifact = new DownloadedArtifactImpl(this);
+
         // read all assets associated with this artifact
         Collection<LoggedArtifactAsset> assets = this.getAssets();
+        artifact.addLoggedAssets(assets);
+
+        // check if there is assets to be downloaded
         int assetsToDownload = assets.stream()
                 .filter(loggedArtifactAsset -> !loggedArtifactAsset.isRemote())
                 .mapToInt(value -> 1)
@@ -147,7 +154,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         if (assetsToDownload == 0) {
             // show warning and return
             this.logger.warn(getString(ARTIFACT_HAS_NO_ASSETS_TO_DOWNLOAD, this.getFullName()));
-            return assets;
+            return artifact;
         }
 
         this.logger.info(getString(START_DOWNLOAD_ARTIFACT_ASSETS, assetsToDownload));
@@ -190,7 +197,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
             throw new ArtifactException(getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS, this.getFullName(), folder), ex);
         }
 
-        return assets;
+        return artifact;
     }
 
     ArtifactAssetImpl downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,

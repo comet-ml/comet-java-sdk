@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import com.vdurmont.semver4j.Semver;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
@@ -15,7 +16,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 import static ml.comet.experiment.impl.ArtifactImplTest.SOME_ARTIFACT_NAME;
@@ -24,6 +24,7 @@ import static ml.comet.experiment.impl.ArtifactImplTest.SOME_METADATA;
 import static ml.comet.experiment.impl.ArtifactImplTest.SOME_REMOTE_ASSET_LINK;
 import static ml.comet.experiment.impl.ArtifactImplTest.SOME_REMOTE_ASSET_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,18 +33,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @DisplayName("Downloaded Artifact")
 public class DownloadedArtifactImplTest extends AssetsBaseTest {
-
-    static HashSet<String> downloadedIdentifiers = new HashSet<>();
-    static {
-        downloadedIdentifiers.add("firstDownloaded");
-        downloadedIdentifiers.add("secondDownloaded");
-        downloadedIdentifiers.add("thirdDownloaded");
-    }
+    static String SOME_VERSION_STRING = "1.0.0";
+    static String SOME_UP_VERSION_STRING = "1.1.0";
+    static String SOME_DOWN_VERSION_STRING = "0.1.0";
+    static Semver SOME_VERSION = new Semver(SOME_VERSION_STRING);
 
     @Test
     @DisplayName("is created with new")
     void isCreatedWithNewArtifact() {
-        DownloadedArtifactImpl artifact = new DownloadedArtifactImpl(SOME_ARTIFACT_NAME, SOME_ARTIFACT_TYPE);
+        DownloadedArtifactImpl artifact = new DownloadedArtifactImpl(
+                SOME_ARTIFACT_NAME, SOME_ARTIFACT_TYPE, SOME_VERSION_STRING);
         assertNotNull(artifact);
     }
 
@@ -54,7 +53,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
 
         @BeforeEach
         void createNewArtifact() {
-            this.artifact = new DownloadedArtifactImpl(SOME_ARTIFACT_NAME, SOME_ARTIFACT_TYPE);
+            this.artifact = new DownloadedArtifactImpl(SOME_ARTIFACT_NAME, SOME_ARTIFACT_TYPE, SOME_VERSION_STRING);
         }
 
         @Test
@@ -65,9 +64,50 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
         }
 
         @Test
+        @DisplayName("artifact version is set")
+        void versionSet() {
+            assertEquals(SOME_VERSION_STRING, this.artifact.getVersion());
+        }
+
+        @Test
         @DisplayName("artifact has no assets")
         void hasNoAssets() {
             assertEquals(0, this.artifact.getAssets().size());
+        }
+
+        @Test
+        @DisplayName("able to increment major version")
+        void incrementMajorVersion() {
+            String versionStr = this.artifact.incrementMajorVersion();
+            assertNotNull(versionStr, "version string expected");
+            Semver version = new Semver(versionStr);
+            assertTrue(SOME_VERSION.withIncMajor().isEqualTo(version), "wrong version");
+        }
+
+        @Test
+        @DisplayName("able to increment minor version")
+        void incrementMinorVersion() {
+            String versionStr = this.artifact.incrementMinorVersion();
+            assertNotNull(versionStr, "version string expected");
+            Semver version = new Semver(versionStr);
+            assertTrue(SOME_VERSION.withIncMinor().isEqualTo(version), "wrong version");
+        }
+
+        @Test
+        @DisplayName("able to increment patch version")
+        void incrementPatchVersion() {
+            String versionStr = this.artifact.incrementPatchVersion();
+            assertNotNull(versionStr, "version string expected");
+            Semver version = new Semver(versionStr);
+            assertTrue(SOME_VERSION.withIncPatch().isEqualTo(version), "wrong version");
+        }
+
+        @Test
+        @DisplayName("able to set version string")
+        void setVersion() {
+            assertTrue(this.artifact.setVersion(SOME_UP_VERSION_STRING), "version must be set");
+            assertFalse(this.artifact.setVersion(SOME_UP_VERSION_STRING), "equal version must be skipped");
+            assertFalse(this.artifact.setVersion(SOME_DOWN_VERSION_STRING), "lower version must be skipped");
         }
 
         @Nested

@@ -130,11 +130,10 @@ public interface LoggedArtifact {
      *
      * @param folder            the path to the folder to keep downloaded files of the assets.
      * @param overwriteStrategy the overwriting strategy to apply when conflicting file name found.
-     * @return the list of all associated assets.
+     * @return the {@link Artifact} representing downloaded artifact with a list of all associated assets.
      * @throws ArtifactException thrown if operation failed.
      */
-    Collection<LoggedArtifactAsset> download(
-            Path folder, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
+    DownloadedArtifact download(Path folder, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
 
-    Collection<LoggedArtifactAsset> download(Path folder) throws ArtifactException;
+    DownloadedArtifact download(Path folder) throws ArtifactException;
 }

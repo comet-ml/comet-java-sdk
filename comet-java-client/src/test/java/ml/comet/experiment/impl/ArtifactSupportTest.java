@@ -4,6 +4,7 @@ import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
+import ml.comet.experiment.artifact.DownloadedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
@@ -124,7 +125,10 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             // check that correct assets was logged
             //
             Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
-            validateLoggedArtifactAssets(artifact.getAssets(), loggedAssets);
+            Collection<ArtifactAsset> assets = artifact.getAssets();
+            assertEquals(assets.size(), loggedAssets.size(), "wrong size");
+            loggedAssets.forEach(loggedArtifactAsset -> validateArtifactAsset(
+                    new ArtifactAssetImpl((LoggedArtifactAssetImpl) loggedArtifactAsset), assets));
 
         } catch (Throwable t) {
             fail(t);
@@ -295,10 +299,14 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // download artifact and check results
             //
-            Collection<LoggedArtifactAsset> assets = loggedArtifact.download(tmpDir);
+            DownloadedArtifact downloadedArtifact = loggedArtifact.download(tmpDir);
+            assertNotNull(downloadedArtifact, "downloaded artifact expected");
+            Collection<ArtifactAsset> downloadedArtifactAssets = downloadedArtifact.getAssets();
 
             // check that all assets returned including the remote ones
-            validateLoggedArtifactAssets(artifact.getAssets(), assets);
+            assertEquals(artifact.getAssets().size(), downloadedArtifactAssets.size(), "wrong downloaded assets size");
+            downloadedArtifactAssets.forEach(artifactAsset ->
+                    validateArtifactAsset(artifactAsset, artifact.getAssets()));
 
             // check that file assets was saved to the folder
             assetsToDownload = assetsToDownload.stream()
@@ -380,11 +388,13 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // download artifact and check that file was overwritten
             //
-            Collection<LoggedArtifactAsset> assets = loggedArtifact.download(tmpDir, AssetOverwriteStrategy.OVERWRITE);
+            DownloadedArtifact downloadedArtifact = loggedArtifact.download(tmpDir, AssetOverwriteStrategy.OVERWRITE);
+            assertNotNull(downloadedArtifact, "downloaded artifact expected");
+            Collection<ArtifactAsset> assets = downloadedArtifact.getAssets();
             assertEquals(1, assets.size());
 
-            LoggedArtifactAsset asset = assets.iterator().next();
-            Path assetFile = tmpDir.resolve(asset.getFileName());
+            ArtifactAsset asset = assets.iterator().next();
+            Path assetFile = tmpDir.resolve(asset.getLogicalPath());
             assertTrue(PathUtils.fileContentEquals(
                     Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)).toPath(), assetFile));
 
@@ -420,7 +430,9 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
             // download artifact and check that file was preserved
             //
-            Collection<LoggedArtifactAsset> assets = loggedArtifact.download(tmpDir, AssetOverwriteStrategy.PRESERVE);
+            DownloadedArtifact downloadedArtifact = loggedArtifact.download(tmpDir, AssetOverwriteStrategy.PRESERVE);
+            assertNotNull(downloadedArtifact, "downloaded artifact expected");
+            Collection<ArtifactAsset> assets = downloadedArtifact.getAssets();
             assertEquals(1, assets.size());
 
             byte[] fileData = Files.readAllBytes(conflictPath);
@@ -565,36 +577,31 @@ public class ArtifactSupportTest extends AssetsBaseTest {
                 .build();
     }
 
-    static void validateLoggedArtifactAssets(Collection<ArtifactAsset> assets, Collection<LoggedArtifactAsset> loggedAssets) {
-        assertEquals(assets.size(), loggedAssets.size(), "wrong size");
-        loggedAssets.forEach(loggedArtifactAsset -> validateLoggedArtifactAsset(loggedArtifactAsset, assets));
-    }
-
-    static void validateLoggedArtifactAsset(LoggedArtifactAsset loggedArtifactAsset, Collection<ArtifactAsset> assets) {
+    static void validateArtifactAsset(ArtifactAsset artifactAsset, Collection<ArtifactAsset> assets) {
         AtomicBoolean matchFound = new AtomicBoolean(false);
         assets.stream()
-                .filter(asset -> Objects.equals(asset.getLogicalPath(), loggedArtifactAsset.getFileName()))
+                .filter(asset -> Objects.equals(asset.getLogicalPath(), artifactAsset.getLogicalPath()))
                 .forEach(asset -> {
                     matchFound.set(true);
                     if (asset.isRemote()) {
-                        assertTrue(loggedArtifactAsset.isRemote());
-                        assertTrue(loggedArtifactAsset.getLink().isPresent(), "remote link expected in logged asset");
+                        assertTrue(artifactAsset.isRemote());
+                        assertTrue(artifactAsset.getLink().isPresent(), "remote link expected in logged asset");
                         assertTrue(asset.getLink().isPresent(), "remote link expected in asset");
-                        assertEquals(asset.getLink().get(), loggedArtifactAsset.getLink().get(), "wrong URI");
+                        assertEquals(asset.getLink().get(), artifactAsset.getLink().get(), "wrong URI");
                     } else {
-                        assertFalse(loggedArtifactAsset.isRemote());
+                        assertFalse(artifactAsset.isRemote());
                     }
                     if (asset.getMetadata() != null) {
-                        assertEquals(asset.getMetadata(), loggedArtifactAsset.getMetadata(), "wrong metadata");
+                        assertEquals(asset.getMetadata(), artifactAsset.getMetadata(), "wrong metadata");
                     } else {
-                        assertEquals(0, loggedArtifactAsset.getMetadata().size(), "empty metadata expected");
+                        assertEquals(0, artifactAsset.getMetadata().size(), "empty metadata expected");
                     }
                     if (asset.getType() == ASSET) {
-                        assertEquals(UNKNOWN, loggedArtifactAsset.getAssetType());
+                        assertEquals(UNKNOWN, artifactAsset.getType());
                     } else {
-                        assertEquals(asset.getType(), loggedArtifactAsset.getAssetType(), "wrong asset type");
+                        assertEquals(asset.getType(), artifactAsset.getType(), "wrong asset type");
                     }
                 });
-        assertTrue(matchFound.get(), String.format("no match found for %s", loggedArtifactAsset));
+        assertTrue(matchFound.get(), String.format("no match found for %s", artifactAsset));
     }
 }
