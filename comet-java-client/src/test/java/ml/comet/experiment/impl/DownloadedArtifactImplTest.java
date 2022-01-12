@@ -16,6 +16,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import static ml.comet.experiment.impl.ArtifactImplTest.SOME_ARTIFACT_NAME;
@@ -60,7 +61,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
         @DisplayName("artifact name and type is set")
         void nameAndTypeIsSet() {
             assertEquals(SOME_ARTIFACT_NAME, this.artifact.getName());
-            assertEquals(SOME_ARTIFACT_TYPE, this.artifact.getType());
+            assertEquals(SOME_ARTIFACT_TYPE, this.artifact.getArtifactType());
         }
 
         @Test
@@ -108,6 +109,38 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
             assertTrue(this.artifact.setVersion(SOME_UP_VERSION_STRING), "version must be set");
             assertFalse(this.artifact.setVersion(SOME_UP_VERSION_STRING), "equal version must be skipped");
             assertFalse(this.artifact.setVersion(SOME_DOWN_VERSION_STRING), "lower version must be skipped");
+        }
+
+        @Test
+        @DisplayName("default version tags is not null")
+        void versionTagsNotNull() {
+            assertNotNull(this.artifact.getVersionTags());
+        }
+
+        @Test
+        @DisplayName("able to set version tags")
+        void setVersionTags() {
+            HashSet<String > tags = new HashSet<>();
+            tags.add("tag1");
+            tags.add("tag2");
+            this.artifact.setVersionTags(tags);
+            assertEquals(tags, this.artifact.getVersionTags());
+        }
+
+        @Test
+        @DisplayName("default aliases is not null")
+        void aliasesNotNull() {
+            assertNotNull(this.artifact.getAliases());
+        }
+
+        @Test
+        @DisplayName("able to set aliases")
+        void setAliases() {
+            HashSet<String > aliases = new HashSet<>();
+            aliases.add("alias1");
+            aliases.add("alias2");
+            this.artifact.setAliases(aliases);
+            assertEquals(aliases, this.artifact.getAliases());
         }
 
         @Nested

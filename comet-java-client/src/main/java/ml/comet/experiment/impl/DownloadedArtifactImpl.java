@@ -1,7 +1,6 @@
 package ml.comet.experiment.impl;
 
 import com.vdurmont.semver4j.Semver;
-import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
@@ -27,7 +26,6 @@ import static ml.comet.experiment.impl.resources.LogMessages.getString;
  * Comet by {@link ml.comet.experiment.artifact.LoggedArtifact#download(Path, AssetOverwriteStrategy)} method.
  */
 public final class DownloadedArtifactImpl extends ArtifactImpl implements DownloadedArtifact {
-    @Getter
     private final Logger logger = LoggerFactory.getLogger(DownloadedArtifact.class);
 
     private String artifactId;
@@ -132,5 +130,10 @@ public final class DownloadedArtifactImpl extends ArtifactImpl implements Downlo
         }
 
         this.assetsMap.put(key, asset);
+    }
+
+    @Override
+    Logger getLogger() {
+        return this.logger;
     }
 }

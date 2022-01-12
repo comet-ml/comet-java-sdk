@@ -1,7 +1,6 @@
 package ml.comet.experiment.impl;
 
 import com.vdurmont.semver4j.Semver;
-import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactAsset;
@@ -35,8 +34,7 @@ import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
  * The implementation of the {@link Artifact}.
  */
 public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
-    @Getter
-    final Logger logger = LoggerFactory.getLogger(Artifact.class);
+    private final Logger logger = LoggerFactory.getLogger(Artifact.class);
 
     final HashMap<String, ArtifactAsset> assetsMap;
 
@@ -169,6 +167,11 @@ public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
         }
 
         this.assetsMap.put(key, asset);
+    }
+
+    @Override
+    Logger getLogger() {
+        return this.logger;
     }
 
     ArtifactAsset findAsset(@NonNull String logicalPath) {
