@@ -19,16 +19,16 @@ import static ml.comet.experiment.impl.resources.LogMessages.getString;
  * The implementation of the {@link ml.comet.experiment.artifact.Artifact} to represent artifact downloaded from the
  * Comet by {@link ml.comet.experiment.artifact.LoggedArtifact#download(Path, AssetOverwriteStrategy)} method.
  */
-public final class DownloadedArtifact extends ArtifactImpl {
+public final class DownloadedArtifactImpl extends ArtifactImpl {
 
     private final Set<String> downloadedAssetsIdentifiers;
 
-    DownloadedArtifact(String name, String type) {
+    DownloadedArtifactImpl(String name, String type) {
         super(name, type);
         this.downloadedAssetsIdentifiers = new HashSet<>();
     }
 
-    void addLoadedAssets(@NonNull Collection<LoggedArtifactAsset> assets) {
+    void addLoggedAssets(@NonNull Collection<LoggedArtifactAsset> assets) {
         assets.forEach(this::appendAsset);
     }
 

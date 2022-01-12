@@ -171,6 +171,10 @@ public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
         this.assetsMap.put(key, asset);
     }
 
+    ArtifactAsset findAsset(@NonNull String logicalPath) {
+        return this.assetsMap.get(logicalPath);
+    }
+
     /**
      * Returns {@link ArtifactBuilder} instance which can be used to create {@link Artifact} instances.
      *
