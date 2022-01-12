@@ -26,6 +26,13 @@ public interface DownloadedArtifact extends Artifact {
     String getName();
 
     /**
+     * Returns the fully qualified name of the artifact in form 'workspace/name:version'.
+     *
+     * @return the fully qualified name of the artifact.
+     */
+    String getFullName();
+
+    /**
      * Returns type of the artifact.
      *
      * @return the type of the artifact.

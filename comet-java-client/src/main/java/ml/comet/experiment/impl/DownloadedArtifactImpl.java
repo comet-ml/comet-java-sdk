@@ -9,6 +9,7 @@ import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
 import ml.comet.experiment.artifact.DownloadedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
+import ml.comet.experiment.impl.utils.ArtifactUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,11 @@ public final class DownloadedArtifactImpl extends ArtifactImpl implements Downlo
     @Override
     public String getName() {
         return super.getName();
+    }
+
+    @Override
+    public String getFullName() {
+        return ArtifactUtils.artifactFullName(this.workspace, this.getName(), this.getVersion());
     }
 
     @Override

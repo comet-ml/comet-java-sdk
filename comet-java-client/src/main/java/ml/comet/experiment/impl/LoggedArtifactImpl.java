@@ -14,6 +14,7 @@ import ml.comet.experiment.artifact.DownloadedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
+import ml.comet.experiment.impl.utils.ArtifactUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -115,7 +116,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
 
     @Override
     public String getFullName() {
-        return String.format("%s/%s:%s", this.getWorkspace(), this.getName(), this.getVersion());
+        return ArtifactUtils.artifactFullName(this.getWorkspace(), this.getName(), this.getVersion());
     }
 
     @Override
