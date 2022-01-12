@@ -29,11 +29,9 @@ public class AssetImpl implements Asset {
     private String fileExtension;
 
     @ToString.Include
-    @Getter
     @Setter
     String logicalPath;
     @ToString.Include
-    @Getter
     @Setter
     AssetType type;
     @ToString.Include
@@ -71,5 +69,15 @@ public class AssetImpl implements Asset {
     @Override
     public Optional<ExperimentContext> getExperimentContext() {
         return Optional.ofNullable(this.context);
+    }
+
+    @Override
+    public String getLogicalPath() {
+        return this.logicalPath;
+    }
+
+    @Override
+    public AssetType getType() {
+        return this.type;
     }
 }

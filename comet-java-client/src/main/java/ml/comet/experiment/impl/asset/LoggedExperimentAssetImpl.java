@@ -15,7 +15,6 @@ import java.util.Optional;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public final class LoggedExperimentAssetImpl extends RemoteAssetImpl implements LoggedExperimentAsset {
-    @Getter
     @Setter
     private String assetId;
     @Setter
@@ -46,5 +45,10 @@ public final class LoggedExperimentAssetImpl extends RemoteAssetImpl implements 
     @Override
     public Optional<String> getCurlDownload() {
         return Optional.ofNullable(this.curlDownload);
+    }
+
+    @Override
+    public String getAssetId() {
+        return this.assetId;
     }
 }
