@@ -132,6 +132,16 @@ public final class DownloadedArtifactImpl extends ArtifactImpl implements Downlo
         this.assetsMap.put(key, asset);
     }
 
+    /**
+     * Updates given asset in the collection of known assets or add new one.
+     *
+     * @param asset the {@link ArtifactAsset} instance.
+     */
+    void updateAsset(@NonNull ArtifactAsset asset) {
+        String key = asset.getLogicalPath();
+        this.assetsMap.put(key, asset);
+    }
+
     @Override
     Logger getLogger() {
         return this.logger;

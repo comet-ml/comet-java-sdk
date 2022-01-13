@@ -169,17 +169,18 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
                                 .subscribeOn(Schedulers.io()) // make it parallel on IO scheduler
                                 .map(asset -> asset.download(folder, overwriteStrategy)), true);
 
+
         // subscribe and wait for processing results
         CompletableFuture<Void> result = new CompletableFuture<>();
         observable
-                .ignoreElements() // ignore items - we are only interested in overall result
+                .doOnNext(artifact::updateAsset) // update artifact asset
+                .ignoreElements() // ignore items - we are interested in overall result
                 .blockingSubscribe(
                         () -> {
                             logger.info(getString(ARTIFACT_ASSETS_DOWNLOAD_COMPLETED,
                                     this.getFullName(), assetsToDownload, folder));
                             result.complete(null);
                         },
-
                         throwable -> {
                             logger.error(
                                     getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS, this.getFullName(), folder),
