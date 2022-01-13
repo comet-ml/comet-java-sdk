@@ -168,6 +168,23 @@ public class ArtifactExample implements BaseExample {
                 "Artifact '%s' successfully downloaded. Received %d artifact assets from the Comet server.\n\n",
                 downloadedArtifact.getFullName(), assets.size());
 
+        // update downloaded artifact
+        //
+        System.out.printf("Starting update of the artifact: %s\n", downloadedArtifact.getFullName());
+
+        downloadedArtifact.getAliases().add("downloaded");
+        downloadedArtifact.getMetadata().put("updated", "someUpdatedValue");
+        downloadedArtifact.addAsset(getResourceFile(GRAPH_JSON_FILE), "updated_graph.json",
+                false, SOME_METADATA);
+        downloadedArtifact.incrementMinorVersion();
+
+        CompletableFuture<LoggedArtifact> futureUpdatedArtifact = experiment.logArtifact(downloadedArtifact);
+        loggedArtifact = futureUpdatedArtifact.get(60, SECONDS);
+
+        System.out.printf("\nArtifact update completed, new artifact version created: %s\n\n",
+                loggedArtifact.getFullName());
+
+
         System.out.println("===== Experiment completed ====");
     }
 }
