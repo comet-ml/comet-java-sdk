@@ -328,17 +328,19 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         AtomicInteger count = new AtomicInteger();
         try {
             Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
-                    .peek(asset -> {
-                        asset.setContext(assetContext);
-                        count.incrementAndGet();
-                    });
+                    .peek(asset -> asset.setContext(assetContext));
 
             // create parallel execution flow with errors delaying
             // allowing processing of items even if some of them failed
             Observable<RestApiResponse> observable =
                     Observable.fromStream(assets)
                             .flatMap(asset -> Observable.fromSingle(
-                                    sendAssetAsync(getRestApiClient()::logAsset, asset)), true);
+                                    sendAssetAsync(getRestApiClient()::logAsset, asset)
+                                            .doOnSuccess(restApiResponse -> {
+                                                if (!restApiResponse.hasFailed()) {
+                                                    count.incrementAndGet();
+                                                }
+                                            })), true);
 
             if (onComplete.isPresent()) {
                 observable = observable.doFinally(onComplete.get());
@@ -353,9 +355,11 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                             (throwable) -> getLogger().error(
                                     getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable),
                             disposables);
-        } catch (Throwable t) {
+        } catch (
+                Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
         }
+
     }
 
     /**
@@ -477,18 +481,22 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         // upload artifact assets
         final String artifactVersionId = entry.getArtifactVersionId();
-        AtomicInteger count = new AtomicInteger();
+
         Stream<ArtifactAsset> assets = artifactImpl.getAssets().stream()
-                .peek(asset -> {
-                    ((ArtifactAssetImpl) asset).setArtifactVersionId(artifactVersionId);
-                    count.incrementAndGet();
-                });
+                .peek(asset -> ((ArtifactAssetImpl) asset).setArtifactVersionId(artifactVersionId));
 
         // create parallel execution flow with errors delaying
         // allowing processing of items even if some of them failed
+        AtomicInteger count = new AtomicInteger();
         Observable<RestApiResponse> observable = Observable
                 .fromStream(assets)
-                .flatMap(asset -> Observable.fromSingle(this.sendArtifactAssetAsync(asset)), true);
+                .flatMap(asset -> Observable.fromSingle(
+                        this.sendArtifactAssetAsync(asset)
+                                .doOnSuccess(restApiResponse -> {
+                                    if (!restApiResponse.hasFailed()) {
+                                        count.incrementAndGet();
+                                    }
+                                })), true);
 
         if (onComplete.isPresent()) {
             observable = observable.doFinally(onComplete.get());
@@ -560,7 +568,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param func       the function to be invoked to send asset to the backend.
      * @param asset      the {@link AssetImpl} or subclass to be sent.
      * @param onComplete The optional action to be invoked when this operation
-     *                   asynchronously completes. Can be {@code null} if not interested in completion signal.
+     *                   asynchronously completes. Can be empty if not interested in completion signal.
      * @param <T>        the {@link AssetImpl} or its subclass.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -586,7 +594,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
     /**
      * Attempts to send given {@link Asset} or its subclass asynchronously.
-     * This method will wrap send operation into {@link Single} and transparently log any errors that may happen.
+     * This method will wrap send operation into {@link Single}.
      *
      * @param func  the function to be invoked to send asset to the backend.
      * @param asset the {@link Asset} or subclass to be sent.
@@ -628,11 +636,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                     .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey));
         }
 
-        return single
-                .doOnSuccess(restApiResponse ->
-                        checkAndLogAssetResponse(restApiResponse, getLogger(), asset))
-                .doOnError(throwable ->
-                        getLogger().error(getString(FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST, asset), throwable));
+        return single.doOnSuccess(restApiResponse -> checkAndLogAssetResponse(restApiResponse, getLogger(), asset))
+                .doOnError(throwable -> getLogger().error(getString(FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST, asset),
+                        throwable));
     }
 
     /**
