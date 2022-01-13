@@ -676,7 +676,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
     static ArtifactImpl createArtifact() {
         List<String> aliases = Arrays.asList("alias1", "alias2");
         List<String> tags = Arrays.asList("tag1", "tag2");
-        String artifactName = "someArtifact";
+        String artifactName = "anotherArtifact";
         String artifactType = "someType";
         return (ArtifactImpl) Artifact
                 .newArtifact(artifactName, artifactType)
