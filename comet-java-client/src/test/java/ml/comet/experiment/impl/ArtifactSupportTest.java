@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import io.reactivex.rxjava3.functions.Function4;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactException;
@@ -27,12 +28,15 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -92,27 +96,27 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             //
             artifact.addAssetFolder(assetsFolder.toFile(), true, true);
 
-            // the artifact validator
-            BiFunction<LoggedArtifact, List<String>, Void> artifactValidator = (actual, expectedAliases) -> {
-                assertNotNull(actual, "logged artifact expected");
-                assertEquals(artifact.getType(), actual.getArtifactType(), "wrong artifact type");
-                assertEquals(new HashSet<>(expectedAliases), actual.getAliases(), "wrong aliases");
-                assertEquals(SOME_METADATA, actual.getMetadata(), "wrong metadata");
-                assertEquals(new HashSet<>(artifact.getVersionTags()), actual.getVersionTags(), "wrong version tags");
-                assertEquals(WORKSPACE_NAME, actual.getWorkspace(), "wrong workspace");
-                assertEquals(experiment.getExperimentKey(), actual.getSourceExperimentKey(), "wrong experiment key");
-                assertEquals(artifact.getName(), actual.getName(), "wrong artifact name");
-                return null;
-            };
+            // the logged artifact validator
+            Function4<LoggedArtifact, ArtifactImpl, String, List<String>, Void> loggedArtifactValidator =
+                    (actual, original, experimentKey, expectedAliases) -> {
+                        assertNotNull(actual, "logged artifact expected");
+                        assertEquals(original.getType(), actual.getArtifactType(), "wrong artifact type");
+                        assertEquals(new HashSet<>(expectedAliases), actual.getAliases(), "wrong aliases");
+                        assertEquals(SOME_METADATA, actual.getMetadata(), "wrong metadata");
+                        assertEquals(new HashSet<>(original.getVersionTags()), actual.getVersionTags(), "wrong version tags");
+                        assertEquals(WORKSPACE_NAME, actual.getWorkspace(), "wrong workspace");
+                        assertEquals(experimentKey, actual.getSourceExperimentKey(), "wrong experiment key");
+                        assertEquals(original.getName(), actual.getName(), "wrong artifact name");
+                        return null;
+                    };
 
             // log artifact and check results
             //
-            List<String> expectedAliases = new ArrayList<>(artifact.getAliases());
-
             CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
             LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
-            artifactValidator.apply(loggedArtifact, expectedAliases);
 
+            List<String> expectedAliases = new ArrayList<>(artifact.getAliases());
+            loggedArtifactValidator.apply(loggedArtifact, artifact, experiment.getExperimentKey(), expectedAliases);
 
             // get artifact details from server and check its correctness
             //
@@ -120,7 +124,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
                     loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
             expectedAliases.add(ALIAS_LATEST); // added by the backend automatically
 
-            artifactValidator.apply(loggedArtifactFromServer, expectedAliases);
+            loggedArtifactValidator.apply(loggedArtifactFromServer, artifact, experiment.getExperimentKey(), expectedAliases);
 
             // check that correct assets was logged
             //
@@ -297,13 +301,33 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
             LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
 
+            // get artifact details from server
+            //
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
+                    loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
+
             // download artifact and check results
             //
-            DownloadedArtifact downloadedArtifact = loggedArtifact.download(tmpDir);
+            DownloadedArtifact downloadedArtifact = loggedArtifactFromServer.download(tmpDir);
+
+            List<String> expectedAliases = new ArrayList<>(artifact.getAliases());
+            expectedAliases.add(ALIAS_LATEST);
+
             assertNotNull(downloadedArtifact, "downloaded artifact expected");
-            Collection<ArtifactAsset> downloadedArtifactAssets = downloadedArtifact.getAssets();
+            assertEquals(artifact.getType(), downloadedArtifact.getArtifactType(), "wrong artifact type");
+            assertEquals(new HashSet<>(expectedAliases), downloadedArtifact.getAliases(), "wrong aliases");
+            assertEquals(SOME_METADATA, downloadedArtifact.getMetadata(), "wrong metadata");
+            assertEquals(new HashSet<>(artifact.getVersionTags()), downloadedArtifact.getVersionTags(), "wrong version tags");
+            assertEquals(WORKSPACE_NAME, downloadedArtifact.getWorkspace(), "wrong workspace");
+            assertEquals(artifact.getName(), downloadedArtifact.getName(), "wrong artifact name");
+
+            assertEquals(loggedArtifactFromServer.getFullName(), downloadedArtifact.getFullName(), "wrong full name");
+            assertEquals(loggedArtifactFromServer.getArtifactId(), downloadedArtifact.getArtifactId(), "wrong artifact ID");
+            assertEquals(loggedArtifactFromServer.getVersion(), downloadedArtifact.getVersion(), "wrong version");
+
 
             // check that all assets returned including the remote ones
+            Collection<ArtifactAsset> downloadedArtifactAssets = downloadedArtifact.getAssets();
             assertEquals(artifact.getAssets().size(), downloadedArtifactAssets.size(), "wrong downloaded assets size");
             downloadedArtifactAssets.forEach(artifactAsset ->
                     validateArtifactAsset(artifactAsset, artifact.getAssets()));
@@ -560,6 +584,91 @@ public class ArtifactSupportTest extends AssetsBaseTest {
 
         } catch (Throwable t) {
             fail(t);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    void testLogAndUpdateArtifact() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testLogAndUpdateArtifact");
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add local assets
+            //
+            File imageFile = TestUtils.getFile(IMAGE_FILE_NAME);
+            assertNotNull(imageFile);
+            artifact.addAsset(imageFile, IMAGE_FILE_NAME, false, SOME_METADATA);
+            File textFile = TestUtils.getFile(SOME_TEXT_FILE_NAME);
+            assertNotNull(textFile);
+            artifact.addAsset(textFile, SOME_TEXT_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // download artifact and check that file was preserved
+            //
+            DownloadedArtifact downloadedArtifact = loggedArtifact.download(tmpDir, AssetOverwriteStrategy.PRESERVE);
+            assertNotNull(downloadedArtifact, "downloaded artifact expected");
+
+            int originalAssetsCount = 2;
+            assertEquals(originalAssetsCount, downloadedArtifact.getAssets().size(), "downloaded artifact has wrong assets size");
+
+            // update artifact
+            //
+            Set<String> newTags = new HashSet<>(Collections.singletonList("downloaded tag"));
+            downloadedArtifact.setVersionTags(newTags);
+
+            String extraAlias = "downloaded alias";
+            assertTrue(downloadedArtifact.getAliases().add(extraAlias), "failed to add alias");
+
+            String extraKey = "downloaded key";
+            String extraMetaValue = "some value";
+            downloadedArtifact.getMetadata().put(extraKey, extraMetaValue);
+
+            downloadedArtifact.addAsset(Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)),
+                    CODE_FILE_NAME, false);
+
+            downloadedArtifact.incrementMinorVersion();
+            String newArtifactVersion = downloadedArtifact.getVersion();
+
+            Collection<ArtifactAsset> assets = downloadedArtifact.getAssets();
+            assertEquals(originalAssetsCount + 1, assets.size(), "wrong number of assets after update");
+
+            // log downloaded artifact
+            //
+            CompletableFuture<LoggedArtifact> futureUpdatedArtifact = experiment.logArtifact(downloadedArtifact);
+            loggedArtifact = futureUpdatedArtifact.get(60, SECONDS);
+
+            // read artifact from server and check that it was actually updated
+            LoggedArtifact loggedArtifactFromServer = experiment.getArtifact(
+                    loggedArtifact.getName(), loggedArtifact.getWorkspace(), loggedArtifact.getVersion());
+
+            assertEquals(newArtifactVersion, loggedArtifactFromServer.getVersion(), "wrong version");
+            assertEquals(newTags, loggedArtifactFromServer.getVersionTags(), "wrong version tags");
+
+            Set<String>expectedAliases = new HashSet<>(artifact.getAliases());
+            expectedAliases.add(extraAlias);
+            expectedAliases.add(ALIAS_LATEST);
+            assertEquals(expectedAliases, loggedArtifactFromServer.getAliases(), "wrong aliases");
+
+            Map<String, Object> expectedMetadata = new HashMap<>(artifact.getMetadata());
+            expectedMetadata.put(extraKey, extraMetaValue);
+            assertEquals(expectedMetadata, loggedArtifactFromServer.getMetadata(), "wrong metadata");
+
+            // get assets from server and check that all assets are correct including new one
+            Collection<LoggedArtifactAsset> loggedAssets = loggedArtifactFromServer.getAssets();
+            assertNotNull(loggedAssets, "assets expected");
+            assertEquals(assets.size(), loggedAssets.size(), "wrong assets size");
+            loggedAssets.forEach(loggedArtifactAsset -> validateArtifactAsset(
+                    new ArtifactAssetImpl((LoggedArtifactAssetImpl) loggedArtifactAsset), assets));
+
+        } catch (Throwable t) {
+            fail(t);
+        } finally {
+            PathUtils.delete(tmpDir);
         }
     }
 

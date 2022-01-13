@@ -81,7 +81,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         //
         assertTrue(experiment.getAssetList(ALL).isEmpty());
 
-        // Log assets folder nd wait for completion
+        // Log assets folder and wait for completion
         //
         OnCompleteAction onComplete = new OnCompleteAction();
         experiment.logAssetFolder(
