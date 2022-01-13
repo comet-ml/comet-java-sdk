@@ -325,7 +325,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         // if base experiment context become updated while operation is still in progress
         ExperimentContext assetContext = new ExperimentContext(this.baseContext);
 
-        AtomicInteger count = new AtomicInteger();
+        AtomicInteger successfullyLoggedCount = new AtomicInteger();
         try {
             Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
                     .peek(asset -> asset.setContext(assetContext));
@@ -336,9 +336,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                     Observable.fromStream(assets)
                             .flatMap(asset -> Observable.fromSingle(
                                     sendAssetAsync(getRestApiClient()::logAsset, asset)
-                                            .doOnSuccess(restApiResponse -> {
-                                                if (!restApiResponse.hasFailed()) {
-                                                    count.incrementAndGet();
+                                            .doOnSuccess(apiResponse -> {
+                                                if (!apiResponse.hasFailed()) {
+                                                    successfullyLoggedCount.incrementAndGet();
                                                 }
                                             })), true);
 
@@ -351,7 +351,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                     .ignoreElements() // ignore items which already processed, see: logAsset
                     .subscribe(
                             () -> getLogger().info(
-                                    getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, count.get())),
+                                    getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, successfullyLoggedCount.get())),
                             (throwable) -> getLogger().error(
                                     getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable),
                             disposables);
@@ -487,14 +487,14 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         // create parallel execution flow with errors delaying
         // allowing processing of items even if some of them failed
-        AtomicInteger count = new AtomicInteger();
+        AtomicInteger successfullySentCount = new AtomicInteger();
         Observable<RestApiResponse> observable = Observable
                 .fromStream(assets)
                 .flatMap(asset -> Observable.fromSingle(
                         this.sendArtifactAssetAsync(asset)
                                 .doOnSuccess(restApiResponse -> {
                                     if (!restApiResponse.hasFailed()) {
-                                        count.incrementAndGet();
+                                        successfullySentCount.incrementAndGet();
                                     }
                                 })), true);
 
@@ -508,7 +508,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                 .subscribe(
                         () -> {
                             getLogger().info(
-                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(), count.get()));
+                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(),
+                                            successfullySentCount.get()));
                             // mark artifact version status as closed
                             this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
                             // mark future as completed
