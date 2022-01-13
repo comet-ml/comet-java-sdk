@@ -310,12 +310,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param prefixWithFolderName if {@code true} then path of each asset file will be prefixed with folder name
      *                             in case if {@code logFilePath} is {@code true}.
      * @param context              the context to be associated with logged assets.
-     * @param onComplete           The optional action to be invoked when this operation
-     *                             asynchronously completes. Can be {@code null} if not interested in completion signal.
+     * @param onCompleteAction     The optional action to be invoked when this operation
+     *                             asynchronously completes. Can be empty if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
-                        @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
+                        @NonNull ExperimentContext context, @NonNull Optional<Action> onCompleteAction) {
         if (!folder.isDirectory()) {
             getLogger().warn(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
@@ -332,22 +332,22 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
             // create parallel execution flow with errors delaying
             // allowing processing of items even if some of them failed
-            Observable<RestApiResponse> observable =
+            Observable<RestApiResponse> responseObservable =
                     Observable.fromStream(assets)
                             .flatMap(asset -> Observable.fromSingle(
-                                    sendAssetAsync(getRestApiClient()::logAsset, asset)
+                                    this.sendAssetAsync(getRestApiClient()::logAsset, asset)
                                             .doOnSuccess(apiResponse -> {
                                                 if (!apiResponse.hasFailed()) {
                                                     successfullyLoggedCount.incrementAndGet();
                                                 }
                                             })), true);
 
-            if (onComplete.isPresent()) {
-                observable = observable.doFinally(onComplete.get());
+            if (onCompleteAction.isPresent()) {
+                responseObservable = responseObservable.doFinally(onCompleteAction.get());
             }
 
             // subscribe for processing results
-            observable
+            responseObservable
                     .ignoreElements() // ignore items which already processed, see: logAsset
                     .subscribe(
                             () -> getLogger().info(
@@ -355,11 +355,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                             (throwable) -> getLogger().error(
                                     getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable),
                             disposables);
-        } catch (
-                Throwable t) {
+        } catch (Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
         }
-
     }
 
     /**
@@ -502,9 +500,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             observable = observable.doFinally(onComplete.get());
         }
 
-        // subscribe for processing results
+        // subscribe to get processing results
         observable
-                .ignoreElements() // ignore items which already processed, see: logAsset
+                .ignoreElements() // ignore already processed items (see: logAsset), we are interested only in result
                 .subscribe(
                         () -> {
                             getLogger().info(
