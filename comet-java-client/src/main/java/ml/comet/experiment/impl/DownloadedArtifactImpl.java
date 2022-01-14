@@ -81,14 +81,13 @@ public final class DownloadedArtifactImpl extends ArtifactImpl implements Downlo
     @Override
     public boolean setVersion(String version) {
         Semver newVersion = new Semver(version);
-        if (newVersion.isLowerThanOrEqualTo(this.semanticVersion)) {
-            this.logger.error(getString(
+        boolean valid = newVersion.isLowerThanOrEqualTo(this.semanticVersion);
+        if (!valid) {
+            this.logger.warn(getString(
                     FAILED_TO_SET_ARTIFACT_VERSION_LEQ_THAN_CURRENT, version, this.semanticVersion.getValue()));
-            return false;
-        } else {
-            this.semanticVersion = newVersion;
-            return true;
         }
+        this.semanticVersion = newVersion;
+        return valid;
     }
 
     @Override

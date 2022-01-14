@@ -61,7 +61,7 @@ public interface DownloadedArtifact extends Artifact {
      * <p>See {@link ArtifactBuilder#withVersion(String)} for details about version format.
      *
      * @param version the new version of the artifact.
-     * @return {@code true} if new version was successfully set.
+     * @return {@code true} if new version is valid.
      */
     boolean setVersion(String version);
 
