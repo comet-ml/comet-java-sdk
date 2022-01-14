@@ -103,12 +103,21 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
             assertTrue(SOME_VERSION.withIncPatch().isEqualTo(version), "wrong version");
         }
 
+        /**
+         * We are testing that new version is actually set in any case, but returned boolean is different depending on
+         * if the new version is valid (greater than current) or not valid (lower or equal to current).
+         */
         @Test
         @DisplayName("able to set version string")
         void setVersion() {
             assertTrue(this.artifact.setVersion(SOME_UP_VERSION_STRING), "version must be set");
-            assertFalse(this.artifact.setVersion(SOME_UP_VERSION_STRING), "equal version must be skipped");
-            assertFalse(this.artifact.setVersion(SOME_DOWN_VERSION_STRING), "lower version must be skipped");
+            assertEquals(SOME_UP_VERSION_STRING, this.artifact.getVersion(), "wrong version");
+
+            assertFalse(this.artifact.setVersion(SOME_UP_VERSION_STRING), "equal version is invalid");
+            assertEquals(SOME_UP_VERSION_STRING, this.artifact.getVersion(), "wrong version set");
+
+            assertFalse(this.artifact.setVersion(SOME_DOWN_VERSION_STRING), "lower version is invalid");
+            assertEquals(SOME_DOWN_VERSION_STRING, this.artifact.getVersion(), "wrong version set");
         }
 
         @Test

@@ -54,14 +54,20 @@ public interface DownloadedArtifact extends Artifact {
     String getVersion();
 
     /**
-     * Sets new version for this artifact. If provided version is less than current version it would not be applied
-     * and {@code false} will be returned. The version string should follow the semantic versioning rules
-     * and be in the form: {@code 1.2.3-beta.4+sha899d8g79f87}.
+     * Sets new version for this artifact. If provided version is lower or equal than current version
+     * it would be applied but {@code false} will be returned. The Comet may accept version lower than current if it
+     * was not logged before. Thus, in general, it is safer to always log the greater version or check value returned
+     * but this method.
+     *
+     * <p>The version string should follow the semantic versioning rules and be in the form:
+     * {@code 1.2.3-beta.4+sha899d8g79f87}.
      *
      * <p>See {@link ArtifactBuilder#withVersion(String)} for details about version format.
      *
      * @param version the new version of the artifact.
-     * @return {@code true} if new version is valid.
+     * @return {@code true} if new version is valid, i.e., greater than current. The returned value can be used for
+     * quick check of the new version. If {@code true} returned then new version will be accepted by Comet backend.
+     * Otherwise, it may depend on backend already having provided artifact version logged.
      */
     boolean setVersion(String version);
 
