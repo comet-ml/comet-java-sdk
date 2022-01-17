@@ -114,14 +114,24 @@ public interface LoggedArtifact {
     Collection<LoggedArtifactAsset> getRemoteAssets() throws ArtifactException;
 
     /**
-     * Allows reading list of assets associated with this artifact from Comet backend.
+     * Allows reading list of assets associated with this artifact from the Comet backend.
      *
      * <p>This method is the remote method invocation and will contact the Comet backend.
      *
      * @return the list of {@link LoggedArtifactAsset} associated with this artifact.
-     * @throws ArtifactException if failed to read assets from Comet.
+     * @throws ArtifactException if failed to read assets from the Comet.
      */
     Collection<LoggedArtifactAsset> getAssets() throws ArtifactException;
+
+    /**
+     * Allows getting asset keyed by provided {@code logicalPath} from the Comet backend.
+     *
+     * @param assetLogicalPath the logical path of the asset.
+     * @return the {@link LoggedArtifactAsset} instance associated with given logical path.
+     * @throws ArtifactAssetNotFoundException if failed to find asset with given logical path.
+     * @throws ArtifactException              if operation failed.
+     */
+    LoggedArtifactAsset getAsset(String assetLogicalPath) throws ArtifactAssetNotFoundException, ArtifactException;
 
     /**
      * Download the current Artifact Version assets to a given directory.
