@@ -381,6 +381,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
                 new ExperimentContext(step, epoch, getContext()));
     }
 
+    @Override
     public void uploadAsset(@NonNull File asset, @NonNull String logicalPath, boolean overwrite, long step) {
         this.uploadAsset(asset, logicalPath, overwrite,
                 new ExperimentContext(step, this.getEpoch(), this.getContext()));
