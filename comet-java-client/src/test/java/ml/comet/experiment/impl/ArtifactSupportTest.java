@@ -3,6 +3,7 @@ package ml.comet.experiment.impl;
 import io.reactivex.rxjava3.functions.Function4;
 import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactAsset;
+import ml.comet.experiment.artifact.ArtifactAssetNotFoundException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.DownloadedArtifact;
@@ -47,6 +48,7 @@ import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperim
 import static ml.comet.experiment.impl.asset.AssetType.ASSET;
 import static ml.comet.experiment.impl.asset.AssetType.UNKNOWN;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_ASSET_IN_ARTIFACT;
 import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -672,6 +674,65 @@ public class ArtifactSupportTest extends AssetsBaseTest {
         }
     }
 
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogArtifactAndGetAsset() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add local assets
+            //
+            File imageFile = TestUtils.getFile(IMAGE_FILE_NAME);
+            assertNotNull(imageFile);
+            artifact.addAsset(imageFile, IMAGE_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // try to get asset by logical path and check result
+            //
+            LoggedArtifactAsset asset = loggedArtifact.getAsset(IMAGE_FILE_NAME);
+            assertNotNull(asset, "asset expected");
+            assertEquals(IMAGE_FILE_NAME, asset.getLogicalPath(), "wrong logical path");
+            assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
+
+        } catch (Throwable t) {
+            fail(t);
+        }
+    }
+
+    @Test
+    @Timeout(value = 300, unit = SECONDS)
+    public void testLogArtifactAndGetAsset_notFoundError() {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            ArtifactImpl artifact = createArtifact();
+
+            // add local assets
+            //
+            File imageFile = TestUtils.getFile(IMAGE_FILE_NAME);
+            assertNotNull(imageFile);
+            artifact.addAsset(imageFile, IMAGE_FILE_NAME, false, SOME_METADATA);
+
+            // log artifact and check results
+            //
+            CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // try to get asset by logical path and check that appropriate exception raised
+            //
+            ArtifactAssetNotFoundException ex = assertThrows(ArtifactAssetNotFoundException.class,
+                    () -> loggedArtifact.getAsset(SOME_TEXT_FILE_NAME));
+
+            assertNotNull(ex.getMessage());
+            assertEquals(ex.getMessage(), getString(FAILED_TO_FIND_ASSET_IN_ARTIFACT,
+                    SOME_TEXT_FILE_NAME, loggedArtifact.getFullName()));
+
+        } catch (Throwable t) {
+            fail(t);
+        }
+    }
 
     static ArtifactImpl createArtifact() {
         List<String> aliases = Arrays.asList("alias1", "alias2");

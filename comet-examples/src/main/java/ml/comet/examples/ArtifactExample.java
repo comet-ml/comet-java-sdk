@@ -85,7 +85,7 @@ public class ArtifactExample implements BaseExample {
 
         // add local assets
         //
-        artifact.addAsset(getResourceFile(CHART_IMAGE_FILE), "amazing chart.png", false, SOME_METADATA);
+        artifact.addAsset(getResourceFile(CHART_IMAGE_FILE), AMAZING_CHART_NAME, false, SOME_METADATA);
         artifact.addAsset(getResourceFile(MODEL_FILE), false);
         byte[] someData = "some data".getBytes(StandardCharsets.UTF_8);
         String someDataName = "someDataName";
@@ -184,6 +184,12 @@ public class ArtifactExample implements BaseExample {
         System.out.printf("\nArtifact update completed, new artifact version created: %s\n\n",
                 loggedArtifact.getFullName());
 
+        // get artifact asset by logical path
+        //
+        System.out.printf("Finding asset '%s' of the artifact: %s\n", AMAZING_CHART_NAME, loggedArtifact.getFullName());
+        asset = loggedArtifact.getAsset(AMAZING_CHART_NAME);
+        System.out.printf("Successfully found asset '%s' of the artifact: %s\n\n",
+                asset, loggedArtifact.getFullName());
 
         System.out.println("===== Experiment completed ====");
     }

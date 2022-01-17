@@ -16,6 +16,7 @@ import static ml.comet.examples.Utils.readResourceToString;
  */
 interface BaseExample {
     String CHART_IMAGE_FILE = "chart.png";
+    String AMAZING_CHART_NAME = "amazing chart.png";
     String MODEL_FILE = "model.hd5";
     String HTML_REPORT_FILE = "report.html";
     String GRAPH_JSON_FILE = "graph.json";

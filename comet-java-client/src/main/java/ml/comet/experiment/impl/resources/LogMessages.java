@@ -69,6 +69,7 @@ public class LogMessages {
     public static final String FAILED_TO_PARSE_REMOTE_ASSET_LINK = "FAILED_TO_PARSE_REMOTE_ASSET_LINK";
     public static final String FAILED_TO_SET_ARTIFACT_VERSION_LEQ_THAN_CURRENT =
             "FAILED_TO_SET_ARTIFACT_VERSION_LEQ_THAN_CURRENT";
+    public static final String FAILED_TO_FIND_ASSET_IN_ARTIFACT = "FAILED_TO_FIND_ASSET_IN_ARTIFACT";
 
 
     /**

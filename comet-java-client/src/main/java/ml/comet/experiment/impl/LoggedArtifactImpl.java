@@ -7,6 +7,7 @@ import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactAsset;
+import ml.comet.experiment.artifact.ArtifactAssetNotFoundException;
 import ml.comet.experiment.artifact.ArtifactDownloadException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
@@ -29,6 +30,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -37,6 +39,7 @@ import static java.nio.file.StandardOpenOption.READ;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_ASSETS_DOWNLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_HAS_NO_ASSETS_TO_DOWNLOAD;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_ASSET_IN_ARTIFACT;
 import static ml.comet.experiment.impl.resources.LogMessages.START_DOWNLOAD_ARTIFACT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
@@ -130,6 +133,19 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Override
     public Collection<LoggedArtifactAsset> getAssets() throws ArtifactException {
         return this.baseExperiment.readArtifactAssets(this);
+    }
+
+    @Override
+    public LoggedArtifactAsset getAsset(String assetLogicalPath) throws ArtifactException {
+        Collection<LoggedArtifactAsset> assets = this.baseExperiment.readArtifactAssets(this);
+        for (LoggedArtifactAsset asset : assets) {
+            if (Objects.equals(assetLogicalPath, asset.getLogicalPath())) {
+                return asset;
+            }
+        }
+
+        throw new ArtifactAssetNotFoundException(getString(FAILED_TO_FIND_ASSET_IN_ARTIFACT,
+                assetLogicalPath, this.getFullName()));
     }
 
     @Override
