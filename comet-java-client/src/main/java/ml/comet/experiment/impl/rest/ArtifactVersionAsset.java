@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.LoggedArtifactAssetImpl;
+import ml.comet.experiment.impl.utils.AssetUtils;
 
 @Data
 @NoArgsConstructor
@@ -26,7 +27,7 @@ public class ArtifactVersionAsset {
      *
      * @param asset the {@link LoggedArtifactAssetImpl} instance to be filled.
      */
-    public LoggedArtifactAsset copyTo(LoggedArtifactAssetImpl asset) {
+    public LoggedArtifactAssetImpl copyTo(LoggedArtifactAssetImpl asset) {
         asset.setAssetId(this.assetId);
         asset.setAssetType(this.type);
         asset.setFileName(this.fileName);

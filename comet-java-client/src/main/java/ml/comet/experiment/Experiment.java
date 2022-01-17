@@ -2,11 +2,10 @@ package ml.comet.experiment;
 
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
+import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
-import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 
 import java.io.File;
@@ -125,12 +124,19 @@ public interface Experiment extends AutoCloseable {
     List<String> getTags();
 
     /**
-     * Get list of the logged experiment assets.
+     * Get list of the logged experiment assets with particular type.
      *
      * @param type the type of assets to be included.
      * @return the list of assets associated with experiment.
      */
-    List<LoggedExperimentAsset> getAssetList(AssetType type);
+    List<LoggedExperimentAsset> getAssetList(String type);
+
+    /**
+     * Get list of all logged experiment assets.
+     *
+     * @return the list of assets associated with experiment.
+     */
+    List<LoggedExperimentAsset> getAllAssetList();
 
     /**
      * Allows looking for logged artifact using provided search parameters.

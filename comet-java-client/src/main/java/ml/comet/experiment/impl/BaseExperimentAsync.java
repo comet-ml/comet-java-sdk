@@ -9,21 +9,23 @@ import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
+import ml.comet.experiment.asset.Asset;
+import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
-import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.AssetImpl;
-import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactVersionState;
 import ml.comet.experiment.impl.rest.HtmlRest;
-import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.LogOtherRest;
 import ml.comet.experiment.impl.rest.MetricRest;
 import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
+import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.model.GitMetaData;
 import org.slf4j.Logger;
@@ -41,6 +43,7 @@ import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static ml.comet.experiment.artifact.GetArtifactOptions.Op;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_LOGGED_WITHOUT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_STARTED;
@@ -67,7 +70,6 @@ import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherReques
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
-import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 
 /**
  * The base class for all asynchronous experiment implementations providing implementation of common routines
@@ -308,12 +310,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param prefixWithFolderName if {@code true} then path of each asset file will be prefixed with folder name
      *                             in case if {@code logFilePath} is {@code true}.
      * @param context              the context to be associated with logged assets.
-     * @param onComplete           The optional action to be invoked when this operation
-     *                             asynchronously completes. Can be {@code null} if not interested in completion signal.
+     * @param onCompleteAction     The optional action to be invoked when this operation
+     *                             asynchronously completes. Can be empty if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
-                        @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
+                        @NonNull ExperimentContext context, @NonNull Optional<Action> onCompleteAction) {
         if (!folder.isDirectory()) {
             getLogger().warn(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
@@ -323,31 +325,33 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         // if base experiment context become updated while operation is still in progress
         ExperimentContext assetContext = new ExperimentContext(this.baseContext);
 
-        AtomicInteger count = new AtomicInteger();
+        AtomicInteger successfullyLoggedCount = new AtomicInteger();
         try {
             Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
-                    .peek(asset -> {
-                        asset.setExperimentContext(assetContext);
-                        count.incrementAndGet();
-                    });
+                    .peek(asset -> asset.setContext(assetContext));
 
             // create parallel execution flow with errors delaying
             // allowing processing of items even if some of them failed
-            Observable<RestApiResponse> observable =
+            Observable<RestApiResponse> responseObservable =
                     Observable.fromStream(assets)
                             .flatMap(asset -> Observable.fromSingle(
-                                    sendAssetAsync(getRestApiClient()::logAsset, asset)), true);
+                                    this.sendAssetAsync(getRestApiClient()::logAsset, asset)
+                                            .doOnSuccess(apiResponse -> {
+                                                if (!apiResponse.hasFailed()) {
+                                                    successfullyLoggedCount.incrementAndGet();
+                                                }
+                                            })), true);
 
-            if (onComplete.isPresent()) {
-                observable = observable.doFinally(onComplete.get());
+            if (onCompleteAction.isPresent()) {
+                responseObservable = responseObservable.doFinally(onCompleteAction.get());
             }
 
             // subscribe for processing results
-            observable
+            responseObservable
                     .ignoreElements() // ignore items which already processed, see: logAsset
                     .subscribe(
                             () -> getLogger().info(
-                                    getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, count.get())),
+                                    getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, successfullyLoggedCount.get())),
                             (throwable) -> getLogger().error(
                                     getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable),
                             disposables);
@@ -393,10 +397,10 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
-        RemoteAsset asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata, empty());
+        RemoteAssetImpl asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata, empty());
         this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
 
-        if (Objects.equals(asset.getFileName(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
+        if (Objects.equals(asset.getLogicalPath(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
             getLogger().warn(
                     getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
         }
@@ -417,7 +421,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.updateContext(context);
 
         Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
-                empty(), Optional.of(SOURCE_CODE));
+                empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, onComplete);
     }
 
@@ -434,7 +438,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.updateContext(context);
 
         Asset asset = createAssetFromFile(file, empty(), false,
-                empty(), Optional.of(SOURCE_CODE));
+                empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, onComplete);
     }
 
@@ -475,30 +479,35 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         // upload artifact assets
         final String artifactVersionId = entry.getArtifactVersionId();
-        AtomicInteger count = new AtomicInteger();
+
         Stream<ArtifactAsset> assets = artifactImpl.getAssets().stream()
-                .peek(asset -> {
-                    asset.setArtifactVersionId(artifactVersionId);
-                    count.incrementAndGet();
-                });
+                .peek(asset -> ((ArtifactAssetImpl) asset).setArtifactVersionId(artifactVersionId));
 
         // create parallel execution flow with errors delaying
         // allowing processing of items even if some of them failed
+        AtomicInteger successfullySentCount = new AtomicInteger();
         Observable<RestApiResponse> observable = Observable
                 .fromStream(assets)
-                .flatMap(asset -> Observable.fromSingle(this.sendArtifactAssetAsync(asset)), true);
+                .flatMap(asset -> Observable.fromSingle(
+                        this.sendArtifactAssetAsync(asset)
+                                .doOnSuccess(restApiResponse -> {
+                                    if (!restApiResponse.hasFailed()) {
+                                        successfullySentCount.incrementAndGet();
+                                    }
+                                })), true);
 
         if (onComplete.isPresent()) {
             observable = observable.doFinally(onComplete.get());
         }
 
-        // subscribe for processing results
+        // subscribe to get processing results
         observable
-                .ignoreElements() // ignore items which already processed, see: logAsset
+                .ignoreElements() // ignore already processed items (see: logAsset), we are interested only in result
                 .subscribe(
                         () -> {
                             getLogger().info(
-                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(), count.get()));
+                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(),
+                                            successfullySentCount.get()));
                             // mark artifact version status as closed
                             this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
                             // mark future as completed
@@ -558,13 +567,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param func       the function to be invoked to send asset to the backend.
      * @param asset      the {@link AssetImpl} or subclass to be sent.
      * @param onComplete The optional action to be invoked when this operation
-     *                   asynchronously completes. Can be {@code null} if not interested in completion signal.
+     *                   asynchronously completes. Can be empty if not interested in completion signal.
      * @param <T>        the {@link AssetImpl} or its subclass.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T extends Asset> void logAsset(final BiFunction<T, String, Single<RestApiResponse>> func,
                                             @NonNull final T asset, @NonNull Optional<Action> onComplete) {
-        asset.setExperimentContext(this.baseContext);
+        ((AssetImpl) asset).setContext(this.baseContext);
         Single<RestApiResponse> single = this.sendAssetAsync(func, asset);
 
         if (onComplete.isPresent()) {
@@ -584,7 +593,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
     /**
      * Attempts to send given {@link Asset} or its subclass asynchronously.
-     * This method will wrap send operation into {@link Single} and transparently log any errors that may happen.
+     * This method will wrap send operation into {@link Single}.
      *
      * @param func  the function to be invoked to send asset to the backend.
      * @param asset the {@link Asset} or subclass to be sent.
@@ -613,7 +622,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     private <T extends ArtifactAsset> Single<RestApiResponse> sendArtifactAssetAsync(@NonNull final T asset) {
         Single<RestApiResponse> single;
         Scheduler scheduler = Schedulers.io();
-        if (asset instanceof RemoteAsset) {
+        if (asset.isRemote()) {
             // remote asset
             single = validateAndGetExperimentKey()
                     .subscribeOn(scheduler)
@@ -626,11 +635,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                     .concatMap(experimentKey -> getRestApiClient().logAsset(asset, experimentKey));
         }
 
-        return single
-                .doOnSuccess(restApiResponse ->
-                        checkAndLogAssetResponse(restApiResponse, getLogger(), asset))
-                .doOnError(throwable ->
-                        getLogger().error(getString(FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST, asset), throwable));
+        return single.doOnSuccess(restApiResponse -> checkAndLogAssetResponse(restApiResponse, getLogger(), asset))
+                .doOnError(throwable -> getLogger().error(getString(FAILED_TO_SEND_LOG_ARTIFACT_ASSET_REQUEST, asset),
+                        throwable));
     }
 
     /**

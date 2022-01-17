@@ -1,16 +1,14 @@
 package ml.comet.experiment.impl;
 
 import com.vdurmont.semver4j.Semver;
-import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactBuilder;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
-import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
-import ml.comet.experiment.impl.asset.Asset;
-import ml.comet.experiment.impl.asset.RemoteAsset;
+import ml.comet.experiment.impl.asset.AssetImpl;
+import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,11 +33,10 @@ import static ml.comet.experiment.impl.utils.AssetUtils.walkFolderAssets;
 /**
  * The implementation of the {@link Artifact}.
  */
-public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
-    @Getter
+public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     private final Logger logger = LoggerFactory.getLogger(Artifact.class);
 
-    private final HashMap<String, ArtifactAsset> assetsMap;
+    final HashMap<String, ArtifactAsset> assetsMap;
 
     private final boolean prefixWithFolderName;
 
@@ -77,7 +74,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private void addAsset(@NonNull File file, @NonNull String name,
                           boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
-        Asset asset = createAssetFromFile(file, Optional.of(name), overwrite, metadata, empty());
+        AssetImpl asset = createAssetFromFile(file, Optional.of(name), overwrite, metadata, empty());
         this.appendAsset(new ArtifactAssetImpl(asset));
     }
 
@@ -99,7 +96,7 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private void addAsset(byte[] data, @NonNull String name,
                           boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
-        Asset asset = createAssetFromData(data, name, overwrite, metadata, empty());
+        AssetImpl asset = createAssetFromData(data, name, overwrite, metadata, empty());
         this.appendAsset(new ArtifactAssetImpl(asset));
     }
 
@@ -122,8 +119,8 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private void addRemoteAsset(@NonNull URI uri, @NonNull String name,
                                 boolean overwrite, @NonNull Optional<Map<String, Object>> metadata) {
-        RemoteAsset asset = createRemoteAsset(uri, Optional.of(name), overwrite, metadata, empty());
-        this.appendAsset(new ArtifactRemoteAssetImpl(asset));
+        RemoteAssetImpl asset = createRemoteAsset(uri, Optional.of(name), overwrite, metadata, empty());
+        this.appendAsset(new ArtifactAssetImpl(asset));
     }
 
     @Override
@@ -160,9 +157,9 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
                 .forEach(asset -> this.appendAsset(new ArtifactAssetImpl(asset)));
     }
 
-    private <T extends ArtifactAsset> void appendAsset(@NonNull final T asset)
+    <T extends ArtifactAsset> void appendAsset(@NonNull final T asset)
             throws ConflictingArtifactAssetNameException {
-        String key = asset.getFileName();
+        String key = asset.getLogicalPath();
         ArtifactAsset a = this.assetsMap.get(key);
         if (a != null) {
             throw new ConflictingArtifactAssetNameException(
@@ -170,6 +167,15 @@ public final class ArtifactImpl extends BaseArtifactImpl implements Artifact {
         }
 
         this.assetsMap.put(key, asset);
+    }
+
+    @Override
+    Logger getLogger() {
+        return this.logger;
+    }
+
+    ArtifactAsset findAsset(@NonNull String logicalPath) {
+        return this.assetsMap.get(logicalPath);
     }
 
     /**

@@ -104,12 +104,24 @@ public interface LoggedArtifact {
     String getWorkspace();
 
     /**
-     * Allows reading list of assets associated with this artifact from Comet backend.
+     * Allows reading list of remote assets associated with this artifact from Comet backend.
+     *
+     * <p>This method is the remote method invocation and will contact the Comet backend.
      *
      * @return the list of {@link LoggedArtifactAsset} associated with this artifact.
      * @throws ArtifactException if failed to read assets from Comet.
      */
-    Collection<LoggedArtifactAsset> readAssets() throws ArtifactException;
+    Collection<LoggedArtifactAsset> getRemoteAssets() throws ArtifactException;
+
+    /**
+     * Allows reading list of assets associated with this artifact from Comet backend.
+     *
+     * <p>This method is the remote method invocation and will contact the Comet backend.
+     *
+     * @return the list of {@link LoggedArtifactAsset} associated with this artifact.
+     * @throws ArtifactException if failed to read assets from Comet.
+     */
+    Collection<LoggedArtifactAsset> getAssets() throws ArtifactException;
 
     /**
      * Download the current Artifact Version assets to a given directory.
@@ -118,11 +130,10 @@ public interface LoggedArtifact {
      *
      * @param folder            the path to the folder to keep downloaded files of the assets.
      * @param overwriteStrategy the overwriting strategy to apply when conflicting file name found.
-     * @return the list of all associated assets.
+     * @return the {@link Artifact} representing downloaded artifact with a list of all associated assets.
      * @throws ArtifactException thrown if operation failed.
      */
-    Collection<LoggedArtifactAsset> download(
-            Path folder, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
+    DownloadedArtifact download(Path folder, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
 
-    Collection<LoggedArtifactAsset> download(Path folder) throws ArtifactException;
+    DownloadedArtifact download(Path folder) throws ArtifactException;
 }

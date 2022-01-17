@@ -2,14 +2,14 @@ package ml.comet.experiment.impl.utils;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import ml.comet.experiment.asset.Asset;
+import ml.comet.experiment.impl.asset.AssetType;
+import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.impl.asset.Asset;
 import ml.comet.experiment.impl.asset.AssetImpl;
-import ml.comet.experiment.impl.asset.RemoteAsset;
 import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
-import ml.comet.experiment.model.AssetType;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -18,10 +18,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static ml.comet.experiment.impl.asset.AssetType.POINTS_3D;
+import static ml.comet.experiment.impl.asset.AssetType.UNKNOWN;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
 import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
@@ -54,7 +57,7 @@ public class AssetUtils {
      * @throws IOException if an I/O exception occurred.
      */
     public static Stream<AssetImpl> walkFolderAssets(@NonNull File folder, boolean logFilePath,
-                                                 boolean recursive, boolean prefixWithFolderName)
+                                                     boolean recursive, boolean prefixWithFolderName)
             throws IOException {
         // list files in the directory and process each file as an asset
         return FileUtils.listFiles(folder, recursive)
@@ -70,16 +73,16 @@ public class AssetUtils {
      * @param overwrite if {@code true} will overwrite all existing assets with the same name.
      * @param metadata  Some additional data to attach to the remote asset.
      *                  The dictionary values must be JSON compatible.
-     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
+     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET}
      *                  will be assigned.
      * @return the initialized {@link RemoteAssetImpl} instance.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static RemoteAssetImpl createRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
-                                                    Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+                                                    Optional<Map<String, Object>> metadata, Optional<String> type) {
         RemoteAssetImpl asset = new RemoteAssetImpl();
-        asset.setLink(uri);
-        asset.setFileName(fileName.orElse(remoteAssetFileName(uri)));
+        asset.setUri(uri);
+        asset.setLogicalPath(fileName.orElse(remoteAssetFileName(uri)));
 
         return (RemoteAssetImpl) updateAsset(asset, overwrite, metadata, type);
     }
@@ -98,11 +101,11 @@ public class AssetUtils {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static AssetImpl createAssetFromFile(@NonNull File file, Optional<String> fileName, boolean overwrite,
                                                 @NonNull Optional<Map<String, Object>> metadata,
-                                                @NonNull Optional<AssetType> type) {
+                                                @NonNull Optional<String> type) {
         String logicalFileName = fileName.orElse(file.getName());
         AssetImpl asset = new AssetImpl();
-        asset.setFile(file);
-        asset.setFileName(logicalFileName);
+        asset.setRawFile(file);
+        asset.setLogicalPath(logicalFileName);
         asset.setFileExtension(FilenameUtils.getExtension(logicalFileName));
 
         return updateAsset(asset, overwrite, metadata, type);
@@ -122,10 +125,10 @@ public class AssetUtils {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static AssetImpl createAssetFromData(byte[] data, @NonNull String fileName, boolean overwrite,
                                                 @NonNull Optional<Map<String, Object>> metadata,
-                                                @NonNull Optional<AssetType> type) {
+                                                @NonNull Optional<String> type) {
         AssetImpl asset = new AssetImpl();
-        asset.setFileLikeData(data);
-        asset.setFileName(fileName);
+        asset.setRawFileLikeData(data);
+        asset.setLogicalPath(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
 
         return updateAsset(asset, overwrite, metadata, type);
@@ -134,22 +137,22 @@ public class AssetUtils {
     /**
      * Extracts query parameters from the provided {@link Asset}.
      *
-     * @param asset         the {@link Asset} to extract HTTP query parameters from.
+     * @param asset         the {@link AssetImpl} to extract HTTP query parameters from.
      * @param experimentKey the key of the Comet experiment.
      * @return the map with query parameters.
      */
     public static Map<QueryParamName, String> assetQueryParameters(
-            @NonNull final Asset asset, @NonNull String experimentKey) {
+            @NonNull final AssetImpl asset, @NonNull String experimentKey) {
         Map<QueryParamName, String> queryParams = new HashMap<>();
         queryParams.put(EXPERIMENT_KEY, experimentKey);
-        queryParams.put(TYPE, asset.getType().type());
+        queryParams.put(TYPE, asset.getType());
 
         putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
-        putNotNull(queryParams, FILE_NAME, asset.getFileName());
+        putNotNull(queryParams, FILE_NAME, asset.getLogicalPath());
         putNotNull(queryParams, EXTENSION, asset.getFileExtension());
 
-        ExperimentContext context = asset.getExperimentContext();
-        if (context != null) {
+        if (asset.getExperimentContext().isPresent()) {
+            ExperimentContext context = asset.getExperimentContext().get();
             putNotNull(queryParams, CONTEXT, context.getContext());
             putNotNull(queryParams, STEP, context.getStep());
             putNotNull(queryParams, EPOCH, context.getEpoch());
@@ -186,12 +189,32 @@ public class AssetUtils {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static AssetImpl updateAsset(AssetImpl asset, boolean overwrite,
-                                        Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+                                        Optional<Map<String, Object>> metadata, Optional<String> type) {
         asset.setOverwrite(overwrite);
         metadata.ifPresent(asset::setMetadata);
-        asset.setType(type.orElse(AssetType.ASSET));
+        asset.setType(type.orElse(AssetType.ASSET.type()));
 
         return asset;
+    }
+
+    /**
+     * Allows converting type name to the {@link AssetType}.
+     *
+     * @param typeName the type name.
+     * @return the appropriate {@link AssetType} enum value or {@code UNKNOWN} value if failed.
+     */
+    public static AssetType toAssetType(@NonNull String typeName) {
+        if (typeName.equals(POINTS_3D.type())) {
+            // special case
+            return POINTS_3D;
+        }
+        typeName = typeName.toUpperCase(Locale.ROOT);
+        typeName = typeName.replace("-", "_");
+        try {
+            return Enum.valueOf(AssetType.class, typeName);
+        } catch (IllegalArgumentException e) {
+            return UNKNOWN;
+        }
     }
 
     static String remoteAssetFileName(URI uri) {
@@ -211,11 +234,11 @@ public class AssetUtils {
     static AssetImpl mapToFileAsset(@NonNull File folder, @NonNull Path assetPath,
                                     boolean logFilePath, boolean prefixWithFolderName) {
         AssetImpl asset = new AssetImpl();
-        asset.setFile(assetPath.toFile());
+        asset.setRawFile(assetPath.toFile());
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);
-        asset.setFileName(fileName);
+        asset.setLogicalPath(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
-        asset.setType(AssetType.ASSET);
+        asset.setType(AssetType.ASSET.type());
         return asset;
     }
 

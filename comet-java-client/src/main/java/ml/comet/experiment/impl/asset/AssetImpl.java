@@ -1,37 +1,82 @@
 package ml.comet.experiment.impl.asset;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
+import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.context.ExperimentContext;
-import ml.comet.experiment.model.AssetType;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Describes asset data.
  */
-@Data
-@NoArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 public class AssetImpl implements Asset {
     @ToString.Include
-    private File file;
-    private byte[] fileLikeData;
+    @Getter
+    @Setter
+    private File rawFile;
+    @Getter
+    @Setter
+    private byte[] rawFileLikeData;
+    @Getter
+    @Setter
     private String fileExtension;
 
     @ToString.Include
-    String fileName;
+    @Setter
+    String logicalPath;
     @ToString.Include
-    AssetType type;
+    @Setter
+    String type;
     @ToString.Include
+    @Getter
+    @Setter
     Boolean overwrite;
-    ExperimentContext experimentContext;
+
+    @Getter
+    ExperimentContext context;
+    @Setter
     Map<String, Object> metadata;
 
+    public void setContext(ExperimentContext context) {
+        this.context = new ExperimentContext(context);
+    }
+
     @Override
-    public void setExperimentContext(ExperimentContext context) {
-        this.experimentContext = new ExperimentContext(context);
+    public Map<String, Object> getMetadata() {
+        if (this.metadata != null) {
+            return this.metadata;
+        }
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Optional<File> getFile() {
+        return Optional.ofNullable(this.rawFile);
+    }
+
+    @Override
+    public Optional<byte[]> getFileLikeData() {
+        return Optional.ofNullable(this.rawFileLikeData);
+    }
+
+    @Override
+    public Optional<ExperimentContext> getExperimentContext() {
+        return Optional.ofNullable(this.context);
+    }
+
+    @Override
+    public String getLogicalPath() {
+        return this.logicalPath;
+    }
+
+    @Override
+    public String getType() {
+        return this.type;
     }
 }

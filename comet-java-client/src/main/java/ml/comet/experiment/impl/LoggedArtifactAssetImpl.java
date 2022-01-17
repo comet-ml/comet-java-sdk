@@ -4,11 +4,11 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.utils.DataModelUtils;
-import ml.comet.experiment.model.FileAsset;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,8 +61,9 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     private String artifactId;
     @Setter
     private String artifactVersionId;
-
+    @Setter
     private Map<String, Object> metadata;
+
     final LoggedArtifactImpl artifact;
 
     LoggedArtifactAssetImpl(LoggedArtifactImpl artifact) {
@@ -80,7 +81,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     }
 
     @Override
-    public Optional<Long> getFileSize() {
+    public Optional<Long> getSize() {
         if (this.fileSize != null) {
             return Optional.of(this.fileSize);
         }
@@ -116,18 +117,18 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     }
 
     @Override
-    public FileAsset download(Path dir) throws ArtifactException {
+    public ArtifactAsset download(Path dir) throws ArtifactException {
         return this.download(dir, AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
     }
 
     @Override
-    public FileAsset download(Path dir, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException {
+    public ArtifactAsset download(Path dir, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException {
         return this.download(dir, FileSystems.getDefault().getPath(this.fileName), overwriteStrategy);
     }
 
     @Override
-    public FileAsset download(@NonNull Path dir, @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
-            throws ArtifactException {
+    public ArtifactAsset download(@NonNull Path dir, @NonNull Path file,
+                                  @NonNull AssetOverwriteStrategy overwriteStrategy) throws ArtifactException {
         this.validateNotRemote();
         return this.artifact.downloadAsset(this, dir, file, overwriteStrategy);
     }

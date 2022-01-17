@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import ml.comet.experiment.Experiment;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactDownloadException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.ArtifactNotFoundException;
@@ -15,10 +16,11 @@ import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.InvalidArtifactStateException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
+import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.exception.CometGeneralException;
-import ml.comet.experiment.impl.asset.Asset;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
 import ml.comet.experiment.impl.http.Connection;
@@ -36,11 +38,8 @@ import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.FileUtils;
-import ml.comet.experiment.model.AssetType;
 import ml.comet.experiment.model.ExperimentMetadata;
-import ml.comet.experiment.model.FileAsset;
 import ml.comet.experiment.model.GitMetaData;
-import ml.comet.experiment.model.LoggedExperimentAsset;
 import ml.comet.experiment.model.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -58,6 +57,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
+import static ml.comet.experiment.impl.asset.AssetType.ALL;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosed;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
@@ -98,7 +99,6 @@ import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherReques
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
 import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
-import static ml.comet.experiment.model.AssetType.SOURCE_CODE;
 
 /**
  * The base class for all synchronous experiment implementations providing implementation of common routines
@@ -401,8 +401,8 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("log raw source code, file name: {}", fileName);
         }
 
-        Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
-                empty(), Optional.of(SOURCE_CODE));
+        AssetImpl asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
+                empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, context);
     }
 
@@ -416,8 +416,8 @@ abstract class BaseExperiment implements Experiment {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("log source code from file {}", file.getName());
         }
-        Asset asset = createAssetFromFile(file, empty(), false,
-                empty(), Optional.of(SOURCE_CODE));
+        AssetImpl asset = createAssetFromFile(file, empty(), false,
+                empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, context);
     }
 
@@ -433,7 +433,7 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("uploadAsset from file {}, name {}, override {}, context {}",
                     file.getName(), fileName, overwrite, context);
         }
-        Asset asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
+        AssetImpl asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
         this.logAsset(asset, context);
     }
 
@@ -457,8 +457,8 @@ abstract class BaseExperiment implements Experiment {
      *
      * @param asset the {@link AssetImpl} to be uploaded
      */
-    void logAsset(@NonNull final Asset asset, @NonNull ExperimentContext context) {
-        asset.setExperimentContext(context);
+    void logAsset(@NonNull final AssetImpl asset, @NonNull ExperimentContext context) {
+        asset.setContext(context);
 
         sendSynchronously(restApiClient::logAsset, asset);
     }
@@ -598,7 +598,7 @@ abstract class BaseExperiment implements Experiment {
      * @return the list of assets associated with provided Comet artifact.
      * @throws ArtifactException if failed to read list of associated assets.
      */
-    Collection<LoggedArtifactAsset> readArtifactAssets(@NonNull LoggedArtifact artifact) throws ArtifactException {
+    Collection<LoggedArtifactAsset> readArtifactAssets(@NonNull LoggedArtifactImpl artifact) throws ArtifactException {
         GetArtifactOptions options = GetArtifactOptions.Op()
                 .artifactId(artifact.getArtifactId())
                 .versionId(artifact.getVersionId())
@@ -612,8 +612,7 @@ abstract class BaseExperiment implements Experiment {
                     .stream()
                     .collect(ArrayList::new,
                             (assets, artifactVersionAsset) -> assets.add(
-                                    artifactVersionAsset.copyTo(
-                                            new LoggedArtifactAssetImpl((LoggedArtifactImpl) artifact))),
+                                    artifactVersionAsset.copyTo(new LoggedArtifactAssetImpl(artifact))),
                             ArrayList::addAll);
         } catch (Throwable t) {
             String message = getString(FAILED_TO_READ_LOGGED_ARTIFACT_ASSETS, artifact.getFullName());
@@ -629,11 +628,11 @@ abstract class BaseExperiment implements Experiment {
      * @param dir               the parent directory where asset file should be stored.
      * @param file              the relative path to the asset file.
      * @param overwriteStrategy the overwrite strategy to be applied if file already exists.
-     * @return the {@link FileAsset} instance with details about downloaded asset file.
+     * @return the {@link ArtifactAsset} instance with details about downloaded asset file.
      * @throws ArtifactDownloadException if failed to download asset.
      */
-    FileAsset downloadArtifactAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
-                                    @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
+    ArtifactAssetImpl downloadArtifactAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
+                                            @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactDownloadException {
         if (asset.isRemote()) {
             throw new ArtifactDownloadException(getString(REMOTE_ASSET_CANNOT_BE_DOWNLOADED, asset));
@@ -655,7 +654,8 @@ abstract class BaseExperiment implements Experiment {
                 resolved = dir.resolve(file);
                 this.getLogger().warn(
                         getString(ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING, resolved, asset.artifact.getFullName()));
-                return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
+                return new ArtifactAssetImpl(asset.getFileName(), resolved, Files.size(resolved),
+                        asset.getMetadata(), asset.getAssetType());
             }
         } catch (FileAlreadyExistsException e) {
             if (overwriteStrategy == AssetOverwriteStrategy.FAIL_IF_DIFFERENT) {
@@ -718,7 +718,8 @@ abstract class BaseExperiment implements Experiment {
         getLogger().info(getString(COMPLETED_DOWNLOAD_ARTIFACT_ASSET, asset.getFileName(), resolved));
 
         try {
-            return new FileAsset(resolved, Files.size(resolved), asset.getMetadata(), asset.getAssetType());
+            return new ArtifactAssetImpl(asset.getFileName(), resolved, Files.size(resolved),
+                    asset.getMetadata(), asset.getAssetType());
         } catch (IOException e) {
             this.getLogger().error(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
             throw new ArtifactDownloadException(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
@@ -807,7 +808,7 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<LoggedExperimentAsset> getAssetList(@NonNull AssetType type) {
+    public List<LoggedExperimentAsset> getAssetList(@NonNull String type) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get assets with type {} for experiment {}", type, this.experimentKey);
         }
@@ -820,8 +821,13 @@ abstract class BaseExperiment implements Experiment {
                 .getAssets()
                 .stream()
                 .collect(ArrayList::new,
-                        (assets, experimentAssetLink) -> assets.add(experimentAssetLink.toExperimentAsset()),
+                        (assets, experimentAssetLink) -> assets.add(experimentAssetLink.toExperimentAsset(getLogger())),
                         ArrayList::addAll);
+    }
+
+    @Override
+    public List<LoggedExperimentAsset> getAllAssetList() {
+        return this.getAssetList(ALL.type());
     }
 
     @Override

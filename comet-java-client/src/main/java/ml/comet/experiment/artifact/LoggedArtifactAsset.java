@@ -1,7 +1,5 @@
 package ml.comet.experiment.artifact;
 
-import ml.comet.experiment.model.FileAsset;
-
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -49,11 +47,11 @@ public interface LoggedArtifactAsset {
     String getFileName();
 
     /**
-     * Returns the optional size of the asset file.
+     * Returns the optional size of the asset.
      *
-     * @return the optional size of the asset file.
+     * @return the optional size of the asset.
      */
-    Optional<Long> getFileSize();
+    Optional<Long> getSize();
 
     /**
      * Returns the optional {@link URI} of the asset if this is remote asset.
@@ -83,14 +81,14 @@ public interface LoggedArtifactAsset {
      * @param file              the path relative to the root. If not provided the asset file name will be used as path
      *                          relative to the root directory.
      * @param overwriteStrategy overwrite strategy to handle conflicting file names.
-     * @return the {@link FileAsset} representing downloaded asset file.
+     * @return the {@link ArtifactAsset} representing downloaded asset file.
      * @throws ArtifactException if operation failed.
      */
-    FileAsset download(Path dir, Path file, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
+    ArtifactAsset download(Path dir, Path file, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
 
-    FileAsset download(Path dir, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
+    ArtifactAsset download(Path dir, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException;
 
-    FileAsset download(Path dir) throws ArtifactException;
+    ArtifactAsset download(Path dir) throws ArtifactException;
 
     /**
      * Allows loading of asset bytes from Comet server and write to the provided {@link OutputStream}.

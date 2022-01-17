@@ -6,12 +6,15 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactDownloadException;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
+import ml.comet.experiment.artifact.DownloadedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.model.FileAsset;
+import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
+import ml.comet.experiment.impl.utils.ArtifactUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -23,8 +26,9 @@ import java.io.OutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -72,7 +76,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     @Override
     public Set<String> getArtifactTags() {
         if (this.artifactTags == null) {
-            return Collections.emptySet();
+            return new HashSet<>();
         }
         return this.artifactTags;
     }
@@ -112,24 +116,38 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
 
     @Override
     public String getFullName() {
-        return String.format("%s/%s:%s", this.getWorkspace(), this.getName(), this.getVersion());
+        return ArtifactUtils.artifactFullName(this.getWorkspace(), this.getName(), this.getVersion());
     }
 
     @Override
-    public Collection<LoggedArtifactAsset> readAssets() throws ArtifactException {
+    public Collection<LoggedArtifactAsset> getRemoteAssets() throws ArtifactException {
+        return this.baseExperiment.readArtifactAssets(this)
+                .stream()
+                .filter(LoggedArtifactAsset::isRemote)
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+    }
+
+    @Override
+    public Collection<LoggedArtifactAsset> getAssets() throws ArtifactException {
         return this.baseExperiment.readArtifactAssets(this);
     }
 
     @Override
-    public Collection<LoggedArtifactAsset> download(Path folder) {
+    public DownloadedArtifact download(Path folder) {
         return this.download(folder, AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
     }
 
     @Override
-    public Collection<LoggedArtifactAsset> download(
-            @NonNull Path folder, @NonNull AssetOverwriteStrategy overwriteStrategy) throws ArtifactException {
+    public DownloadedArtifact download(@NonNull Path folder, @NonNull AssetOverwriteStrategy overwriteStrategy)
+            throws ArtifactException {
+        // create downloaded artifact
+        DownloadedArtifactImpl artifact = new DownloadedArtifactImpl(this);
+
         // read all assets associated with this artifact
-        Collection<LoggedArtifactAsset> assets = this.readAssets();
+        Collection<LoggedArtifactAsset> assets = this.getAssets();
+        artifact.addLoggedAssets(assets);
+
+        // check if there is assets to be downloaded
         int assetsToDownload = assets.stream()
                 .filter(loggedArtifactAsset -> !loggedArtifactAsset.isRemote())
                 .mapToInt(value -> 1)
@@ -137,31 +155,32 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         if (assetsToDownload == 0) {
             // show warning and return
             this.logger.warn(getString(ARTIFACT_HAS_NO_ASSETS_TO_DOWNLOAD, this.getFullName()));
-            return assets;
+            return artifact;
         }
 
         this.logger.info(getString(START_DOWNLOAD_ARTIFACT_ASSETS, assetsToDownload));
 
         // create parallel execution flow with errors delaying
         // allowing processing of items even if some of them failed
-        Observable<FileAsset> observable = Observable.fromStream(assets.stream())
+        Observable<ArtifactAsset> observable = Observable.fromStream(assets.stream())
                 .filter(loggedArtifactAsset -> !loggedArtifactAsset.isRemote())
                 .flatMap(loggedArtifactAsset ->
                         Observable.just(loggedArtifactAsset)
                                 .subscribeOn(Schedulers.io()) // make it parallel on IO scheduler
                                 .map(asset -> asset.download(folder, overwriteStrategy)), true);
 
+
         // subscribe and wait for processing results
         CompletableFuture<Void> result = new CompletableFuture<>();
         observable
-                .ignoreElements() // ignore items - we are only interested in overall result
+                .doOnNext(artifact::updateAsset) // update artifact asset
+                .ignoreElements() // ignore items - we are interested in overall result
                 .blockingSubscribe(
                         () -> {
                             logger.info(getString(ARTIFACT_ASSETS_DOWNLOAD_COMPLETED,
                                     this.getFullName(), assetsToDownload, folder));
                             result.complete(null);
                         },
-
                         throwable -> {
                             logger.error(
                                     getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS, this.getFullName(), folder),
@@ -180,11 +199,11 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
             throw new ArtifactException(getString(FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS, this.getFullName(), folder), ex);
         }
 
-        return assets;
+        return artifact;
     }
 
-    FileAsset downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
-                            @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
+    ArtifactAssetImpl downloadAsset(@NonNull LoggedArtifactAssetImpl asset, @NonNull Path dir,
+                                    @NonNull Path file, @NonNull AssetOverwriteStrategy overwriteStrategy)
             throws ArtifactException {
         return this.baseExperiment.downloadArtifactAsset(asset, dir, file, overwriteStrategy);
     }
@@ -195,8 +214,8 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
             tmpDir = Files.createTempDirectory(null);
             Path file = FileSystems.getDefault().getPath(asset.getFileName());
 
-            FileAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
-            Files.copy(downloaded.getPath(), out);
+            ArtifactAssetImpl downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
+            Files.copy(downloaded.getRawFile().toPath(), out);
             out.flush();
         } catch (IOException e) {
             this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
@@ -219,8 +238,8 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
             Path file = FileSystems.getDefault().getPath(asset.getFileName());
             file.toFile().deleteOnExit(); // make sure to delete temporary file
 
-            FileAsset downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
-            return Files.newInputStream(downloaded.getPath(), READ);
+            ArtifactAssetImpl downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
+            return Files.newInputStream(downloaded.getRawFile().toPath(), READ);
         } catch (IOException e) {
             this.logger.error("Failed to create temporary file to store content of the asset {}.", asset, e);
             throw new ArtifactDownloadException("Failed to create temporary file to store asset's content.", e);

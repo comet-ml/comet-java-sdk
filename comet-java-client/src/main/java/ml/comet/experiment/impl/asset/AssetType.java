@@ -1,4 +1,4 @@
-package ml.comet.experiment.model;
+package ml.comet.experiment.impl.asset;
 
 /**
  * Represents known types of the assets.
@@ -39,7 +39,7 @@ public enum AssetType {
     /**
      * Represents asset type for the histogram of values for a 3D chart.
      */
-    HISTOGRAM_3D("histogram3d"),
+    HISTOGRAM3D("histogram3d"),
     /**
      * Represents confusion matrix asset type.
      */

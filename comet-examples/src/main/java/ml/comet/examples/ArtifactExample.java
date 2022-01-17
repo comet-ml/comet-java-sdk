@@ -2,7 +2,9 @@ package ml.comet.examples;
 
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
+import ml.comet.experiment.artifact.DownloadedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import org.apache.commons.io.IOUtils;
@@ -103,17 +105,19 @@ public class ArtifactExample implements BaseExample {
 
         // get logged assets
         //
-        Collection<LoggedArtifactAsset> loggedAssets = loggedArtifact.readAssets();
+        Collection<LoggedArtifactAsset> loggedAssets = loggedArtifact.getAssets();
         System.out.printf(
                 "Received %d logged artifact assets from the Comet server. Downloading asset files...\n",
                 loggedAssets.size());
 
-        // download artifact assets to the local directory
+        // download artifact assets to the local directory one by one
         //
         final Path assetsTmpDir = Files.createTempDirectory("ArtifactExampleAssets");
         loggedAssets.forEach(loggedArtifactAsset -> {
             if (!loggedArtifactAsset.isRemote()) {
-                loggedArtifactAsset.download(assetsTmpDir);
+                ArtifactAsset asset = loggedArtifactAsset.download(assetsTmpDir);
+                System.out.printf("Downloaded asset '%s' of size %d bytes to '%s'\n",
+                        asset.getLogicalPath(), asset.getSize().orElse(0L), asset.getFile());
             } else {
                 URI uri = loggedArtifactAsset.getLink().orElse(null);
                 System.out.printf(
@@ -122,24 +126,14 @@ public class ArtifactExample implements BaseExample {
             }
         });
 
-        System.out.printf("Artifact assets successfully downloaded to the folder: %s\n\n", assetsTmpDir);
-
-        // download artifact to the local directory
-        //
-        final Path artifactTmpDir = Files.createTempDirectory("ArtifactExampleArtifact");
-        System.out.printf("Downloading artifact to the folder: %s\n", artifactTmpDir.toFile().getAbsoluteFile());
-
-        Collection<LoggedArtifactAsset> assets = loggedArtifact.download(artifactTmpDir,
-                AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
-        System.out.printf(
-                "Artifact successfully downloaded. Received %d logged artifact assets from the Comet server.\n\n",
-                assets.size());
+        System.out.printf("Assets of the artifact's '%s' successfully downloaded to the folder: %s\n\n",
+                loggedArtifact.getFullName(), assetsTmpDir);
 
         // load content of the artifact asset into the memory
         //
-        LoggedArtifactAsset asset = assets.stream()
+        LoggedArtifactAsset asset = loggedAssets.stream()
                 .filter(loggedArtifactAsset -> {
-                    Long size = loggedArtifactAsset.getFileSize().orElse(0L);
+                    Long size = loggedArtifactAsset.getSize().orElse(0L);
                     return !loggedArtifactAsset.isRemote() && size > 0;
                 })
                 .findFirst().orElse(null);
@@ -154,12 +148,42 @@ public class ArtifactExample implements BaseExample {
                 for (int count; (count = in.read(buff)) > 0; ) {
                     out.write(buff, 0, count);
                 }
-                System.out.printf(
-                        "Asset's content successfully loaded into memory, data size: %d.\n\n", out.size());
+                System.out.printf("Content of the asset '%s' successfully loaded into memory, data size: %d.\n\n",
+                        asset.getFileName(), out.size());
             } catch (Throwable t) {
                 System.err.printf("Failed to read asset data, reason: %s\n\n", t);
+                throw t;
             }
         }
+
+        // download artifact to the local directory
+        //
+        final Path artifactTmpDir = Files.createTempDirectory("ArtifactExampleArtifact");
+        System.out.printf("Downloading artifact to the folder: %s\n", artifactTmpDir.toFile().getAbsoluteFile());
+
+        DownloadedArtifact downloadedArtifact = loggedArtifact.download(artifactTmpDir,
+                AssetOverwriteStrategy.FAIL_IF_DIFFERENT);
+        Collection<ArtifactAsset> assets = downloadedArtifact.getAssets();
+        System.out.printf(
+                "Artifact '%s' successfully downloaded. Received %d artifact assets from the Comet server.\n\n",
+                downloadedArtifact.getFullName(), assets.size());
+
+        // update downloaded artifact
+        //
+        System.out.printf("Starting update of the artifact: %s\n", downloadedArtifact.getFullName());
+
+        downloadedArtifact.getAliases().add("downloaded");
+        downloadedArtifact.getMetadata().put("updated", "someUpdatedValue");
+        downloadedArtifact.addAsset(getResourceFile(GRAPH_JSON_FILE), "updated_graph.json",
+                false, SOME_METADATA);
+        downloadedArtifact.incrementMinorVersion();
+
+        CompletableFuture<LoggedArtifact> futureUpdatedArtifact = experiment.logArtifact(downloadedArtifact);
+        loggedArtifact = futureUpdatedArtifact.get(60, SECONDS);
+
+        System.out.printf("\nArtifact update completed, new artifact version created: %s\n\n",
+                loggedArtifact.getFullName());
+
 
         System.out.println("===== Experiment completed ====");
     }

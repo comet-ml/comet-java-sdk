@@ -3,15 +3,13 @@ package ml.comet.experiment.impl;
 import com.vdurmont.semver4j.SemverException;
 import lombok.NonNull;
 import ml.comet.experiment.artifact.Artifact;
+import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ConflictingArtifactAssetNameException;
-import ml.comet.experiment.impl.asset.ArtifactAsset;
+import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
-import ml.comet.experiment.impl.asset.ArtifactRemoteAssetImpl;
-import ml.comet.experiment.impl.asset.Asset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -49,6 +47,8 @@ public class ArtifactImplTest extends AssetsBaseTest {
         put("someString", "string");
         put("someInt", 10);
     }};
+    static String SOME_REMOTE_ASSET_LINK = "s3://bucket/folder/someFile";
+    static String SOME_REMOTE_ASSET_NAME = "someRemoteAsset";
 
     @Test
     @DisplayName("is created with newArtifact()")
@@ -154,18 +154,16 @@ public class ArtifactImplTest extends AssetsBaseTest {
 
             @Test
             @DisplayName("has correct file asset")
-            @Order(1)
             void hasFileAsset() {
-                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
-                assertEquals(this.assetFile, asset.getFile(), "wrong file");
-                assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.findAsset(this.assetFileName);
+                assertEquals(this.assetFile, asset.getRawFile(), "wrong file");
+                assertEquals(this.assetFileName, asset.getLogicalPath(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
                 assertEquals(this.overwrite, asset.getOverwrite(), "wrong overwrite");
             }
 
             @Test
             @DisplayName("throws ConflictingArtifactAssetName when adding asset with existing name")
-            @Order(2)
             void throwsExceptionWhenAddingSameName() {
                 assertThrows(ConflictingArtifactAssetNameException.class, () ->
                         artifact.addAsset(this.assetFile, false));
@@ -188,18 +186,16 @@ public class ArtifactImplTest extends AssetsBaseTest {
 
             @Test
             @DisplayName("has correct file-like asset")
-            @Order(1)
             void hasFileLikeAsset() {
-                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.getAssets().iterator().next();
-                assertEquals(this.data, asset.getFileLikeData(), "wrong data");
-                assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.findAsset(this.assetFileName);
+                assertEquals(this.data, asset.getRawFileLikeData(), "wrong data");
+                assertEquals(this.assetFileName, asset.getLogicalPath(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
                 assertEquals(this.overwrite, asset.getOverwrite(), "wrong overwrite");
             }
 
             @Test
             @DisplayName("throws ConflictingArtifactAssetName when adding asset with existing name")
-            @Order(2)
             void throwsExceptionWhenAddingSameName() {
                 assertThrows(ConflictingArtifactAssetNameException.class, () ->
                         artifact.addAsset(this.data, this.assetFileName));
@@ -215,25 +211,24 @@ public class ArtifactImplTest extends AssetsBaseTest {
 
             @BeforeEach
             void addRemoteAsset() throws URISyntaxException {
-                this.uri = new URI("s3://bucket/folder/someFile");
-                this.assetFileName = "someRemoteAsset";
+                this.uri = new URI(SOME_REMOTE_ASSET_LINK);
+                this.assetFileName = SOME_REMOTE_ASSET_NAME;
                 artifact.addRemoteAsset(this.uri, this.assetFileName, this.overwrite, SOME_METADATA);
             }
 
             @Test
             @DisplayName("has correct remote asset")
-            @Order(1)
             void hasRemoteAsset() {
-                ArtifactRemoteAssetImpl asset = (ArtifactRemoteAssetImpl) artifact.getAssets().iterator().next();
-                assertEquals(this.uri, asset.getLink(), "wrong link");
-                assertEquals(this.assetFileName, asset.getFileName(), "wrong file name");
+                ArtifactAssetImpl asset = (ArtifactAssetImpl) artifact.findAsset(this.assetFileName);
+                assertTrue(asset.isRemote(), "must be remote");
+                assertEquals(this.uri, asset.getUri(), "wrong link");
+                assertEquals(this.assetFileName, asset.getLogicalPath(), "wrong file name");
                 assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
                 assertEquals(this.overwrite, asset.getOverwrite(), "wrong overwrite");
             }
 
             @Test
             @DisplayName("throws ConflictingArtifactAssetName when adding asset with existing name")
-            @Order(2)
             void throwsExceptionWhenAddingSameName() {
                 assertThrows(ConflictingArtifactAssetNameException.class, () ->
                         artifact.addRemoteAsset(this.uri, this.assetFileName));
@@ -253,7 +248,6 @@ public class ArtifactImplTest extends AssetsBaseTest {
 
             @Test
             @DisplayName("has all assets in the folder")
-            @Order(1)
             void hasAllFolderAssetsAdded() {
                 assertEquals(assetFolderFiles.size(), artifact.getAssets().size(), "wrong number of assets");
                 artifact.getAssets().forEach(this::validateAsset);
@@ -261,7 +255,6 @@ public class ArtifactImplTest extends AssetsBaseTest {
 
             @Test
             @DisplayName("throws ConflictingArtifactAssetName when adding asset with existing name")
-            @Order(2)
             void throwsExceptionWhenAddingSameName() {
                 assertThrows(ConflictingArtifactAssetNameException.class, () ->
                         artifact.addAssetFolder(assetsFolder.toFile(), logFilePath, recursive));
@@ -273,7 +266,7 @@ public class ArtifactImplTest extends AssetsBaseTest {
                 assertTrue(
                         assetFolderFiles
                                 .stream()
-                                .anyMatch(path -> path.endsWith(asset.getFileName()))
+                                .anyMatch(path -> path.endsWith(asset.getLogicalPath()))
                 );
             }
         }
