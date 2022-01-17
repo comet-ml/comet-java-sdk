@@ -8,7 +8,6 @@ import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.impl.utils.DataModelUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -42,7 +41,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     @Getter
     @Setter
     @ToString.Include
-    private AssetType assetType;
+    private String assetType;
     @Getter
     @Setter
     @ToString.Include

@@ -3,7 +3,7 @@ package ml.comet.experiment.impl.utils;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.asset.Asset;
-import ml.comet.experiment.asset.AssetType;
+import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.AssetImpl;
@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static ml.comet.experiment.asset.AssetType.POINTS_3D;
-import static ml.comet.experiment.asset.AssetType.UNKNOWN;
+import static ml.comet.experiment.impl.asset.AssetType.POINTS_3D;
+import static ml.comet.experiment.impl.asset.AssetType.UNKNOWN;
 import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
 import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
@@ -73,13 +73,13 @@ public class AssetUtils {
      * @param overwrite if {@code true} will overwrite all existing assets with the same name.
      * @param metadata  Some additional data to attach to the remote asset.
      *                  The dictionary values must be JSON compatible.
-     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET_TYPE_ASSET}
+     * @param type      the type of the asset. If not specified the default type {@code AssetType.ASSET}
      *                  will be assigned.
      * @return the initialized {@link RemoteAssetImpl} instance.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static RemoteAssetImpl createRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
-                                                    Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+                                                    Optional<Map<String, Object>> metadata, Optional<String> type) {
         RemoteAssetImpl asset = new RemoteAssetImpl();
         asset.setUri(uri);
         asset.setLogicalPath(fileName.orElse(remoteAssetFileName(uri)));
@@ -101,7 +101,7 @@ public class AssetUtils {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static AssetImpl createAssetFromFile(@NonNull File file, Optional<String> fileName, boolean overwrite,
                                                 @NonNull Optional<Map<String, Object>> metadata,
-                                                @NonNull Optional<AssetType> type) {
+                                                @NonNull Optional<String> type) {
         String logicalFileName = fileName.orElse(file.getName());
         AssetImpl asset = new AssetImpl();
         asset.setRawFile(file);
@@ -125,7 +125,7 @@ public class AssetUtils {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static AssetImpl createAssetFromData(byte[] data, @NonNull String fileName, boolean overwrite,
                                                 @NonNull Optional<Map<String, Object>> metadata,
-                                                @NonNull Optional<AssetType> type) {
+                                                @NonNull Optional<String> type) {
         AssetImpl asset = new AssetImpl();
         asset.setRawFileLikeData(data);
         asset.setLogicalPath(fileName);
@@ -145,7 +145,7 @@ public class AssetUtils {
             @NonNull final AssetImpl asset, @NonNull String experimentKey) {
         Map<QueryParamName, String> queryParams = new HashMap<>();
         queryParams.put(EXPERIMENT_KEY, experimentKey);
-        queryParams.put(TYPE, asset.getType().type());
+        queryParams.put(TYPE, asset.getType());
 
         putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
         putNotNull(queryParams, FILE_NAME, asset.getLogicalPath());
@@ -189,10 +189,10 @@ public class AssetUtils {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static AssetImpl updateAsset(AssetImpl asset, boolean overwrite,
-                                        Optional<Map<String, Object>> metadata, Optional<AssetType> type) {
+                                        Optional<Map<String, Object>> metadata, Optional<String> type) {
         asset.setOverwrite(overwrite);
         metadata.ifPresent(asset::setMetadata);
-        asset.setType(type.orElse(AssetType.ASSET));
+        asset.setType(type.orElse(AssetType.ASSET.type()));
 
         return asset;
     }
@@ -238,7 +238,7 @@ public class AssetUtils {
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);
         asset.setLogicalPath(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
-        asset.setType(AssetType.ASSET);
+        asset.setType(AssetType.ASSET.type());
         return asset;
     }
 

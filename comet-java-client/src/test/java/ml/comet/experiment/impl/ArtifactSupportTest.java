@@ -41,11 +41,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static ml.comet.experiment.asset.AssetType.ASSET;
-import static ml.comet.experiment.asset.AssetType.UNKNOWN;
 import static ml.comet.experiment.impl.ArtifactImplTest.SOME_METADATA;
 import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
+import static ml.comet.experiment.impl.asset.AssetType.ASSET;
+import static ml.comet.experiment.impl.asset.AssetType.UNKNOWN;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_ARTIFACT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
@@ -220,7 +220,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             assertEquals(IMAGE_FILE_SIZE, Files.size(fileAsset.getRawFile().toPath()), "wrong downloaded file size");
             assertEquals(IMAGE_FILE_SIZE, fileAsset.getSize().orElse(0L), "wrong file size");
             assertEquals(SOME_METADATA, fileAsset.getMetadata(), "wrong metadata");
-            assertEquals(UNKNOWN, fileAsset.getType(), "wrong asset type");
+            assertEquals(UNKNOWN.type(), fileAsset.getType(), "wrong asset type");
 
             System.out.println(fileAsset);
 
@@ -649,7 +649,7 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             assertEquals(newArtifactVersion, loggedArtifactFromServer.getVersion(), "wrong version");
             assertEquals(newTags, loggedArtifactFromServer.getVersionTags(), "wrong version tags");
 
-            Set<String>expectedAliases = new HashSet<>(artifact.getAliases());
+            Set<String> expectedAliases = new HashSet<>(artifact.getAliases());
             expectedAliases.add(extraAlias);
             expectedAliases.add(ALIAS_LATEST);
             assertEquals(expectedAliases, loggedArtifactFromServer.getAliases(), "wrong aliases");
@@ -705,8 +705,8 @@ public class ArtifactSupportTest extends AssetsBaseTest {
                     } else {
                         assertEquals(0, artifactAsset.getMetadata().size(), "empty metadata expected");
                     }
-                    if (asset.getType() == ASSET) {
-                        assertEquals(UNKNOWN, artifactAsset.getType());
+                    if (Objects.equals(asset.getType(), ASSET.type())) {
+                        assertEquals(UNKNOWN.type(), artifactAsset.getType());
                     } else {
                         assertEquals(asset.getType(), artifactAsset.getType(), "wrong asset type");
                     }

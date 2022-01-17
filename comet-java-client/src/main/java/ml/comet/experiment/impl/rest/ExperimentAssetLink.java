@@ -64,7 +64,7 @@ public class ExperimentAssetLink {
         a.setFileSize(this.fileSize);
         a.setContext(this.readContext());
         a.setMetadata(this.parseMetadata(logger));
-        a.setType(AssetUtils.toAssetType(this.type));
+        a.setType(this.type);
         a.setCurlDownload(this.curlDownload);
 
         if (this.remote && StringUtils.isNotBlank(this.link)) {

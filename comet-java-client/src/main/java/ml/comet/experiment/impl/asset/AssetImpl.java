@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import ml.comet.experiment.asset.Asset;
-import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.context.ExperimentContext;
 
 import java.io.File;
@@ -33,7 +32,7 @@ public class AssetImpl implements Asset {
     String logicalPath;
     @ToString.Include
     @Setter
-    AssetType type;
+    String type;
     @ToString.Include
     @Getter
     @Setter
@@ -77,7 +76,7 @@ public class AssetImpl implements Asset {
     }
 
     @Override
-    public AssetType getType() {
+    public String getType() {
         return this.type;
     }
 }

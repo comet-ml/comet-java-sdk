@@ -29,7 +29,7 @@ public class ArtifactVersionAsset {
      */
     public LoggedArtifactAssetImpl copyTo(LoggedArtifactAssetImpl asset) {
         asset.setAssetId(this.assetId);
-        asset.setAssetType(AssetUtils.toAssetType(this.type));
+        asset.setAssetType(this.type);
         asset.setFileName(this.fileName);
         asset.setFileSize(this.fileSize);
         asset.setRemoteUri(this.link);

@@ -6,7 +6,6 @@ import lombok.NonNull;
 import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.asset.Asset;
-import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
@@ -156,10 +155,10 @@ final class RestApiClient implements Disposable {
         return singleFromSyncGetWithRetries(GET_TAGS, experimentKey, TagsResponse.class);
     }
 
-    Single<ExperimentAssetListResponse> getAssetList(String experimentKey, AssetType type) {
+    Single<ExperimentAssetListResponse> getAssetList(String experimentKey, String type) {
         HashMap<QueryParamName, String> params = new HashMap<>();
         params.put(EXPERIMENT_KEY, experimentKey);
-        params.put(TYPE, type.type());
+        params.put(TYPE, type);
         return singleFromSyncGetWithRetries(GET_ASSETS_LIST, params, ExperimentAssetListResponse.class);
     }
 

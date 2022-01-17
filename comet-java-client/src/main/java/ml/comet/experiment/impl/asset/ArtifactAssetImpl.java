@@ -5,10 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import ml.comet.experiment.artifact.ArtifactAsset;
-import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.impl.LoggedArtifactAssetImpl;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -33,7 +31,7 @@ public final class ArtifactAssetImpl extends RemoteAssetImpl implements Artifact
      * @param metadata  the meta-data associated with asset.
      * @param assetType the type of the asset.
      */
-    public ArtifactAssetImpl(String name, Path filePath, long size, Map<String, Object> metadata, AssetType assetType) {
+    public ArtifactAssetImpl(String name, Path filePath, long size, Map<String, Object> metadata, String assetType) {
         this.setLogicalPath(name);
         this.setRawFile(filePath.toFile());
         this.fileSize = size;

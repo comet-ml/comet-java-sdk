@@ -22,7 +22,7 @@ public interface Asset {
      *
      * @return the type of this asset.
      */
-    AssetType getType();
+    String getType();
 
     /**
      * Returns metadata associated with this asset or {@link Map} if there is no metadata.

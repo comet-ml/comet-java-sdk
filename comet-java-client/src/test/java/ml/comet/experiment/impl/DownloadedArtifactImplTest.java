@@ -2,7 +2,7 @@ package ml.comet.experiment.impl;
 
 import com.vdurmont.semver4j.Semver;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.asset.AssetType;
+import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -167,14 +167,14 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
                 Path assetFile = assetFolderFiles.get(0);
                 this.loggedFileAsset.setFileName(assetFile.getFileName().toString());
                 this.loggedFileAsset.setFileSize(Files.size(assetFile));
-                this.loggedFileAsset.setAssetType(AssetType.ASSET);
+                this.loggedFileAsset.setAssetType(AssetType.ASSET.type());
                 this.loggedFileAsset.setMetadata(SOME_METADATA);
                 this.loggedAssets.add(this.loggedFileAsset);
                 // create remote asset
                 this.loggedRemoteAsset = new LoggedArtifactAssetImpl(null);
                 this.loggedRemoteAsset.setRemoteUri(SOME_REMOTE_ASSET_LINK);
                 this.loggedRemoteAsset.setFileName(SOME_REMOTE_ASSET_NAME);
-                this.loggedRemoteAsset.setAssetType(AssetType.ASSET);
+                this.loggedRemoteAsset.setAssetType(AssetType.ASSET.type());
                 this.loggedAssets.add(this.loggedRemoteAsset);
 
                 artifact.addLoggedAssets(this.loggedAssets);

@@ -16,7 +16,6 @@ import ml.comet.experiment.artifact.GetArtifactOptions;
 import ml.comet.experiment.artifact.InvalidArtifactStateException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.asset.AssetType;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
@@ -58,7 +57,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
-import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.impl.asset.AssetType.ALL;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosed;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
@@ -402,7 +402,7 @@ abstract class BaseExperiment implements Experiment {
         }
 
         AssetImpl asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
-                empty(), Optional.of(SOURCE_CODE));
+                empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, context);
     }
 
@@ -417,7 +417,7 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("log source code from file {}", file.getName());
         }
         AssetImpl asset = createAssetFromFile(file, empty(), false,
-                empty(), Optional.of(SOURCE_CODE));
+                empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, context);
     }
 
@@ -808,7 +808,7 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public List<LoggedExperimentAsset> getAssetList(@NonNull AssetType type) {
+    public List<LoggedExperimentAsset> getAssetList(@NonNull String type) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("get assets with type {} for experiment {}", type, this.experimentKey);
         }
@@ -823,6 +823,11 @@ abstract class BaseExperiment implements Experiment {
                 .collect(ArrayList::new,
                         (assets, experimentAssetLink) -> assets.add(experimentAssetLink.toExperimentAsset(getLogger())),
                         ArrayList::addAll);
+    }
+
+    @Override
+    public List<LoggedExperimentAsset> getAllAssetList() {
+        return this.getAssetList(ALL.type());
     }
 
     @Override

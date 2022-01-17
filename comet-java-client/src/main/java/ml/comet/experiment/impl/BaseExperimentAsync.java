@@ -43,7 +43,7 @@ import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static ml.comet.experiment.artifact.GetArtifactOptions.Op;
-import static ml.comet.experiment.asset.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_LOGGED_WITHOUT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_STARTED;
@@ -421,7 +421,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.updateContext(context);
 
         Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
-                empty(), Optional.of(SOURCE_CODE));
+                empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, onComplete);
     }
 
@@ -438,7 +438,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.updateContext(context);
 
         Asset asset = createAssetFromFile(file, empty(), false,
-                empty(), Optional.of(SOURCE_CODE));
+                empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, onComplete);
     }
 
