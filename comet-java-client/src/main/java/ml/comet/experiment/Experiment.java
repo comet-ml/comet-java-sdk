@@ -278,19 +278,19 @@ public interface Experiment extends AutoCloseable {
     /**
      * Allows you to report code for the experiment.
      *
-     * @param code     Code to be sent to Comet
-     * @param fileName Name of source file to be displayed on UI 'code' tab
-     * @param context  the context to be associated with the asset.
+     * @param code        Code to be sent to Comet
+     * @param logicalPath Name of source file to be displayed on UI 'code' tab
+     * @param context     the context to be associated with the asset.
      */
-    void logCode(String code, String fileName, ExperimentContext context);
+    void logCode(String code, String logicalPath, ExperimentContext context);
 
     /**
      * Allows you to report code for the experiment.
      *
-     * @param code     Code to be sent to Comet
-     * @param fileName Name of source file to be displayed on UI 'code' tab
+     * @param code        Code to be sent to Comet
+     * @param logicalPath Name of source file to be displayed on UI 'code' tab
      */
-    void logCode(String code, String fileName);
+    void logCode(String code, String logicalPath);
 
     /**
      * Allows you to report code for the experiment.
@@ -311,24 +311,24 @@ public interface Experiment extends AutoCloseable {
      * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.
      * For running experiment updates current step to one from param!
      *
-     * @param asset     The asset to be stored
-     * @param fileName  The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
-     * @param overwrite Whether to overwrite files of the same name in Comet
-     * @param context   the context to be associated with the asset.
+     * @param asset       The asset to be stored
+     * @param logicalPath The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
+     * @param overwrite   Whether to overwrite files of the same name in Comet
+     * @param context     the context to be associated with the asset.
      */
-    void uploadAsset(File asset, String fileName, boolean overwrite, ExperimentContext context);
+    void uploadAsset(File asset, String logicalPath, boolean overwrite, ExperimentContext context);
 
     /**
      * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.
      * For running experiment updates current step to one from param!
      *
-     * @param asset     The asset to be stored
-     * @param fileName  The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
-     * @param overwrite Whether to overwrite files of the same name in Comet
-     * @param step      the step to be associated with the asset
-     * @param epoch     the epoch to be associated with the asset
+     * @param asset       The asset to be stored
+     * @param logicalPath The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
+     * @param overwrite   Whether to overwrite files of the same name in Comet
+     * @param step        the step to be associated with the asset
+     * @param epoch       the epoch to be associated with the asset
      */
-    void uploadAsset(File asset, String fileName, boolean overwrite, long step, long epoch);
+    void uploadAsset(File asset, String logicalPath, boolean overwrite, long step, long epoch);
 
     /**
      * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.

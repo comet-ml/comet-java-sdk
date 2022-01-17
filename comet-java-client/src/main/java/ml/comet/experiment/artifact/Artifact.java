@@ -23,38 +23,38 @@ public interface Artifact {
     /**
      * Adds a local asset file to the current pending artifact object.
      *
-     * @param file      the path to the file asset.
-     * @param name      the custom asset name to be displayed. If not
-     *                  provided the filename from the {@code file} argument will be used.
-     * @param overwrite if {@code true} will overwrite all existing assets with the same name.
-     * @param metadata  Some additional data to attach to the asset. Must be a map with JSON-encodable values.
+     * @param file        the path to the file asset.
+     * @param logicalPath the custom asset's file name to be displayed. If not
+     *                    provided the filename from the {@code file} argument will be used.
+     * @param overwrite   if {@code true} will overwrite all existing assets with the same name.
+     * @param metadata    Some additional data to attach to the asset. Must be a map with JSON-encodable values.
      * @throws ConflictingArtifactAssetNameException is name of the asset is not unique within this artifact.
      */
-    void addAsset(File file, String name, boolean overwrite, Map<String, Object> metadata)
+    void addAsset(File file, String logicalPath, boolean overwrite, Map<String, Object> metadata)
             throws ConflictingArtifactAssetNameException;
 
     void addAsset(File file, boolean overwrite, Map<String, Object> metadata)
             throws ConflictingArtifactAssetNameException;
 
-    void addAsset(File file, String name, boolean overwrite) throws ConflictingArtifactAssetNameException;
+    void addAsset(File file, String logicalPath, boolean overwrite) throws ConflictingArtifactAssetNameException;
 
     void addAsset(File file, boolean overwrite) throws ConflictingArtifactAssetNameException;
 
     /**
      * Adds a local asset data to the current pending artifact object.
      *
-     * @param data      the data of the asset.
-     * @param name      the custom asset name to be displayed.
-     * @param overwrite if {@code true} will overwrite all existing assets with the same name.
-     * @param metadata  some additional data to attach to the asset. Must be a map with JSON-encodable values.
+     * @param data        the data of the asset.
+     * @param logicalPath the custom asset's file name to be displayed.
+     * @param overwrite   if {@code true} will overwrite all existing assets with the same name.
+     * @param metadata    some additional data to attach to the asset. Must be a map with JSON-encodable values.
      * @throws ConflictingArtifactAssetNameException is name of the asset is not unique within this artifact.
      */
-    void addAsset(byte[] data, String name, boolean overwrite, Map<String, Object> metadata)
+    void addAsset(byte[] data, String logicalPath, boolean overwrite, Map<String, Object> metadata)
             throws ConflictingArtifactAssetNameException;
 
-    void addAsset(byte[] data, String name, boolean overwrite) throws ConflictingArtifactAssetNameException;
+    void addAsset(byte[] data, String logicalPath, boolean overwrite) throws ConflictingArtifactAssetNameException;
 
-    void addAsset(byte[] data, String name) throws ConflictingArtifactAssetNameException;
+    void addAsset(byte[] data, String logicalPath) throws ConflictingArtifactAssetNameException;
 
     /**
      * Adds remote asses to the current pending artifact object. A Remote Asset is an asset but
@@ -62,24 +62,24 @@ public interface Artifact {
      * you can identify and distinguish between two experiment using different version of a dataset
      * stored somewhere else.
      *
-     * @param uri       the {@link URI} pointing to the location of the remote asset.
-     * @param name      the "name" of the remote asset, could be a dataset name, a model file name.
-     * @param overwrite if {@code true} will overwrite all existing assets with the same name.
-     * @param metadata  some additional data to attach to the asset. Must be a map with JSON-encodable values.
+     * @param uri         the {@link URI} pointing to the location of the remote asset.
+     * @param logicalPath the "name" of the remote asset, could be a dataset name, a model file name.
+     * @param overwrite   if {@code true} will overwrite all existing assets with the same name.
+     * @param metadata    some additional data to attach to the asset. Must be a map with JSON-encodable values.
      * @throws ConflictingArtifactAssetNameException is name of the asset is not unique within this artifact.
      */
-    void addRemoteAsset(URI uri, String name, boolean overwrite, Map<String, Object> metadata)
+    void addRemoteAsset(URI uri, String logicalPath, boolean overwrite, Map<String, Object> metadata)
             throws ConflictingArtifactAssetNameException;
 
-    void addRemoteAsset(URI uri, String name, boolean overwrite) throws ConflictingArtifactAssetNameException;
+    void addRemoteAsset(URI uri, String logicalPath, boolean overwrite) throws ConflictingArtifactAssetNameException;
 
-    void addRemoteAsset(URI uri, String name) throws ConflictingArtifactAssetNameException;
+    void addRemoteAsset(URI uri, String logicalPath) throws ConflictingArtifactAssetNameException;
 
     /**
      * Adds all asset files located in the given folder to this artifact.
      *
      * @param folder      the folder you want to log.
-     * @param logFilePath if {@code true}, log the file path with each file.
+     * @param logFilePath if {@code true}, logs the relative file path of each file.
      * @param recursive   if {@code true}, recurse the folder.
      * @param metadata    some additional data to attach to the asset. Must be a map with JSON-encodable values.
      * @throws ConflictingArtifactAssetNameException is name of some asset is not unique within this artifact.

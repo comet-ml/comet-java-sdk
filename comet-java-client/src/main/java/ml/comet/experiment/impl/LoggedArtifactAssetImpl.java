@@ -51,7 +51,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
     @Setter
     @Getter
     @ToString.Include
-    private String fileName;
+    private String logicalPath;
     @Setter
     private Long fileSize;
     @Setter
@@ -123,7 +123,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
 
     @Override
     public ArtifactAsset download(Path dir, AssetOverwriteStrategy overwriteStrategy) throws ArtifactException {
-        return this.download(dir, FileSystems.getDefault().getPath(this.fileName), overwriteStrategy);
+        return this.download(dir, FileSystems.getDefault().getPath(this.logicalPath), overwriteStrategy);
     }
 
     @Override

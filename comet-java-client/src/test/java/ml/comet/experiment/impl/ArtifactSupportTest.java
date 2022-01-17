@@ -178,8 +178,8 @@ public class ArtifactSupportTest extends AssetsBaseTest {
             assertTrue(loggedRemoteAssets
                     .stream()
                     .allMatch(loggedArtifactAsset -> loggedArtifactAsset.isRemote()
-                            && (loggedArtifactAsset.getFileName().equals(firstRemoteAssetFileName) ||
-                            loggedArtifactAsset.getFileName().equals(secondRemoteAssetFileName))));
+                            && (loggedArtifactAsset.getLogicalPath().equals(firstRemoteAssetFileName) ||
+                            loggedArtifactAsset.getLogicalPath().equals(secondRemoteAssetFileName))));
 
         } catch (Throwable t) {
             fail(t);

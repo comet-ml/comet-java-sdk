@@ -362,12 +362,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void uploadAsset(@NonNull File asset, @NonNull String fileName,
+    public void uploadAsset(@NonNull File asset, @NonNull String logicalPath,
                             boolean overwrite, @NonNull ExperimentContext context) {
         this.checkExperimentActiveState();
         this.executeLogAction(() ->
-                        this.uploadAsset(asset, fileName, overwrite, context, this.logAssetActionOnComplete()),
-                this.assetsInProgress, getString(FAILED_TO_LOG_ASSET, fileName));
+                        this.uploadAsset(asset, logicalPath, overwrite, context, this.logAssetActionOnComplete()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_ASSET, logicalPath));
     }
 
     @Override
@@ -381,14 +381,15 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
                 new ExperimentContext(step, epoch, getContext()));
     }
 
-    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite, long step) {
-        this.uploadAsset(asset, fileName, overwrite,
+    @Override
+    public void uploadAsset(@NonNull File asset, @NonNull String logicalPath, boolean overwrite, long step) {
+        this.uploadAsset(asset, logicalPath, overwrite,
                 new ExperimentContext(step, this.getEpoch(), this.getContext()));
     }
 
     @Override
-    public void uploadAsset(@NonNull File asset, @NonNull String fileName, boolean overwrite) {
-        this.uploadAsset(asset, fileName, overwrite, this.baseContext);
+    public void uploadAsset(@NonNull File asset, @NonNull String logicalPath, boolean overwrite) {
+        this.uploadAsset(asset, logicalPath, overwrite, this.baseContext);
     }
 
     @Override
@@ -397,22 +398,22 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite,
+    public void logRemoteAsset(@NonNull URI uri, String logicalPath, boolean overwrite,
                                Map<String, Object> metadata, @NonNull ExperimentContext context) {
         this.checkExperimentActiveState();
-        this.executeLogAction(() -> this.logRemoteAsset(uri, ofNullable(fileName), overwrite,
+        this.executeLogAction(() -> this.logRemoteAsset(uri, ofNullable(logicalPath), overwrite,
                         ofNullable(metadata), context, this.logAssetActionOnComplete()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_REMOTE_ASSET, uri));
     }
 
     @Override
-    public void logRemoteAsset(@NonNull URI uri, String fileName, boolean overwrite, Map<String, Object> metadata) {
-        this.logRemoteAsset(uri, fileName, overwrite, metadata, this.baseContext);
+    public void logRemoteAsset(@NonNull URI uri, String logicalPath, boolean overwrite, Map<String, Object> metadata) {
+        this.logRemoteAsset(uri, logicalPath, overwrite, metadata, this.baseContext);
     }
 
     @Override
-    public void logRemoteAsset(@NonNull URI uri, @NonNull String fileName, boolean overwrite) {
-        this.logRemoteAsset(uri, fileName, overwrite, null);
+    public void logRemoteAsset(@NonNull URI uri, @NonNull String logicalPath, boolean overwrite) {
+        this.logRemoteAsset(uri, logicalPath, overwrite, null);
     }
 
     @Override
@@ -421,10 +422,10 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context) {
+    public void logCode(@NonNull String code, @NonNull String logicalPath, @NonNull ExperimentContext context) {
         this.checkExperimentActiveState();
-        this.executeLogAction(() -> this.logCode(code, fileName, context, this.logAssetActionOnComplete()),
-                this.assetsInProgress, getString(FAILED_TO_LOG_CODE_ASSET, fileName));
+        this.executeLogAction(() -> this.logCode(code, logicalPath, context, this.logAssetActionOnComplete()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_CODE_ASSET, logicalPath));
     }
 
     @Override
@@ -435,8 +436,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     }
 
     @Override
-    public void logCode(@NonNull String code, @NonNull String fileName) {
-        this.logCode(code, fileName, this.baseContext);
+    public void logCode(@NonNull String code, @NonNull String logicalPath) {
+        this.logCode(code, logicalPath, this.baseContext);
     }
 
     @Override

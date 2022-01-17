@@ -40,11 +40,11 @@ public interface LoggedArtifactAsset {
     String getAssetType();
 
     /**
-     * Returns the asset file name.
+     * Returns the logical path of the asset file.
      *
-     * @return the asset file name.
+     * @return the logical path of the asset file.
      */
-    String getFileName();
+    String getLogicalPath();
 
     /**
      * Returns the optional size of the asset.

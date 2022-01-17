@@ -212,7 +212,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
         Path tmpDir = null;
         try {
             tmpDir = Files.createTempDirectory(null);
-            Path file = FileSystems.getDefault().getPath(asset.getFileName());
+            Path file = FileSystems.getDefault().getPath(asset.getLogicalPath());
 
             ArtifactAssetImpl downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);
             Files.copy(downloaded.getRawFile().toPath(), out);
@@ -235,7 +235,7 @@ public final class LoggedArtifactImpl extends BaseArtifactImpl implements Logged
     InputStream openAssetStream(@NonNull LoggedArtifactAssetImpl asset) throws ArtifactException {
         try {
             Path tmpDir = Files.createTempDirectory(null);
-            Path file = FileSystems.getDefault().getPath(asset.getFileName());
+            Path file = FileSystems.getDefault().getPath(asset.getLogicalPath());
             file.toFile().deleteOnExit(); // make sure to delete temporary file
 
             ArtifactAssetImpl downloaded = this.downloadAsset(asset, tmpDir, file, AssetOverwriteStrategy.OVERWRITE);

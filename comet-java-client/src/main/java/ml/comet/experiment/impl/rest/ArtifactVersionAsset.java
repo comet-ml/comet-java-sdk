@@ -3,9 +3,7 @@ package ml.comet.experiment.impl.rest;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.LoggedArtifactAssetImpl;
-import ml.comet.experiment.impl.utils.AssetUtils;
 
 @Data
 @NoArgsConstructor
@@ -30,7 +28,7 @@ public class ArtifactVersionAsset {
     public LoggedArtifactAssetImpl copyTo(LoggedArtifactAssetImpl asset) {
         asset.setAssetId(this.assetId);
         asset.setAssetType(this.type);
-        asset.setFileName(this.fileName);
+        asset.setLogicalPath(this.fileName);
         asset.setFileSize(this.fileSize);
         asset.setRemoteUri(this.link);
         asset.setRemote(this.remote);

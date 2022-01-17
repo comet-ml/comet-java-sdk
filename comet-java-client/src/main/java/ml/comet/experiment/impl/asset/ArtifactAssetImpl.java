@@ -80,7 +80,7 @@ public final class ArtifactAssetImpl extends RemoteAssetImpl implements Artifact
             this.fileSize = asset.getSize().get();
         }
 
-        this.logicalPath = asset.getFileName();
+        this.logicalPath = asset.getLogicalPath();
         this.type = asset.getAssetType();
         this.metadata = asset.getMetadata();
         this.artifactVersionId = asset.getArtifactVersionId();
