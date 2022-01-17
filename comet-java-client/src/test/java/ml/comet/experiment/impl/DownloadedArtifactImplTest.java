@@ -165,7 +165,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
                 // create file asset
                 this.loggedFileAsset = new LoggedArtifactAssetImpl(null);
                 Path assetFile = assetFolderFiles.get(0);
-                this.loggedFileAsset.setFileName(assetFile.getFileName().toString());
+                this.loggedFileAsset.setLogicalPath(assetFile.getFileName().toString());
                 this.loggedFileAsset.setFileSize(Files.size(assetFile));
                 this.loggedFileAsset.setAssetType(AssetType.ASSET.type());
                 this.loggedFileAsset.setMetadata(SOME_METADATA);
@@ -173,7 +173,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
                 // create remote asset
                 this.loggedRemoteAsset = new LoggedArtifactAssetImpl(null);
                 this.loggedRemoteAsset.setRemoteUri(SOME_REMOTE_ASSET_LINK);
-                this.loggedRemoteAsset.setFileName(SOME_REMOTE_ASSET_NAME);
+                this.loggedRemoteAsset.setLogicalPath(SOME_REMOTE_ASSET_NAME);
                 this.loggedRemoteAsset.setAssetType(AssetType.ASSET.type());
                 this.loggedAssets.add(this.loggedRemoteAsset);
 
@@ -193,7 +193,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
                 void updateFileAsset(){
                     this.assetFile = assetFolderFiles.get(1).toFile();
                     this.anotherAssetFile = assetFolderFiles.get(2).toFile();
-                    this.logicalPath = loggedFileAsset.getFileName();
+                    this.logicalPath = loggedFileAsset.getLogicalPath();
                     // update logged file asset
                     artifact.addAsset(this.assetFile, this.logicalPath, this.overwrite, SOME_METADATA);
                 }
@@ -228,7 +228,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
                 void updateRemoteAsset() throws URISyntaxException {
                     this.remoteUri = new URI("s3://newUri/DownloadedArtifactTest");
                     this.anotherRemoteUri = new URI("s3://newUri/DownloadedArtifactTest/another");
-                    this.logicalPath = loggedRemoteAsset.getFileName();
+                    this.logicalPath = loggedRemoteAsset.getLogicalPath();
 
                     // update remote asset
                     artifact.addRemoteAsset(this.remoteUri, this.logicalPath, this.overwrite, SOME_METADATA);
@@ -249,7 +249,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
                 @Test
                 @DisplayName("doesn't throw exception when updated again")
                 void doesNotThrowExceptionWhenUpdatedAgain() {
-                    artifact.addRemoteAsset(this.anotherRemoteUri, loggedRemoteAsset.getFileName(), true);
+                    artifact.addRemoteAsset(this.anotherRemoteUri, loggedRemoteAsset.getLogicalPath(), true);
                 }
             }
         }

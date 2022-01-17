@@ -115,7 +115,7 @@ public final class DownloadedArtifactImpl extends ArtifactImpl implements Downlo
     private void appendAsset(@NonNull LoggedArtifactAsset asset) {
         ArtifactAssetImpl artifactAsset = new ArtifactAssetImpl((LoggedArtifactAssetImpl) asset);
         this.appendAsset(artifactAsset);
-        this.downloadedAssetsIdentifiers.add(asset.getFileName());
+        this.downloadedAssetsIdentifiers.add(asset.getLogicalPath());
     }
 
     @Override

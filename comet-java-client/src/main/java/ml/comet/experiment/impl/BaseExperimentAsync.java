@@ -381,23 +381,23 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
-     * @param uri        the {@link URI} pointing to the remote asset location. There is no imposed format,
-     *                   and it could be a private link.
-     * @param fileName   the optional "name" of the remote asset, could be a dataset name, a model file name.
-     * @param overwrite  if {@code true} will overwrite all existing assets with the same name.
-     * @param metadata   Some additional data to attach to the remote asset.
-     *                   The dictionary values must be JSON compatible.
-     * @param context    the experiment context to be associated with the logged assets.
-     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
-     *                   Can be {@code null} if not interested in completion signal.
+     * @param uri         the {@link URI} pointing to the remote asset location. There is no imposed format,
+     *                    and it could be a private link.
+     * @param logicalPath the optional "name" of the remote asset, could be a dataset name, a model file name.
+     * @param overwrite   if {@code true} will overwrite all existing assets with the same name.
+     * @param metadata    Some additional data to attach to the remote asset.
+     *                    The dictionary values must be JSON compatible.
+     * @param context     the experiment context to be associated with the logged assets.
+     * @param onComplete  The optional action to be invoked when this operation asynchronously completes.
+     *                    Can be {@code null} if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logRemoteAsset(@NonNull URI uri, Optional<String> fileName, boolean overwrite,
+    void logRemoteAsset(@NonNull URI uri, Optional<String> logicalPath, boolean overwrite,
                         @NonNull Optional<Map<String, Object>> metadata, @NonNull ExperimentContext context,
                         @NonNull Optional<Action> onComplete) {
         this.updateContext(context);
 
-        RemoteAssetImpl asset = AssetUtils.createRemoteAsset(uri, fileName, overwrite, metadata, empty());
+        RemoteAssetImpl asset = AssetUtils.createRemoteAsset(uri, logicalPath, overwrite, metadata, empty());
         this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
 
         if (Objects.equals(asset.getLogicalPath(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {

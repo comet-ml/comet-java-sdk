@@ -52,8 +52,9 @@ public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     }
 
     @Override
-    public void addAsset(@NonNull File file, @NonNull String name, boolean overwrite, Map<String, Object> metadata) {
-        this.addAsset(file, name, overwrite, Optional.of(metadata));
+    public void addAsset(@NonNull File file, @NonNull String logicalPath,
+                         boolean overwrite, Map<String, Object> metadata) {
+        this.addAsset(file, logicalPath, overwrite, Optional.of(metadata));
     }
 
     @Override
@@ -62,8 +63,9 @@ public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     }
 
     @Override
-    public void addAsset(File file, String name, boolean overwrite) throws ConflictingArtifactAssetNameException {
-        this.addAsset(file, name, overwrite, Optional.empty());
+    public void addAsset(File file, String logicalPath, boolean overwrite)
+            throws ConflictingArtifactAssetNameException {
+        this.addAsset(file, logicalPath, overwrite, Optional.empty());
     }
 
     @Override
@@ -79,18 +81,18 @@ public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     }
 
     @Override
-    public void addAsset(byte[] data, String name, boolean overwrite, @NonNull Map<String, Object> metadata) {
-        this.addAsset(data, name, overwrite, Optional.of(metadata));
+    public void addAsset(byte[] data, String logicalPath, boolean overwrite, @NonNull Map<String, Object> metadata) {
+        this.addAsset(data, logicalPath, overwrite, Optional.of(metadata));
     }
 
     @Override
-    public void addAsset(byte[] data, String name, boolean overwrite) {
-        this.addAsset(data, name, overwrite, Optional.empty());
+    public void addAsset(byte[] data, String logicalPath, boolean overwrite) {
+        this.addAsset(data, logicalPath, overwrite, Optional.empty());
     }
 
     @Override
-    public void addAsset(byte[] data, String name) throws ConflictingArtifactAssetNameException {
-        this.addAsset(data, name, false);
+    public void addAsset(byte[] data, String logicalPath) throws ConflictingArtifactAssetNameException {
+        this.addAsset(data, logicalPath, false);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -101,19 +103,19 @@ public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
     }
 
     @Override
-    public void addRemoteAsset(@NonNull URI uri, @NonNull String name,
+    public void addRemoteAsset(@NonNull URI uri, @NonNull String logicalPath,
                                boolean overwrite, @NonNull Map<String, Object> metadata) {
-        this.addRemoteAsset(uri, name, overwrite, Optional.of(metadata));
+        this.addRemoteAsset(uri, logicalPath, overwrite, Optional.of(metadata));
     }
 
     @Override
-    public void addRemoteAsset(@NonNull URI uri, @NonNull String name, boolean overwrite) {
-        this.addRemoteAsset(uri, name, overwrite, empty());
+    public void addRemoteAsset(@NonNull URI uri, @NonNull String logicalPath, boolean overwrite) {
+        this.addRemoteAsset(uri, logicalPath, overwrite, empty());
     }
 
     @Override
-    public void addRemoteAsset(@NonNull URI uri, @NonNull String name) {
-        this.addRemoteAsset(uri, name, false, empty());
+    public void addRemoteAsset(@NonNull URI uri, @NonNull String logicalPath) {
+        this.addRemoteAsset(uri, logicalPath, false, empty());
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

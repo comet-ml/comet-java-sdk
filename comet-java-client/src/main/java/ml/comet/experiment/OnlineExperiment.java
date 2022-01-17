@@ -124,13 +124,13 @@ public interface OnlineExperiment extends Experiment {
      * for example the trained weights of a neural net.
      *
      * @param asset     The asset to be stored
-     * @param fileName  The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
+     * @param logicalPath  The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
      * @param overwrite Whether to overwrite files of the same name in Comet
      * @param step      The step to be associated with asset
      */
-    void uploadAsset(File asset, String fileName, boolean overwrite, long step);
+    void uploadAsset(File asset, String logicalPath, boolean overwrite, long step);
 
-    void uploadAsset(File asset, String fileName, boolean overwrite);
+    void uploadAsset(File asset, String logicalPath, boolean overwrite);
 
     void uploadAsset(File asset, boolean overwrite);
 
@@ -155,18 +155,18 @@ public interface OnlineExperiment extends Experiment {
      *
      * @param uri       the {@link URI} pointing to the remote asset location. There is no imposed format,
      *                  and it could be a private link.
-     * @param fileName  the optional "name" of the remote asset, could be a dataset name, a model file name.
+     * @param logicalPath  the optional "name" of the remote asset, could be a dataset name, a model file name.
      * @param overwrite if {@code true} will overwrite all existing assets with the same name.
      * @param metadata  Some additional data to attach to the remote asset.
      *                  The dictionary values must be JSON compatible.
      * @param context   the experiment context to be associated with the logged assets.
      */
-    void logRemoteAsset(URI uri, String fileName, boolean overwrite,
+    void logRemoteAsset(URI uri, String logicalPath, boolean overwrite,
                         Map<String, Object> metadata, ExperimentContext context);
 
-    void logRemoteAsset(URI uri, String fileName, boolean overwrite, Map<String, Object> metadata);
+    void logRemoteAsset(URI uri, String logicalPath, boolean overwrite, Map<String, Object> metadata);
 
-    void logRemoteAsset(URI uri, String fileName, boolean overwrite);
+    void logRemoteAsset(URI uri, String logicalPath, boolean overwrite);
 
     void logRemoteAsset(URI uri, boolean overwrite);
 

@@ -122,7 +122,7 @@ public class ArtifactExample implements BaseExample {
                 URI uri = loggedArtifactAsset.getLink().orElse(null);
                 System.out.printf(
                         "Skipping download of the remote asset %s. It must be downloaded using its URI '%s'\n",
-                        loggedArtifactAsset.getFileName(), uri);
+                        loggedArtifactAsset.getLogicalPath(), uri);
             }
         });
 
@@ -149,7 +149,7 @@ public class ArtifactExample implements BaseExample {
                     out.write(buff, 0, count);
                 }
                 System.out.printf("Content of the asset '%s' successfully loaded into memory, data size: %d.\n\n",
-                        asset.getFileName(), out.size());
+                        asset.getLogicalPath(), out.size());
             } catch (Throwable t) {
                 System.err.printf("Failed to read asset data, reason: %s\n\n", t);
                 throw t;

@@ -396,19 +396,19 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logCode(@NonNull String code, @NonNull String fileName, @NonNull ExperimentContext context) {
+    public void logCode(@NonNull String code, @NonNull String logicalPath, @NonNull ExperimentContext context) {
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("log raw source code, file name: {}", fileName);
+            getLogger().debug("log raw source code, file name: {}", logicalPath);
         }
 
-        AssetImpl asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
+        AssetImpl asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), logicalPath, false,
                 empty(), Optional.of(SOURCE_CODE.type()));
         this.logAsset(asset, context);
     }
 
     @Override
-    public void logCode(String code, String fileName) {
-        this.logCode(code, fileName, ExperimentContext.empty());
+    public void logCode(String code, String logicalPath) {
+        this.logCode(code, logicalPath, ExperimentContext.empty());
     }
 
     @Override
@@ -427,19 +427,19 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void uploadAsset(@NonNull File file, @NonNull String fileName,
+    public void uploadAsset(@NonNull File file, @NonNull String logicalPath,
                             boolean overwrite, @NonNull ExperimentContext context) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("uploadAsset from file {}, name {}, override {}, context {}",
-                    file.getName(), fileName, overwrite, context);
+                    file.getName(), logicalPath, overwrite, context);
         }
-        AssetImpl asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
+        AssetImpl asset = createAssetFromFile(file, Optional.of(logicalPath), overwrite, empty(), empty());
         this.logAsset(asset, context);
     }
 
     @Override
-    public void uploadAsset(@NonNull File asset, String fileName, boolean overwrite, long step, long epoch) {
-        this.uploadAsset(asset, fileName, overwrite, new ExperimentContext(step, epoch));
+    public void uploadAsset(@NonNull File asset, String logicalPath, boolean overwrite, long step, long epoch) {
+        this.uploadAsset(asset, logicalPath, overwrite, new ExperimentContext(step, epoch));
     }
 
     @Override
@@ -646,7 +646,7 @@ abstract class BaseExperiment implements Experiment {
                 // new or overwrite
                 resolved = optionalPath.get();
                 if (overwriteStrategy == AssetOverwriteStrategy.OVERWRITE) {
-                    getLogger().warn(getString(ARTIFACT_DOWNLOAD_FILE_OVERWRITTEN, resolved, asset.getFileName(),
+                    getLogger().warn(getString(ARTIFACT_DOWNLOAD_FILE_OVERWRITTEN, resolved, asset.getLogicalPath(),
                             asset.artifact.getFullName()));
                 }
             } else {
@@ -654,13 +654,13 @@ abstract class BaseExperiment implements Experiment {
                 resolved = dir.resolve(file);
                 this.getLogger().warn(
                         getString(ARTIFACT_ASSETS_FILE_EXISTS_PRESERVING, resolved, asset.artifact.getFullName()));
-                return new ArtifactAssetImpl(asset.getFileName(), resolved, Files.size(resolved),
+                return new ArtifactAssetImpl(asset.getLogicalPath(), resolved, Files.size(resolved),
                         asset.getMetadata(), asset.getAssetType());
             }
         } catch (FileAlreadyExistsException e) {
             if (overwriteStrategy == AssetOverwriteStrategy.FAIL_IF_DIFFERENT) {
                 try {
-                    resolved = Files.createTempFile(asset.getFileName(), null);
+                    resolved = Files.createTempFile(asset.getLogicalPath(), null);
                     this.getLogger().debug(
                             "File '{}' already exists for asset {} and FAIL override strategy selected. "
                                     + "Start downloading to the temporary file '{}'", file, asset, resolved);
@@ -715,10 +715,10 @@ abstract class BaseExperiment implements Experiment {
             resolved = assetFilePath;
         }
 
-        getLogger().info(getString(COMPLETED_DOWNLOAD_ARTIFACT_ASSET, asset.getFileName(), resolved));
+        getLogger().info(getString(COMPLETED_DOWNLOAD_ARTIFACT_ASSET, asset.getLogicalPath(), resolved));
 
         try {
-            return new ArtifactAssetImpl(asset.getFileName(), resolved, Files.size(resolved),
+            return new ArtifactAssetImpl(asset.getLogicalPath(), resolved, Files.size(resolved),
                     asset.getMetadata(), asset.getAssetType());
         } catch (IOException e) {
             this.getLogger().error(getString(FAILED_TO_READ_DOWNLOADED_FILE_SIZE, resolved), e);
