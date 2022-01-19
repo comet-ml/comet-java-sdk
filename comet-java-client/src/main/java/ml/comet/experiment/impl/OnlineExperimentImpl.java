@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_ALREADY_CLOSED_STATUS_ERROR;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HEARTBEAT_STOPPED_PROMPT;
@@ -40,6 +42,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_CLEAN_EXP
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_CODE_ASSET;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_MODEL_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_REMOTE_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.TIMEOUT_FOR_EXPERIMENT_INVENTORY_CLEANUP;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
@@ -365,7 +368,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     public void uploadAsset(@NonNull File asset, @NonNull String logicalPath,
                             boolean overwrite, @NonNull ExperimentContext context) {
         this.executeLogAction(() ->
-                        this.uploadAsset(asset, logicalPath, overwrite, context, this.logAssetActionOnComplete()),
+                        this.logAssetFileAsync(asset, logicalPath, overwrite, context, this.logAssetActionOnComplete()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_ASSET, logicalPath));
     }
 
@@ -421,13 +424,18 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logCode(@NonNull String code, @NonNull String logicalPath, @NonNull ExperimentContext context) {
-        this.executeLogAction(() -> this.logCode(code, logicalPath, context, this.logAssetActionOnComplete()),
+        this.executeLogAction(() ->
+                        this.logAssetDataAsync(code.getBytes(StandardCharsets.UTF_8), logicalPath, false,
+                                Optional.of(SOURCE_CODE.type()), empty(), empty(), context,
+                                this.logAssetActionOnComplete()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_CODE_ASSET, logicalPath));
     }
 
     @Override
     public void logCode(@NonNull File file, @NonNull ExperimentContext context) {
-        this.executeLogAction(() -> this.logCode(file, context, this.logAssetActionOnComplete()),
+        this.executeLogAction(() ->
+                        this.logAssetFileAsync(file, file.getName(), false, Optional.of(SOURCE_CODE.type()),
+                                empty(), empty(), context, this.logAssetActionOnComplete()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_CODE_ASSET, file));
     }
 
@@ -478,9 +486,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logModel(@NonNull String modelName, @NonNull File file, @NonNull String logicalPath, boolean overwrite,
                          Map<String, Object> metadata, @NonNull ExperimentContext context) {
-        this.executeLogAction(() -> this.uploadAsset(file, logicalPath, overwrite, AssetType.MODEL_ELEMENT.type(),
-                        Optional.of(modelName), metadata, context, this.logAssetActionOnComplete()),
-                this.assetsInProgress, getString(FAILED_TO_LOG_ASSET, logicalPath));
+        this.executeLogAction(() ->
+                        this.logAssetFileAsync(file, logicalPath, overwrite,
+                                Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
+                                Optional.of(metadata), context, this.logAssetActionOnComplete()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_ASSET, modelName, logicalPath));
     }
 
     @Override
@@ -509,7 +519,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logModel(@NonNull String modelName, byte[] data, @NonNull String logicalPath, boolean overwrite,
                          Map<String, Object> metadata, @NonNull ExperimentContext context) {
-        // TODO: logModel
+        this.executeLogAction(() ->
+                        this.logAssetDataAsync(data, logicalPath, overwrite,
+                                Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
+                                Optional.of(metadata), context, this.logAssetActionOnComplete()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_ASSET, modelName, logicalPath));
     }
 
     @Override

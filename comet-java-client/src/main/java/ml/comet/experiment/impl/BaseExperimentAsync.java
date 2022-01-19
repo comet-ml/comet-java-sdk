@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 
 import java.io.File;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
@@ -44,7 +43,6 @@ import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static ml.comet.experiment.artifact.GetArtifactOptions.Op;
-import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_LOGGED_WITHOUT_ASSETS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_COMPLETED;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_UPLOAD_STARTED;
@@ -364,37 +362,6 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
-     * @param file         The file asset to be stored
-     * @param fileName     The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
-     * @param overwrite    Whether to overwrite files of the same name in Comet
-     * @param assetType    the type of the asset.
-     * @param groupingName optional name of group this asset should belong.
-     * @param metadata     the optional metadata to associate.
-     * @param onComplete   The optional action to be invoked when this operation asynchronously completes.
-     *                     Can be {@code null} if not interested in completion signal.
-     */
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void uploadAsset(@NonNull File file, @NonNull String fileName, boolean overwrite, String assetType,
-                     @NonNull Optional<String> groupingName, Map<String, Object> metadata,
-                     @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
-
-        AssetImpl asset = createAssetFromFile(file, Optional.of(fileName), overwrite,
-                Optional.ofNullable(metadata), Optional.ofNullable(assetType));
-        groupingName.ifPresent(asset::setGroupingName);
-        this.logAsset(asset, onComplete);
-    }
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void uploadAsset(@NonNull File file, @NonNull String fileName,
-                     boolean overwrite, @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
-        this.uploadAsset(file, fileName, overwrite, AssetType.ASSET.type(),
-                empty(), null, context, onComplete);
-    }
-
-    /**
-     * Asynchronous version that only logs any received exceptions or failures.
-     *
      * @param uri         the {@link URI} pointing to the remote asset location. There is no imposed format,
      *                    and it could be a private link.
      * @param logicalPath the optional "name" of the remote asset, could be a dataset name, a model file name.
@@ -412,48 +379,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.updateContext(context);
 
         RemoteAssetImpl asset = AssetUtils.createRemoteAsset(uri, logicalPath, overwrite, metadata, empty());
-        this.logAsset(getRestApiClient()::logRemoteAsset, asset, onComplete);
+        this.logAssetAsync(getRestApiClient()::logRemoteAsset, asset, onComplete);
 
         if (Objects.equals(asset.getLogicalPath(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
             getLogger().warn(
                     getString(LOG_REMOTE_ASSET_URI_FILE_NAME_TO_DEFAULT, uri, AssetUtils.REMOTE_FILE_NAME_DEFAULT));
         }
-    }
-
-    /**
-     * Asynchronous version that only logs any received exceptions or failures.
-     *
-     * @param code       Code to be sent to Comet
-     * @param fileName   Name of source file to be displayed on UI 'code' tab
-     * @param context    the context to be associated with the asset.
-     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
-     *                   Can be {@code null} if not interested in completion signal.
-     */
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logCode(@NonNull String code, @NonNull String fileName,
-                 @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
-
-        Asset asset = createAssetFromData(code.getBytes(StandardCharsets.UTF_8), fileName, false,
-                empty(), Optional.of(SOURCE_CODE.type()));
-        this.logAsset(asset, onComplete);
-    }
-
-    /**
-     * Asynchronous version that only logs any received exceptions or failures.
-     *
-     * @param file       Asset with source code to be sent
-     * @param context    the context to be associated with the asset.
-     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
-     *                   Can be {@code null} if not interested in completion signal.
-     */
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logCode(@NonNull File file, @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
-
-        Asset asset = createAssetFromFile(file, empty(), false,
-                empty(), Optional.of(SOURCE_CODE.type()));
-        this.logAsset(asset, onComplete);
     }
 
     /**
@@ -564,6 +495,67 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     }
 
     /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
+     * @param data         The data of the asset to be logged.
+     * @param fileName     The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
+     * @param overwrite    Whether to overwrite files of the same name in Comet
+     * @param assetType    the type of the asset.
+     * @param groupingName optional name of group this asset should belong.
+     * @param metadata     the optional metadata to associate.
+     * @param onComplete   The optional action to be invoked when this operation asynchronously completes.
+     *                     Can be {@code null} if not interested in completion signal.
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logAssetDataAsync(byte[] data, @NonNull String fileName, boolean overwrite,
+                           @NonNull Optional<String> assetType,
+                           @NonNull Optional<String> groupingName,
+                           @NonNull Optional<Map<String, Object>> metadata,
+                           @NonNull ExperimentContext context,
+                           @NonNull Optional<Action> onComplete) {
+        this.updateContext(context);
+
+        AssetImpl asset = createAssetFromData(data, fileName, overwrite, metadata, assetType);
+        groupingName.ifPresent(asset::setGroupingName);
+        this.logAssetAsync(asset, onComplete);
+    }
+
+    /**
+     * Asynchronous version that only logs any received exceptions or failures.
+     *
+     * @param file         The file asset to be stored
+     * @param fileName     The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
+     * @param overwrite    Whether to overwrite files of the same name in Comet
+     * @param assetType    the type of the asset.
+     * @param groupingName optional name of group this asset should belong.
+     * @param metadata     the optional metadata to associate.
+     * @param onComplete   The optional action to be invoked when this operation asynchronously completes.
+     *                     Can be {@code null} if not interested in completion signal.
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logAssetFileAsync(@NonNull File file, @NonNull String fileName, boolean overwrite,
+                           @NonNull Optional<String> assetType,
+                           @NonNull Optional<String> groupingName,
+                           @NonNull Optional<Map<String, Object>> metadata,
+                           @NonNull ExperimentContext context,
+                           @NonNull Optional<Action> onComplete) {
+        this.updateContext(context);
+
+        AssetImpl asset = createAssetFromFile(file, Optional.of(fileName), overwrite, metadata, assetType);
+        groupingName.ifPresent(asset::setGroupingName);
+        this.logAssetAsync(asset, onComplete);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logAssetFileAsync(@NonNull File file, @NonNull String fileName, boolean overwrite,
+                           @NonNull ExperimentContext context,
+                           @NonNull Optional<Action> onComplete) {
+
+        this.logAssetFileAsync(file, fileName, overwrite, Optional.of(AssetType.ASSET.type()), empty(),
+                empty(), context, onComplete);
+    }
+
+    /**
      * Asynchronously logs provided asset and signals upload completion if {@code onComplete} action provided.
      *
      * @param asset      the {@link Asset} to be uploaded.
@@ -571,8 +563,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   either successful or failure.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    void logAsset(@NonNull final Asset asset, @NonNull Optional<Action> onComplete) {
-        this.logAsset(getRestApiClient()::logAsset, asset, onComplete);
+    private void logAssetAsync(@NonNull final Asset asset, @NonNull Optional<Action> onComplete) {
+        this.logAssetAsync(getRestApiClient()::logAsset, asset, onComplete);
     }
 
     /**
@@ -585,8 +577,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param <T>        the {@link AssetImpl} or its subclass.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private <T extends Asset> void logAsset(final BiFunction<T, String, Single<RestApiResponse>> func,
-                                            @NonNull final T asset, @NonNull Optional<Action> onComplete) {
+    private <T extends Asset> void logAssetAsync(@NonNull final BiFunction<T, String, Single<RestApiResponse>> func,
+                                                 @NonNull final T asset, @NonNull Optional<Action> onComplete) {
         ((AssetImpl) asset).setContext(this.baseContext);
         Single<RestApiResponse> single = this.sendAssetAsync(func, asset);
 
@@ -688,7 +680,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Utility method to log asynchronously received data responses.
      */
-    static void checkAndLogResponse(RestApiResponse restApiResponse, Logger logger, Object request) {
+    static void checkAndLogResponse(@NonNull RestApiResponse restApiResponse, @NonNull Logger logger, Object request) {
         if (restApiResponse.hasFailed()) {
             logger.error("failed to log {}, reason: {}, sdk error code: {}",
                     request, restApiResponse.getMsg(), restApiResponse.getSdkErrorCode());
@@ -700,7 +692,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Utility method to log asynchronously received data responses for Asset logging.
      */
-    static void checkAndLogAssetResponse(RestApiResponse restApiResponse, Logger logger, Asset asset) {
+    static void checkAndLogAssetResponse(@NonNull RestApiResponse restApiResponse, @NonNull Logger logger,
+                                         Asset asset) {
         if (restApiResponse.hasFailed()) {
             logger.error("failed to log asset {}, reason: {}, sdk error code: {}",
                     asset, restApiResponse.getMsg(), restApiResponse.getSdkErrorCode());

@@ -413,12 +413,12 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         // Upload few assets and wait for completion
         //
         OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)), IMAGE_FILE_NAME,
+        experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)), IMAGE_FILE_NAME,
                 false, SOME_FULL_CONTEXT, Optional.of(onComplete));
         awaitForCondition(onComplete, "image file onComplete timeout", 30);
 
         onComplete = new OnCompleteAction();
-        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
+        experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
                 false, SOME_FULL_CONTEXT, Optional.of(onComplete));
         awaitForCondition(onComplete, "text file onComplete timeout", 30);
 
@@ -433,7 +433,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         // update one of the assets and validate
         //
         onComplete = new OnCompleteAction();
-        experiment.uploadAsset(Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)),
+        experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)),
                 SOME_TEXT_FILE_NAME, true, SOME_FULL_CONTEXT, Optional.of(onComplete));
         awaitForCondition(onComplete, "update text file onComplete timeout", 30);
 
