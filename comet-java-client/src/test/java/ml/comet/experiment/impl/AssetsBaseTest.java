@@ -1,6 +1,5 @@
 package ml.comet.experiment.impl;
 
-import ml.comet.experiment.impl.utils.TestUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
