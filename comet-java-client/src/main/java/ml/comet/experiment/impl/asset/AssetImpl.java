@@ -37,6 +37,8 @@ public class AssetImpl implements Asset {
     @Getter
     @Setter
     Boolean overwrite;
+    @Setter
+    String groupingName;
 
     @Getter
     ExperimentContext context;
@@ -78,5 +80,9 @@ public class AssetImpl implements Asset {
     @Override
     public String getType() {
         return this.type;
+    }
+
+    public Optional<String> getGroupingName() {
+        return Optional.ofNullable(this.groupingName);
     }
 }

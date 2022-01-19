@@ -17,6 +17,7 @@ import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import ml.comet.experiment.impl.asset.AssetImpl;
+import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAssetImpl;
 import ml.comet.experiment.impl.rest.ArtifactEntry;
 import ml.comet.experiment.impl.rest.ArtifactVersionState;
@@ -363,19 +364,32 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     /**
      * Asynchronous version that only logs any received exceptions or failures.
      *
-     * @param file       The file asset to be stored
-     * @param fileName   The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
-     * @param overwrite  Whether to overwrite files of the same name in Comet
-     * @param onComplete The optional action to be invoked when this operation asynchronously completes.
-     *                   Can be {@code null} if not interested in completion signal.
+     * @param file         The file asset to be stored
+     * @param fileName     The file name under which the asset should be stored in Comet. E.g. "someFile.txt"
+     * @param overwrite    Whether to overwrite files of the same name in Comet
+     * @param assetType    the type of the asset.
+     * @param groupingName optional name of group this asset should belong.
+     * @param metadata     the optional metadata to associate.
+     * @param onComplete   The optional action to be invoked when this operation asynchronously completes.
+     *                     Can be {@code null} if not interested in completion signal.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void uploadAsset(@NonNull File file, @NonNull String fileName, boolean overwrite, String assetType,
+                     @NonNull Optional<String> groupingName, Map<String, Object> metadata,
+                     @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
+        this.updateContext(context);
+
+        AssetImpl asset = createAssetFromFile(file, Optional.of(fileName), overwrite,
+                Optional.ofNullable(metadata), Optional.ofNullable(assetType));
+        groupingName.ifPresent(asset::setGroupingName);
+        this.logAsset(asset, onComplete);
+    }
+
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void uploadAsset(@NonNull File file, @NonNull String fileName,
                      boolean overwrite, @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
-
-        Asset asset = createAssetFromFile(file, Optional.of(fileName), overwrite, empty(), empty());
-        this.logAsset(asset, onComplete);
+        this.uploadAsset(file, fileName, overwrite, AssetType.ASSET.type(),
+                empty(), null, context, onComplete);
     }
 
     /**

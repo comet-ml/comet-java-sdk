@@ -30,6 +30,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXTENSION;
 import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.GROUPING_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
@@ -156,6 +157,10 @@ public class AssetUtils {
             putNotNull(queryParams, CONTEXT, context.getContext());
             putNotNull(queryParams, STEP, context.getStep());
             putNotNull(queryParams, EPOCH, context.getEpoch());
+        }
+
+        if (asset.getGroupingName().isPresent()) {
+            queryParams.put(GROUPING_NAME, asset.getGroupingName().get());
         }
 
         return queryParams;
