@@ -71,8 +71,10 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     private final AtomicBoolean atCleanup = new AtomicBoolean();
 
     // The counter to maintain current inventory of the artifacts being in progress
+    @Getter
     private final AtomicInteger artifactsInProgress = new AtomicInteger();
     // The counter to maintain current inventory of the assets or the set of assets (assets folder) being in progress
+    @Getter
     private final AtomicInteger assetsInProgress = new AtomicInteger();
 
     /**
@@ -350,7 +352,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
                                boolean recursive, @NonNull ExperimentContext context) {
         this.executeLogAction(() ->
                         this.logAssetFolder(folder, logFilePath, recursive, true, context,
-                                this.logAssetActionOnComplete()),
+                                this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_ASSET_FOLDER, folder));
     }
 
@@ -368,7 +370,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     public void uploadAsset(@NonNull File asset, @NonNull String logicalPath,
                             boolean overwrite, @NonNull ExperimentContext context) {
         this.executeLogAction(() ->
-                        this.logAssetFileAsync(asset, logicalPath, overwrite, context, this.logAssetActionOnComplete()),
+                        this.logAssetFileAsync(asset, logicalPath, overwrite, context,
+                                this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_ASSET, logicalPath));
     }
 
@@ -403,7 +406,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     public void logRemoteAsset(@NonNull URI uri, String logicalPath, boolean overwrite,
                                Map<String, Object> metadata, @NonNull ExperimentContext context) {
         this.executeLogAction(() -> this.logRemoteAsset(uri, ofNullable(logicalPath), overwrite,
-                        ofNullable(metadata), context, this.logAssetActionOnComplete()),
+                        ofNullable(metadata), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_REMOTE_ASSET, uri));
     }
 
@@ -427,7 +430,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         this.executeLogAction(() ->
                         this.logAssetDataAsync(code.getBytes(StandardCharsets.UTF_8), logicalPath, false,
                                 Optional.of(SOURCE_CODE.type()), empty(), empty(), context,
-                                this.logAssetActionOnComplete()),
+                                this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_CODE_ASSET, logicalPath));
     }
 
@@ -435,7 +438,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     public void logCode(@NonNull File file, @NonNull ExperimentContext context) {
         this.executeLogAction(() ->
                         this.logAssetFileAsync(file, file.getName(), false, Optional.of(SOURCE_CODE.type()),
-                                empty(), empty(), context, this.logAssetActionOnComplete()),
+                                empty(), empty(), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_CODE_ASSET, file));
     }
 
@@ -489,7 +492,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         this.executeLogAction(() ->
                         this.logAssetFileAsync(file, logicalPath, overwrite,
                                 Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
-                                Optional.of(metadata), context, this.logAssetActionOnComplete()),
+                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_ASSET, modelName, logicalPath));
     }
 
@@ -522,7 +525,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         this.executeLogAction(() ->
                         this.logAssetDataAsync(data, logicalPath, overwrite,
                                 Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
-                                Optional.of(metadata), context, this.logAssetActionOnComplete()),
+                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_ASSET, modelName, logicalPath));
     }
 
@@ -655,7 +658,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
      * @param action    the {@link Action} to be executed.
      * @param inventory the {@link AtomicInteger} to track inventory associated with action.
      */
-    private void executeLogAction(final Action action, final AtomicInteger inventory, final String errMessage) {
+    void executeLogAction(final Action action, final AtomicInteger inventory, final String errMessage) {
         this.checkExperimentActiveState();
         try {
             inventory.incrementAndGet();
@@ -666,7 +669,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         }
     }
 
-    private Optional<Action> logAssetActionOnComplete() {
+    Optional<Action> getLogAssetOnCompleteAction() {
         return Optional.of(this.assetsInProgress::decrementAndGet);
     }
 
