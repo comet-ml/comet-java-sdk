@@ -71,6 +71,7 @@ public class LogMessages {
             "FAILED_TO_SET_ARTIFACT_VERSION_LEQ_THAN_CURRENT";
     public static final String FAILED_TO_FIND_ASSET_IN_ARTIFACT = "FAILED_TO_FIND_ASSET_IN_ARTIFACT";
     public static final String FAILED_TO_LOG_MODEL_ASSET = "FAILED_TO_LOG_MODEL_ASSET";
+    public static final String FAILED_TO_LOG_MODEL_FOLDER = "FAILED_TO_LOG_MODEL_FOLDER";
 
 
     /**
@@ -87,7 +88,7 @@ public class LogMessages {
                 try {
                     return String.format(format, args);
                 } catch (Throwable t) {
-                    System.err.printf("Failed to format log message for key '%s', reason: %s", key, t);
+                    System.err.printf("Failed to format log message for key '%s', reason: %s\n", key, t);
                 }
             } else {
                 return format;

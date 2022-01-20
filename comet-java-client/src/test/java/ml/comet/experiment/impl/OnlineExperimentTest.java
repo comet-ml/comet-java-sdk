@@ -25,7 +25,6 @@ import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
 import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
-import static ml.comet.experiment.impl.TestUtils.validateAsset;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
 import static org.junit.jupiter.api.Assertions.assertEquals;

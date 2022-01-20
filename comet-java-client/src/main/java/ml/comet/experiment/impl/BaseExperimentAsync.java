@@ -308,12 +308,18 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param recursive            if {@code true}, recurse the folder.
      * @param prefixWithFolderName if {@code true} then path of each asset file will be prefixed with folder name
      *                             in case if {@code logFilePath} is {@code true}.
+     * @param assetType            optional type of the asset (default: ASSET).
+     * @param groupingName         optional name of group the assets should belong.
+     * @param metadata             the optional metadata to associate.
      * @param context              the context to be associated with logged assets.
      * @param onCompleteAction     The optional action to be invoked when this operation
      *                             asynchronously completes. Can be empty if not interested in completion signal.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
+                        @NonNull Optional<String> assetType,
+                        @NonNull Optional<String> groupingName,
+                        @NonNull Optional<Map<String, Object>> metadata,
                         @NonNull ExperimentContext context, @NonNull Optional<Action> onCompleteAction) {
         if (!folder.isDirectory()) {
             getLogger().warn(getString(LOG_ASSET_FOLDER_EMPTY, folder));
@@ -326,7 +332,8 @@ abstract class BaseExperimentAsync extends BaseExperiment {
 
         AtomicInteger successfullyLoggedCount = new AtomicInteger();
         try {
-            Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(folder, logFilePath, recursive, prefixWithFolderName)
+            Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(
+                            folder, logFilePath, recursive, prefixWithFolderName, metadata, assetType, groupingName)
                     .peek(asset -> asset.setContext(assetContext));
 
             // create parallel execution flow with errors delaying
@@ -357,6 +364,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         } catch (Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
         }
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
+                        @NonNull ExperimentContext context, @NonNull Optional<Action> onCompleteAction) {
+        this.logAssetFolder(folder, logFilePath, recursive, prefixWithFolderName, Optional.of(AssetType.ASSET.type()),
+                empty(), empty(), context, onCompleteAction);
     }
 
     /**

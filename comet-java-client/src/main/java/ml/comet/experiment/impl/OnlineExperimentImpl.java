@@ -43,6 +43,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_CODE_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_MODEL_ASSET;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_MODEL_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_REMOTE_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.TIMEOUT_FOR_EXPERIMENT_INVENTORY_CLEANUP;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
@@ -467,7 +468,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logModelFolder(@NonNull String modelName, @NonNull File folder, boolean logFilePath,
                                Map<String, Object> metadata, @NonNull ExperimentContext context) {
-        // TODO: implement logModelFolder
+        this.executeLogAction(() ->
+                        this.logAssetFolder(folder, logFilePath, true, logFilePath,
+                                Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
+                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_FOLDER, folder, modelName));
     }
 
     @Override

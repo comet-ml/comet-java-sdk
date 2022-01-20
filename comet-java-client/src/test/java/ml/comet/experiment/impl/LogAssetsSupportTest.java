@@ -7,6 +7,8 @@ import ml.comet.experiment.impl.asset.LoggedExperimentAssetImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.net.URI;
 import java.util.List;
@@ -17,7 +19,6 @@ import java.util.Optional;
 import static java.util.Optional.empty;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
-import static ml.comet.experiment.impl.TestUtils.validateAsset;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -116,37 +117,41 @@ public class LogAssetsSupportTest extends AssetsBaseTest {
         experiment.end();
     }
 
-    @Test
-    public void testLogAndGetAssetsFolder() {
-        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+    @ParameterizedTest(name = "[{index}] flat: {0}, recursive: {1}")
+    @CsvSource({
+            "false, true",
+            "true, true",
+            "true, false",
+            "false, false",
+    })
+    public void testLogAndGetAssetsFolder(boolean flatDirectoryStructure, boolean recursive) {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
 
-        // Make sure experiment has no assets
-        //
-        assertTrue(experiment.getAllAssetList().isEmpty());
+            // Make sure experiment has no assets
+            //
+            assertTrue(experiment.getAllAssetList().isEmpty());
 
-        // Log assets folder and wait for completion
-        //
-        OnlineExperimentTest.OnCompleteAction onComplete = new OnlineExperimentTest.OnCompleteAction();
-        experiment.logAssetFolder(
-                assetsFolder.toFile(), false, true, false,
-                TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
+            // Log assets folder and wait for completion
+            //
+            ExperimentContext context = TestUtils.SOME_FULL_CONTEXT;
+            OnlineExperimentTest.OnCompleteAction onComplete = new OnlineExperimentTest.OnCompleteAction();
+            experiment.logAssetFolder(assetsFolder.toFile(), !flatDirectoryStructure, recursive, !flatDirectoryStructure,
+                    context, Optional.of(onComplete));
 
-        awaitForCondition(onComplete, "log assets' folder timeout", 60);
+            awaitForCondition(onComplete, "log assets' folder timeout", 60);
 
-        // wait for assets become available and validate results
-        //
-        awaitForCondition(() ->
-                experiment.getAllAssetList().size() == assetFolderFiles.size(), "Assets was uploaded");
+            // wait for assets become available and validate results
+            //
+            int expectedSize = recursive ? assetFolderFiles.size() : assetFolderFiles.size() - assetSubFolderFiles.size();
+            awaitForCondition(() ->
+                    experiment.getAllAssetList().size() == expectedSize, "Assets was uploaded");
 
-        List<LoggedExperimentAsset> assets = experiment.getAllAssetList();
+            List<LoggedExperimentAsset> assets = experiment.getAllAssetList();
+            validateAllAssetsFromFolder(assets, context, null, flatDirectoryStructure, recursive);
 
-        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
-        validateAsset(assets, ANOTHER_TEXT_FILE_NAME, ANOTHER_TEXT_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
-        validateAsset(assets, emptyAssetFile.getFileName().toString(), 0, TestUtils.SOME_FULL_CONTEXT);
-        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
-        validateAsset(assets, CODE_FILE_NAME, CODE_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
-
-        experiment.end();
+        } catch (Exception e) {
+            fail(e);
+        }
     }
 
     static void validateRemoteAssetLink(List<LoggedExperimentAsset> assets, URI uri,
