@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestUtils {
 
-    static final Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
+    public static final Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
         put("someInt", 10);
         put("someString", "test string");
         put("someBoolean", true);
