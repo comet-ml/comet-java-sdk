@@ -29,4 +29,5 @@ jobs:
           VALIDATE_ALL_CODEBASE: false # validate only modified files
           DEFAULT_BRANCH: master
           JAVA_FILE_NAME: comet-checkstyle.xml
+          JSCPD_CONFIG_FILE: .jscpd.json
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
