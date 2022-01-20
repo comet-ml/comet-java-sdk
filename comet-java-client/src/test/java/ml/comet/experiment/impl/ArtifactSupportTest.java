@@ -12,6 +12,7 @@ import ml.comet.experiment.artifact.LoggedArtifactAsset;
 import ml.comet.experiment.impl.asset.ArtifactAssetImpl;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -111,10 +113,26 @@ public class ArtifactSupportTest extends AssetsBaseTest {
                         return null;
                     };
 
+            // check artifacts-in-progress counter before
+            assertEquals(0, experiment.getArtifactsInProgress().get(),
+                    "artifacts-in-progress counter must be zero at start");
+
             // log artifact and check results
             //
             CompletableFuture<LoggedArtifact> futureArtifact = experiment.logArtifact(artifact);
+            // check artifacts-in-progress counter while in progress
+            assertEquals(1, experiment.getArtifactsInProgress().get(),
+                    "artifacts-in-progress counter has wrong value while still in progress");
+
             LoggedArtifact loggedArtifact = futureArtifact.get(60, SECONDS);
+
+            // check artifacts-in-progress counter after
+            Awaitility.await("artifacts-in-progress counter must be decreased")
+                    .pollInterval(10, TimeUnit.MILLISECONDS)
+                    .atMost(1, TimeUnit.SECONDS)
+                    .until(() -> experiment.getArtifactsInProgress().get() == 0);
+            assertEquals(0, experiment.getArtifactsInProgress().get(),
+                    "artifacts-in-progress counter must be zero after log operation completed");
 
             List<String> expectedAliases = new ArrayList<>(artifact.getAliases());
             loggedArtifactValidator.apply(loggedArtifact, artifact, experiment.getExperimentKey(), expectedAliases);
