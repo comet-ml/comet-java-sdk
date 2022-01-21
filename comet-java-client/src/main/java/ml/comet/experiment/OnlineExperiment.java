@@ -187,7 +187,8 @@ public interface OnlineExperiment extends Experiment {
      * @param modelName   the name of the model.
      * @param folder      the folder with model's data files.
      * @param logFilePath if {@code true} than prefix file path of each data file with folder name.
-     * @param metadata    the metadata to be associated with model. The dictionary values must be JSON compatible.
+     * @param metadata    the metadata to be associated with asset files of the model.
+     *                    The dictionary values must be JSON compatible.
      * @param context     the experiment context to be associated with the logged model.
      */
     void logModelFolder(String modelName, File folder, boolean logFilePath,
