@@ -6,6 +6,8 @@ import org.apache.commons.io.file.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static ml.comet.examples.Utils.getResourceFile;
@@ -61,5 +63,13 @@ interface BaseExample {
                 Objects.requireNonNull(getResourceFile(GRAPH_JSON_FILE)).toPath(), subDir);
 
         return root;
+    }
+
+    static Map<String, Object> createMetaData() {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("someInt", 10);
+        metadata.put("someString", "test string");
+        metadata.put("someBoolean", true);
+        return metadata;
     }
 }

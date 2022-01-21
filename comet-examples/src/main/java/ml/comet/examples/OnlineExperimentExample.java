@@ -103,7 +103,7 @@ public class OnlineExperimentExample implements BaseExample {
         // will close connection, if not called connection will close on jvm exit
         experiment.end();
 
-        // remove tmp directory
+        // remove tmp directory after experiment closed and everything uploaded
         PathUtils.deleteDirectory(assetDir);
     }
 }

@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.LoggedExperimentAssetImpl;
-import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.impl.utils.DataModelUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
