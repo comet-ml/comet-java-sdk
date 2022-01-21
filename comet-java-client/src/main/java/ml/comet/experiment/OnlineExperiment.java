@@ -207,7 +207,7 @@ public interface OnlineExperiment extends Experiment {
      * @param file        the file with model data.
      * @param logicalPath the optional "name" of the model file, if missed the file name will be used.
      * @param overwrite   if {@code true} will overwrite all existing model with the same name.
-     * @param metadata    Some additional data to attach to the model.
+     * @param metadata    the additional metadata to attach to the asset file of the model.
      *                    The dictionary values must be JSON compatible.
      * @param context     the experiment context to be associated with the logged model.
      */
@@ -229,7 +229,7 @@ public interface OnlineExperiment extends Experiment {
      * @param data        the model's data.
      * @param logicalPath the name of the model file.
      * @param overwrite   if {@code true} will overwrite all existing model with the same name.
-     * @param metadata    Some additional data to attach to the model.
+     * @param metadata    the additional metadata to attach to the asset data of the model.
      *                    The dictionary values must be JSON compatible.
      * @param context     the experiment context to be associated with the logged model.
      */
