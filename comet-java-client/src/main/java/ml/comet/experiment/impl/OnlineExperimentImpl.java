@@ -8,6 +8,7 @@ import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.log.StdOutLogger;
 import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
 import ml.comet.experiment.model.GitMetaData;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
+import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_ALREADY_CLOSED_STATUS_ERROR;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HEARTBEAT_STOPPED_PROMPT;
@@ -39,6 +42,8 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_CLEAN_EXP
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_CODE_ASSET;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_MODEL_ASSET;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_MODEL_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_REMOTE_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.TIMEOUT_FOR_EXPERIMENT_INVENTORY_CLEANUP;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
@@ -67,8 +72,10 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     private final AtomicBoolean atCleanup = new AtomicBoolean();
 
     // The counter to maintain current inventory of the artifacts being in progress
+    @Getter
     private final AtomicInteger artifactsInProgress = new AtomicInteger();
     // The counter to maintain current inventory of the assets or the set of assets (assets folder) being in progress
+    @Getter
     private final AtomicInteger assetsInProgress = new AtomicInteger();
 
     /**
@@ -344,10 +351,9 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logAssetFolder(@NonNull File folder, boolean logFilePath,
                                boolean recursive, @NonNull ExperimentContext context) {
-        this.checkExperimentActiveState();
         this.executeLogAction(() ->
                         this.logAssetFolder(folder, logFilePath, recursive, true, context,
-                                this.logAssetActionOnComplete()),
+                                this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_ASSET_FOLDER, folder));
     }
 
@@ -364,9 +370,9 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String logicalPath,
                             boolean overwrite, @NonNull ExperimentContext context) {
-        this.checkExperimentActiveState();
         this.executeLogAction(() ->
-                        this.uploadAsset(asset, logicalPath, overwrite, context, this.logAssetActionOnComplete()),
+                        this.logAssetFileAsync(asset, logicalPath, overwrite, context,
+                                this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_ASSET, logicalPath));
     }
 
@@ -400,9 +406,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logRemoteAsset(@NonNull URI uri, String logicalPath, boolean overwrite,
                                Map<String, Object> metadata, @NonNull ExperimentContext context) {
-        this.checkExperimentActiveState();
         this.executeLogAction(() -> this.logRemoteAsset(uri, ofNullable(logicalPath), overwrite,
-                        ofNullable(metadata), context, this.logAssetActionOnComplete()),
+                        ofNullable(metadata), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_REMOTE_ASSET, uri));
     }
 
@@ -423,15 +428,18 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logCode(@NonNull String code, @NonNull String logicalPath, @NonNull ExperimentContext context) {
-        this.checkExperimentActiveState();
-        this.executeLogAction(() -> this.logCode(code, logicalPath, context, this.logAssetActionOnComplete()),
+        this.executeLogAction(() ->
+                        this.logAssetDataAsync(code.getBytes(StandardCharsets.UTF_8), logicalPath, false,
+                                Optional.of(SOURCE_CODE.type()), empty(), empty(), context,
+                                this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_CODE_ASSET, logicalPath));
     }
 
     @Override
     public void logCode(@NonNull File file, @NonNull ExperimentContext context) {
-        this.checkExperimentActiveState();
-        this.executeLogAction(() -> this.logCode(file, context, this.logAssetActionOnComplete()),
+        this.executeLogAction(() ->
+                        this.logAssetFileAsync(file, file.getName(), false, Optional.of(SOURCE_CODE.type()),
+                                empty(), empty(), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_CODE_ASSET, file));
     }
 
@@ -455,6 +463,91 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
             this.artifactsInProgress.decrementAndGet();
             throw t;
         }
+    }
+
+    @Override
+    public void logModelFolder(@NonNull String modelName, @NonNull File folder, boolean logFilePath,
+                               Map<String, Object> metadata, @NonNull ExperimentContext context) {
+        this.executeLogAction(() ->
+                        this.logAssetFolder(folder, logFilePath, true, logFilePath,
+                                Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
+                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_FOLDER, folder, modelName));
+    }
+
+    @Override
+    public void logModelFolder(@NonNull String modelName, @NonNull File folder,
+                               boolean logFilePath, Map<String, Object> metadata) {
+        this.logModelFolder(modelName, folder, logFilePath, metadata, this.baseContext);
+    }
+
+    @Override
+    public void logModelFolder(@NonNull String modelName, @NonNull File folder, Map<String, Object> metadata) {
+        this.logModelFolder(modelName, folder, true, metadata);
+    }
+
+    @Override
+    public void logModelFolder(@NonNull String modelName, @NonNull File folder) {
+        this.logModelFolder(modelName, folder, null);
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, @NonNull File file, @NonNull String logicalPath, boolean overwrite,
+                         Map<String, Object> metadata, @NonNull ExperimentContext context) {
+        this.executeLogAction(() ->
+                        this.logAssetFileAsync(file, logicalPath, overwrite,
+                                Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
+                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_ASSET, modelName, logicalPath));
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, @NonNull File file, @NonNull String logicalPath,
+                         boolean overwrite, Map<String, Object> metadata) {
+        this.logModel(modelName, file, logicalPath, overwrite, metadata, this.baseContext);
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, @NonNull File file,
+                         @NonNull String logicalPath, boolean overwrite) {
+        this.logModel(modelName, file, logicalPath, overwrite, null);
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, @NonNull File file,
+                         @NonNull String logicalPath) {
+        this.logModel(modelName, file, logicalPath, false);
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, @NonNull File file) {
+        this.logModel(modelName, file, file.getName());
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, byte[] data, @NonNull String logicalPath, boolean overwrite,
+                         Map<String, Object> metadata, @NonNull ExperimentContext context) {
+        this.executeLogAction(() ->
+                        this.logAssetDataAsync(data, logicalPath, overwrite,
+                                Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
+                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_ASSET, modelName, logicalPath));
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, byte[] data, @NonNull String logicalPath, boolean overwrite,
+                         Map<String, Object> metadata) {
+        this.logModel(modelName, data, logicalPath, overwrite, metadata, this.baseContext);
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, byte[] data, @NonNull String logicalPath, boolean overwrite) {
+        this.logModel(modelName, data, logicalPath, overwrite, null);
+    }
+
+    @Override
+    public void logModel(@NonNull String modelName, byte[] data, @NonNull String logicalPath) {
+        this.logModel(modelName, data, logicalPath, false);
     }
 
     @Override
@@ -570,7 +663,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
      * @param action    the {@link Action} to be executed.
      * @param inventory the {@link AtomicInteger} to track inventory associated with action.
      */
-    private void executeLogAction(final Action action, final AtomicInteger inventory, final String errMessage) {
+    void executeLogAction(final Action action, final AtomicInteger inventory, final String errMessage) {
+        this.checkExperimentActiveState();
         try {
             inventory.incrementAndGet();
             action.run();
@@ -580,7 +674,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         }
     }
 
-    private Optional<Action> logAssetActionOnComplete() {
+    Optional<Action> getLogAssetOnCompleteAction() {
         return Optional.of(this.assetsInProgress::decrementAndGet);
     }
 

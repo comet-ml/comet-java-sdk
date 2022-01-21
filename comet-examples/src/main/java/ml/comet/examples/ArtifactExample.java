@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -40,18 +39,12 @@ import static ml.comet.experiment.ExperimentBuilder.OnlineExperiment;
  * Make sure to provide correct values above.
  */
 public class ArtifactExample implements BaseExample {
-    private static final Map<String, Object> SOME_METADATA = new HashMap<>();
-
-    static {
-        SOME_METADATA.put("someInt", 10);
-        SOME_METADATA.put("someString", "test string");
-        SOME_METADATA.put("someBoolean", true);
-    }
 
     /**
      * The main entry point to the example.
      *
      * @param args the command line arguments if any.
+     * @throws Exception if experiment failed.
      */
     public static void main(String[] args) throws Exception {
         try (OnlineExperiment experiment = OnlineExperiment().interceptStdout().build()) {
@@ -62,6 +55,8 @@ public class ArtifactExample implements BaseExample {
     private static void run(OnlineExperiment experiment) throws Exception {
         experiment.setExperimentName("Artifact Example");
 
+        Map<String, Object> metadata = BaseExample.createMetaData();
+
         List<String> aliases = Arrays.asList("alias1", "alias2");
         List<String> tags = Arrays.asList("tag1", "tag2");
         String artifactName = "someArtifact";
@@ -70,7 +65,7 @@ public class ArtifactExample implements BaseExample {
                 .newArtifact(artifactName, artifactType)
                 .withAliases(aliases)
                 .withVersionTags(tags)
-                .withMetadata(SOME_METADATA)
+                .withMetadata(metadata)
                 .build();
 
         // add remote assets
@@ -85,7 +80,7 @@ public class ArtifactExample implements BaseExample {
 
         // add local assets
         //
-        artifact.addAsset(getResourceFile(CHART_IMAGE_FILE), AMAZING_CHART_NAME, false, SOME_METADATA);
+        artifact.addAsset(getResourceFile(CHART_IMAGE_FILE), AMAZING_CHART_NAME, false, metadata);
         artifact.addAsset(getResourceFile(MODEL_FILE), false);
         byte[] someData = "some data".getBytes(StandardCharsets.UTF_8);
         String someDataName = "someDataName";
@@ -175,7 +170,7 @@ public class ArtifactExample implements BaseExample {
         downloadedArtifact.getAliases().add("downloaded");
         downloadedArtifact.getMetadata().put("updated", "someUpdatedValue");
         downloadedArtifact.addAsset(getResourceFile(GRAPH_JSON_FILE), "updated_graph.json",
-                false, SOME_METADATA);
+                false, metadata);
         downloadedArtifact.incrementMinorVersion();
 
         CompletableFuture<LoggedArtifact> futureUpdatedArtifact = experiment.logArtifact(downloadedArtifact);

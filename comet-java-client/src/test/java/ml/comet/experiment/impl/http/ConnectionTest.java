@@ -9,7 +9,7 @@ import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.constants.SdkErrorCodes;
 import ml.comet.experiment.impl.rest.CometWebJavaSdkException;
 import ml.comet.experiment.impl.utils.JsonUtils;
-import ml.comet.experiment.impl.utils.TestUtils;
+import ml.comet.experiment.impl.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;

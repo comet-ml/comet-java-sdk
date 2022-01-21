@@ -2,7 +2,7 @@ package ml.comet.experiment.impl.config;
 
 
 import ml.comet.experiment.exception.ConfigException;
-import ml.comet.experiment.impl.utils.TestUtils;
+import ml.comet.experiment.impl.TestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -30,6 +30,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXTENSION;
 import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.GROUPING_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
@@ -53,15 +54,22 @@ public class AssetUtils {
      * @param recursive            if {@code true} then subfolder files will be included recursively.
      * @param prefixWithFolderName if {@code true} then path of each asset file will be prefixed with folder name
      *                             in case if {@code logFilePath} is {@code true}.
+     * @param metadata             the optional metadata to associate with assets.
+     * @param type                 optional type of the asset (default: ASSET).
+     * @param groupingName         optional name of group the assets should belong.
      * @return the stream of {@link AssetImpl} objects.
      * @throws IOException if an I/O exception occurred.
      */
-    public static Stream<AssetImpl> walkFolderAssets(@NonNull File folder, boolean logFilePath,
-                                                     boolean recursive, boolean prefixWithFolderName)
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static Stream<AssetImpl> walkFolderAssets(
+            @NonNull File folder, boolean logFilePath, boolean recursive, boolean prefixWithFolderName,
+            @NonNull Optional<Map<String, Object>> metadata, @NonNull Optional<String> type,
+            @NonNull Optional<String> groupingName)
             throws IOException {
         // list files in the directory and process each file as an asset
         return FileUtils.listFiles(folder, recursive)
-                .map(path -> mapToFileAsset(folder, path, logFilePath, prefixWithFolderName));
+                .map(path -> mapToFileAsset(
+                        folder, path, logFilePath, prefixWithFolderName, metadata, type, groupingName));
     }
 
     /**
@@ -158,6 +166,10 @@ public class AssetUtils {
             putNotNull(queryParams, EPOCH, context.getEpoch());
         }
 
+        if (asset.getGroupingName().isPresent()) {
+            queryParams.put(GROUPING_NAME, asset.getGroupingName().get());
+        }
+
         return queryParams;
     }
 
@@ -231,14 +243,25 @@ public class AssetUtils {
         }
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     static AssetImpl mapToFileAsset(@NonNull File folder, @NonNull Path assetPath,
-                                    boolean logFilePath, boolean prefixWithFolderName) {
+                                    boolean logFilePath, boolean prefixWithFolderName,
+                                    @NonNull Optional<Map<String, Object>> metadata, @NonNull Optional<String> type,
+                                    @NonNull Optional<String> groupingName) {
         AssetImpl asset = new AssetImpl();
         asset.setRawFile(assetPath.toFile());
         String fileName = FileUtils.resolveAssetFileName(folder, assetPath, logFilePath, prefixWithFolderName);
         asset.setLogicalPath(fileName);
         asset.setFileExtension(FilenameUtils.getExtension(fileName));
-        asset.setType(AssetType.ASSET.type());
+
+        metadata.ifPresent(asset::setMetadata);
+        if (type.isPresent()) {
+            asset.setType(type.get());
+        } else {
+            asset.setType(AssetType.ASSET.type());
+        }
+        groupingName.ifPresent(asset::setGroupingName);
+
         return asset;
     }
 

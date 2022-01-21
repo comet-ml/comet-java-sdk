@@ -5,7 +5,7 @@ import ml.comet.experiment.impl.constants.FormParamName;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.rest.HtmlRest;
 import ml.comet.experiment.impl.utils.JsonUtils;
-import ml.comet.experiment.impl.utils.TestUtils;
+import ml.comet.experiment.impl.TestUtils;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.request.body.multipart.ByteArrayPart;
 import org.asynchttpclient.request.body.multipart.FilePart;

@@ -2,6 +2,7 @@ package ml.comet.experiment.impl.utils;
 
 import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.asset.RemoteAsset;
+import ml.comet.experiment.impl.TestUtils;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.AssetType;
 import org.apache.commons.io.FilenameUtils;
@@ -81,16 +82,37 @@ public class AssetUtilsTest {
         assertFalse(Files.exists(root), "Directory still exists");
     }
 
-    @Test
-    public void testMapToFileAsset() {
+    @ParameterizedTest
+    @CsvSource({
+            "CODE,",
+            ",someGroup",
+            "CODE,someGroup",
+            ","
+    })
+    public void testMapToFileAsset(String type, String grouping) {
         Path file = subFolderFiles.get(0);
         AssetImpl asset = AssetUtils.mapToFileAsset(
-                root.toFile(), file, false, false);
+                root.toFile(), file, false, false,
+                Optional.of(TestUtils.SOME_METADATA), Optional.ofNullable(type), Optional.ofNullable(grouping));
         assertNotNull(asset, "asset expected");
         assertEquals(asset.getRawFile(), file.toFile(), "wrong asset file");
         assertEquals(asset.getLogicalPath(), file.getFileName().toString(), "wrong asset file name");
         assertEquals(someFileExtension, asset.getFileExtension(), "wrong file extension");
-        assertEquals(ASSET.type(), asset.getType(), "wrong asset type");
+
+        if (StringUtils.isNotBlank(type)) {
+            assertEquals(type, asset.getType(), "wrong asset type");
+        } else {
+            assertEquals(ASSET.type(), asset.getType(), "wrong asset type");
+        }
+
+        if (StringUtils.isNotBlank(grouping)) {
+            assertTrue(asset.getGroupingName().isPresent(), "grouping expected");
+            assertEquals(grouping, asset.getGroupingName().get(), "wrong grouping");
+        } else {
+            assertFalse(asset.getGroupingName().isPresent(), "no grouping expected");
+        }
+
+        assertEquals(TestUtils.SOME_METADATA, asset.getMetadata(), "wrong metadata");
     }
 
     @ParameterizedTest
@@ -229,12 +251,14 @@ public class AssetUtilsTest {
             expected -= subFolderFiles.size();
         }
         Stream<AssetImpl> assets = AssetUtils.walkFolderAssets(
-                root.toFile(), logFilePath, recursive, prefixWithFolderName);
+                root.toFile(), logFilePath, recursive, prefixWithFolderName,
+                Optional.of(TestUtils.SOME_METADATA), empty(), empty());
         assertEquals(expected, assets.count(), "wrong assets count");
 
         // tests that assets has been properly populated
         //
-        assets = AssetUtils.walkFolderAssets(root.toFile(), logFilePath, recursive, prefixWithFolderName);
+        assets = AssetUtils.walkFolderAssets(root.toFile(), logFilePath, recursive, prefixWithFolderName,
+                Optional.of(TestUtils.SOME_METADATA), empty(), empty());
         assertTrue(
                 assets.allMatch(
                         asset -> Objects.equals(asset.getFileExtension(), someFileExtension)
@@ -244,7 +268,8 @@ public class AssetUtilsTest {
 
         // tests that correct file names recorded
         //
-        assets = AssetUtils.walkFolderAssets(root.toFile(), logFilePath, recursive, prefixWithFolderName);
+        assets = AssetUtils.walkFolderAssets(root.toFile(), logFilePath, recursive, prefixWithFolderName,
+                Optional.of(TestUtils.SOME_METADATA), empty(), empty());
         assets.forEach(asset -> checkAssetFilename(asset, logFilePath, recursive, prefixWithFolderName));
     }
 

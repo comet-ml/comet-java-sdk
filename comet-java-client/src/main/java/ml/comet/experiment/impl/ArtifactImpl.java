@@ -154,8 +154,7 @@ public class ArtifactImpl extends BaseArtifactImpl implements Artifact {
                                 boolean recursive, Optional<Map<String, Object>> metadata)
             throws ConflictingArtifactAssetNameException, IOException {
 
-        walkFolderAssets(folder, logFilePath, recursive, this.prefixWithFolderName)
-                .peek(asset -> asset.setMetadata(metadata.orElse(null)))
+        walkFolderAssets(folder, logFilePath, recursive, this.prefixWithFolderName, metadata, empty(), empty())
                 .forEach(asset -> this.appendAsset(new ArtifactAssetImpl(asset)));
     }
 
