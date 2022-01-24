@@ -40,4 +40,6 @@ public final class ApiEndpoints {
     public static final String GET_ARTIFACT_VERSION_DETAIL = READ_API_URL + "/artifacts/version";
     public static final String GET_ARTIFACT_VERSION_FILES = READ_API_URL + "/artifacts/version/files";
     public static final String GET_EXPERIMENT_ASSET = READ_API_URL + "/experiment/asset/get-asset";
+    public static final String GET_EXPERIMENT_MODEL_LIST = READ_API_URL + "/experiment/model";
+    public static final String GET_REGISTRY_MODEL_LIST = READ_API_URL + "/registry-model";
 }

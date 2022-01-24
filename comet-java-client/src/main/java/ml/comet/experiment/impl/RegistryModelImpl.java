@@ -1,6 +1,8 @@
 package ml.comet.experiment.impl;
 
 import com.vdurmont.semver4j.Semver;
+import lombok.Getter;
+import lombok.Setter;
 import ml.comet.experiment.impl.utils.ModelUtils;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelBuilder;
@@ -14,12 +16,19 @@ import java.util.List;
 public final class RegistryModelImpl implements Model {
     private final String name;
     private Semver version;
-    private String workspace;
     private String registryModelName;
-    private String description;
     private Boolean isPublic;
+    @Setter
+    private String workspace;
+    @Getter
+    private String description;
+    @Getter
     private String comment;
+    @Getter
     private List<String> stages;
+    @Getter
+    @Setter
+    private String experimentId;
 
     RegistryModelImpl(String name) {
         this.name = name;
