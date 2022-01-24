@@ -2,6 +2,7 @@ package ml.comet.experiment;
 
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.Model;
 
 import java.io.Closeable;
 import java.util.List;
@@ -35,4 +36,12 @@ public interface CometApi extends Closeable {
      * @return List of experiment DTOs
      */
     List<ExperimentMetadata> getAllExperiments(String projectId);
+
+    /**
+     * Register model defined in the specified experiment in the Comet's model registry.
+     *
+     * @param model         the {@link Model} to be registered.
+     * @param experimentKey the identifier of the experiment where model assets was logged.
+     */
+    void registerModel(Model model, String experimentKey);
 }

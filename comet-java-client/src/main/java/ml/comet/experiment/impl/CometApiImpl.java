@@ -8,9 +8,13 @@ import ml.comet.experiment.builder.CometApiBuilder;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
+import ml.comet.experiment.impl.rest.ExperimentModelListResponse;
+import ml.comet.experiment.impl.rest.ExperimentModelResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.Model;
+import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +24,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
 /**
  * The implementation of the {@link  CometApi}.
@@ -91,6 +100,30 @@ public final class CometApiImpl implements CometApi {
                         ArrayList::addAll);
     }
 
+    @Override
+    public void registerModel(Model model, String experimentKey) {
+        // get list of experiment models
+        ExperimentModelListResponse response = this.restApiClient
+                .getExperimentModels(experimentKey)
+                .blockingGet();
+        if (response.getModels() == null || response.getModels().size() == 0) {
+            throw new ModelNotFoundException(getString(EXPERIMENT_HAS_NO_MODELS, experimentKey));
+        }
+
+        // check if experiment has given model in the list
+        Optional<ExperimentModelResponse> details = response.getModels().stream()
+                .filter(experimentModelResponse ->
+                        Objects.equals(experimentModelResponse.getModelName(), model.getName()))
+                .findFirst();
+        if (!details.isPresent()) {
+            String names = response.getModels().stream()
+                    .map(ExperimentModelResponse::getModelName)
+                    .collect(Collectors.joining(", "));
+            throw new ModelNotFoundException(
+                    getString(FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME, model.getName(), names));
+        }
+    }
+
     /**
      * Release all resources hold by this instance, such as connection to the Comet server.
      *
@@ -105,6 +138,13 @@ public final class CometApiImpl implements CometApi {
         if (Objects.nonNull(this.connection)) {
             this.connection.close();
         }
+    }
+
+    private ExperimentMetadata getExperimentMetadata(String experimentKey) {
+        return this.restApiClient
+                .getMetadata(experimentKey)
+                .blockingGet()
+                .toExperimentMetadata();
     }
 
     /**
