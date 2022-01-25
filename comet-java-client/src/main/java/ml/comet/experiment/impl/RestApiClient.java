@@ -41,6 +41,10 @@ import ml.comet.experiment.impl.rest.MetricRest;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
+import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelCreateResponse;
+import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelItemCreateResponse;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.TagsResponse;
@@ -62,6 +66,8 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL_ITEM;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_DETAIL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_FILES;
@@ -298,6 +304,16 @@ final class RestApiClient implements Disposable {
         queryParams.put(WORKSPACE_NAME, workspaceName);
         return this.singleFromSyncGetWithRetries(
                 GET_REGISTRY_MODEL_LIST, queryParams, RegistryModelOverviewListResponse.class);
+    }
+
+    Single<RegistryModelCreateResponse> createRegistryModel(final RegistryModelCreateRequest request) {
+        return singleFromSyncPostWithRetries(request, CREATE_REGISTRY_MODEL, true,
+                RegistryModelCreateResponse.class);
+    }
+
+    Single<RegistryModelItemCreateResponse> createRegistryModelItem(final RegistryModelItemCreateRequest request) {
+        return singleFromSyncPostWithRetries(request, CREATE_REGISTRY_MODEL_ITEM, true,
+                RegistryModelItemCreateResponse.class);
     }
 
     private Single<RestApiResponse> singleFromAsyncDownload(@NonNull File file,
