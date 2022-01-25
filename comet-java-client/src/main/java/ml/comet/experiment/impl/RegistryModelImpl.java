@@ -17,6 +17,7 @@ public final class RegistryModelImpl implements Model {
     private final String name;
     private Semver version;
     private String registryModelName;
+    @Getter
     private Boolean isPublic;
     @Setter
     private String workspace;
@@ -28,7 +29,7 @@ public final class RegistryModelImpl implements Model {
     private List<String> stages;
     @Getter
     @Setter
-    private String experimentId;
+    private String experimentModelId;
 
     RegistryModelImpl(String name) {
         this.name = name;

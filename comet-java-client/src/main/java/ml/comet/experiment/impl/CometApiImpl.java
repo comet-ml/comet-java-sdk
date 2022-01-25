@@ -1,5 +1,6 @@
 package ml.comet.experiment.impl;
 
+import io.reactivex.rxjava3.core.Observable;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import ml.comet.experiment.CometApi;
@@ -10,11 +11,16 @@ import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.rest.ExperimentModelListResponse;
 import ml.comet.experiment.impl.rest.ExperimentModelResponse;
+import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
+import ml.comet.experiment.impl.utils.DataModelUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
+import ml.comet.experiment.registrymodel.ModelRegistry;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +38,10 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
+import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN_WORKSPACE;
+import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
+import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_DESCRIPTION_IGNORED;
+import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_IS_PUBLIC_IGNORED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
 /**
@@ -101,27 +111,66 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public void registerModel(Model model, String experimentKey) {
+    public ModelRegistry registerModel(@NonNull final Model model, @NonNull final String experimentKey) {
         // get list of experiment models
-        ExperimentModelListResponse response = this.restApiClient
+        List<ExperimentModelResponse> experimentModels = this.restApiClient
                 .getExperimentModels(experimentKey)
+                .map(ExperimentModelListResponse::getModels)
                 .blockingGet();
-        if (response.getModels() == null || response.getModels().size() == 0) {
+
+        // check that experiment has models registered
+        if (experimentModels == null || experimentModels.size() == 0) {
             throw new ModelNotFoundException(getString(EXPERIMENT_HAS_NO_MODELS, experimentKey));
         }
 
-        // check if experiment has given model in the list
-        Optional<ExperimentModelResponse> details = response.getModels().stream()
-                .filter(experimentModelResponse ->
-                        Objects.equals(experimentModelResponse.getModelName(), model.getName()))
+        // check that experiment has our model in the list
+        Optional<ExperimentModelResponse> details = experimentModels.stream()
+                .filter(modelResponse -> Objects.equals(modelResponse.getModelName(), model.getName()))
                 .findFirst();
         if (!details.isPresent()) {
-            String names = response.getModels().stream()
+            String names = experimentModels.stream()
                     .map(ExperimentModelResponse::getModelName)
                     .collect(Collectors.joining(", "));
             throw new ModelNotFoundException(
                     getString(FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME, model.getName(), names));
         }
+
+        // set model fields
+        final RegistryModelImpl modelImpl = (RegistryModelImpl) model;
+        modelImpl.setExperimentModelId(details.get().getExperimentModelId());
+
+        // check if model already registered in the experiment's workspace records
+        Boolean modelInRegistry = this.restApiClient.getMetadata(experimentKey)
+                .concatMap(experimentMetadataRest -> {
+                    modelImpl.setWorkspace(experimentMetadataRest.getWorkspaceName());
+                    return this.restApiClient.getRegistryModelsForWorkspace(experimentMetadataRest.getWorkspaceName());
+                })
+                .map(RegistryModelOverviewListResponse::getRegistryModels)
+                .flatMapObservable(Observable::fromIterable)
+                .any(registryModel -> Objects.equals(registryModel.getModelName(), model.getRegistryName()))
+                .blockingGet();
+
+        ModelRegistry registry;
+        if (modelInRegistry) {
+            // create new version of the model
+            if (StringUtils.isNotBlank(modelImpl.getDescription())) {
+                this.logger.warn(getString(UPDATE_REGISTRY_MODEL_DESCRIPTION_IGNORED));
+            }
+            if (modelImpl.getIsPublic() != null) {
+                this.logger.warn(getString(UPDATE_REGISTRY_MODEL_IS_PUBLIC_IGNORED));
+            }
+            RegistryModelItemCreateRequest request = DataModelUtils.createRegistryModelItemCreateRequest(modelImpl);
+            registry = this.restApiClient.createRegistryModelItem(request).blockingGet().toModelRegistry();
+            this.logger.info(getString(MODEL_VERSION_CREATED_IN_WORKSPACE,
+                    model.getVersion(), model.getRegistryName(), model.getWorkspace()));
+        } else {
+            // create model's registry record
+            RegistryModelCreateRequest request = DataModelUtils.createRegistryModelCreateRequest(modelImpl);
+            registry = this.restApiClient.createRegistryModel(request).blockingGet().toModelRegistry();
+            this.logger.info(getString(MODEL_REGISTERED_IN_WORKSPACE,
+                    model.getRegistryName(), model.getVersion(), model.getWorkspace()));
+        }
+        return registry;
     }
 
     /**
@@ -138,13 +187,6 @@ public final class CometApiImpl implements CometApi {
         if (Objects.nonNull(this.connection)) {
             this.connection.close();
         }
-    }
-
-    private ExperimentMetadata getExperimentMetadata(String experimentKey) {
-        return this.restApiClient
-                .getMetadata(experimentKey)
-                .blockingGet()
-                .toExperimentMetadata();
     }
 
     /**
