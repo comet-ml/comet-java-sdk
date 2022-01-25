@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 @Tag("integration")
 public class LogModelSupportTest extends AssetsBaseTest {
 
-    private static final String SOME_MODEL_NAME = "someModelName";
+    static final String SOME_MODEL_NAME = "someModelName";
     private static final String SOME_MODEL_LOGICAL_PATH = "someModel.dat";
     private static final String SOME_MODEL_DATA = "some model data string";
 

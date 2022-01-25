@@ -1,9 +1,16 @@
 package ml.comet.experiment.impl;
 
+import io.reactivex.rxjava3.core.Observable;
 import ml.comet.experiment.CometApi;
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.impl.rest.RegistryModelItemOverview;
+import ml.comet.experiment.impl.rest.RegistryModelOverview;
+import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.Model;
+import ml.comet.experiment.registrymodel.ModelNotFoundException;
+import ml.comet.experiment.registrymodel.ModelRegistry;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -11,14 +18,24 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
 import static ml.comet.experiment.impl.ExperimentTestFactory.PROJECT_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
+import static ml.comet.experiment.impl.LogModelSupportTest.SOME_MODEL_NAME;
+import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
+import static ml.comet.experiment.impl.TestUtils.SOME_METADATA;
+import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
+import static ml.comet.experiment.impl.asset.AssetType.MODEL_ELEMENT;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -26,13 +43,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @DisplayName("CometApiTest INTEGRATION")
 @Tag("integration")
-public class CometApiTest {
-    private static CometApi COMET_API;
+public class CometApiTest extends AssetsBaseTest {
+    private static CometApiImpl COMET_API;
     private static OnlineExperiment SHARED_EXPERIMENT;
+
+    private static final String SOME_COMMENT = "some short comment";
+    private static final String SOME_DESCRIPTION = "test model for the experiment";
+    private static final String DEFAULT_MODEL_VERSION = "1.0.0";
 
     @BeforeAll
     public static void initEnvVariables() {
-        COMET_API = CometApiImpl.builder().withApiKey(API_KEY).build();
+        COMET_API = (CometApiImpl) CometApiImpl.builder().withApiKey(API_KEY).build();
         SHARED_EXPERIMENT = createOnlineExperiment();
     }
 
@@ -76,4 +97,114 @@ public class CometApiTest {
         assertTrue(experimentExists);
     }
 
+    @Test
+    public void testRegisterModel() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+        // log model
+        //
+        this.logModel(modelName);
+
+        // register model and check results
+        //
+        List<String> stages = Collections.singletonList("production");
+        Model model = Model.newModel(modelName)
+                .withComment(SOME_COMMENT)
+                .withDescription(SOME_DESCRIPTION)
+                .asPublic(true)
+                .withStages(stages).build();
+        ModelRegistry modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+        assertNotNull(modelRegistry, "model registry record expected");
+
+        // check that model record exists and has appropriate values
+        //
+        RegistryModelOverview registryModel = this.getRegistryModelWithName(model.getRegistryName());
+        assertNotNull(registryModel, "model registry record expected");
+
+        this.checkLatestModelVersionItem(registryModel, model.getRegistryName(), DEFAULT_MODEL_VERSION, SOME_COMMENT);
+        assertEquals(stages, registryModel.getLatestVersion().getStages(), "wrong stages");
+    }
+
+    @Test
+    public void testRegisterModel_updateModelItem() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+        // log model
+        //
+        this.logModel(modelName);
+
+        // register model and check results
+        //
+        Model model = Model.newModel(modelName)
+                .withVersion(DEFAULT_MODEL_VERSION)
+                .withComment(SOME_COMMENT)
+                .withDescription(SOME_DESCRIPTION)
+                .asPublic(true)
+                .withStages(Collections.singletonList("production")).build();
+        ModelRegistry modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+        assertNotNull(modelRegistry, "model registry record expected");
+
+        // update model
+        //
+        String newVersion = "1.0.1";
+        String newComment = "updated model";
+        Model updatedModel = Model.newModel(modelName)
+                .withComment(newComment)
+                .withVersion(newVersion)
+                .build();
+        modelRegistry = COMET_API.registerModel(updatedModel, SHARED_EXPERIMENT.getExperimentKey());
+        assertNotNull(modelRegistry, "model registry record expected");
+
+        // check that model record exists and has appropriate values
+        //
+        RegistryModelOverview registryModel = this.getRegistryModelWithName(model.getRegistryName());
+        assertNotNull(registryModel, "model registry record expected");
+
+        this.checkLatestModelVersionItem(registryModel, model.getRegistryName(), newVersion, newComment);
+        List<String> stages = registryModel.getLatestVersion().getStages();
+        assertEquals(0, stages.size(), "no stages expected");
+    }
+
+    @Test
+    public void testRegisterModel_wrongModelName() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+        // log model
+        //
+        this.logModel(modelName);
+
+        // check that exception thrown for wrong model name
+        //
+        String wrongModelName = "doesn't exists";
+        Model model = Model.newModel(wrongModelName).build();
+        ModelNotFoundException ex = assertThrows(ModelNotFoundException.class,
+                () -> COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey()));
+        assertNotNull(ex, "exception expected");
+        assertTrue(ex.getMessage().contains(modelName), String.format("wrong message: %s", ex.getMessage()));
+    }
+
+    private void checkLatestModelVersionItem(RegistryModelOverview registryModel, String registryName,
+                                             String version, String comment) {
+        assertEquals(registryName, registryModel.getModelName(), "wrong model name");
+        assertTrue(registryModel.isPublic(), "should be public");
+        assertEquals(SOME_DESCRIPTION, registryModel.getDescription(), "wrong description");
+
+        RegistryModelItemOverview modelItem = registryModel.getLatestVersion();
+        assertNotNull(modelItem, "latest model item version expected");
+        assertEquals(version, modelItem.getVersion(), "wrong version");
+        assertEquals(comment, modelItem.getComment(), "wrong comment");
+    }
+
+    private RegistryModelOverview getRegistryModelWithName(String modelName) {
+        return COMET_API.getRestApiClient().getRegistryModelsForWorkspace(SHARED_EXPERIMENT.getWorkspaceName())
+                .map(RegistryModelOverviewListResponse::getRegistryModels)
+                .flatMapObservable(Observable::fromIterable)
+                .filter(registryModelOverview -> Objects.equals(registryModelOverview.getModelName(), modelName))
+                .blockingFirst();
+    }
+
+    private void logModel(String modelName) {
+        SHARED_EXPERIMENT.logModel(modelName, Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)),
+                CODE_FILE_NAME, true, SOME_METADATA, SOME_FULL_CONTEXT);
+
+        awaitForCondition(() -> !SHARED_EXPERIMENT.getAssetList(MODEL_ELEMENT.type()).isEmpty(),
+                "Failed to get logged model file");
+    }
 }

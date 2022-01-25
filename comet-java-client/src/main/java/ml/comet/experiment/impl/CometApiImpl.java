@@ -199,6 +199,10 @@ public final class CometApiImpl implements CometApi {
         this.restApiClient = new RestApiClient(this.connection);
     }
 
+    RestApiClient getRestApiClient() {
+        return this.restApiClient;
+    }
+
     /**
      * Returns builder to be used to properly create instance of this class.
      *
