@@ -117,7 +117,7 @@ public class LogModelExample implements BaseExample {
             System.out.printf("The experiment's model was successfully registered under record: %s\n\n", record);
 
 
-            // update registered model with new version
+            // create new version of the registered model
             //
             System.out.printf("Updating model '%s' in the Comet model registry with new version '%s'.\n",
                     registryName, SOME_MODEL_VERSION_UP);
