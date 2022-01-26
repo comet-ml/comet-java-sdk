@@ -1,15 +1,20 @@
 package ml.comet.examples;
 
+import ml.comet.experiment.CometApi;
 import ml.comet.experiment.ExperimentBuilder;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.impl.utils.ModelUtils;
+import ml.comet.experiment.registrymodel.Model;
+import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 import org.awaitility.Awaitility;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -18,7 +23,7 @@ import static ml.comet.examples.Utils.getResourceFile;
 import static ml.comet.experiment.impl.asset.AssetType.MODEL_ELEMENT;
 
 /**
- * Provides examples of working with models logging and retrieval.
+ * Provides examples of working with models logging, registering, and retrieval.
  *
  * <p>To run from command line execute the following at the root of this module:
  * <pre>
@@ -34,6 +39,9 @@ public class LogModelExample implements BaseExample {
     private static final String SOME_MODEL_NAME = "someModelNameExample";
     private static final String SOME_MODEL_LOGICAL_PATH = "someExampleModelData.dat";
     private static final String SOME_MODEL_DATA = "some model data string";
+    private static final String SOME_MODEL_DESCRIPTION = "LogModelExample model";
+    private static final String SOME_MODEL_VERSION = "1.0.0";
+    private static final String SOME_MODEL_VERSION_UP = "1.0.1";
 
     /**
      * The main entry point to the example.
@@ -90,6 +98,38 @@ public class LogModelExample implements BaseExample {
                 });
         System.out.printf("Retrieved %d logged assets of the model '%s':\n", assets.size(), SOME_MODEL_NAME);
         assets.forEach(loggedExperimentAsset -> System.out.printf("\t%s\n", loggedExperimentAsset));
+
+        // Register experiment model in the Comet registry
+        //
+        try (CometApi api = ExperimentBuilder.CometApi().build()) {
+            String registryName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+            registryName = ModelUtils.createRegistryModelName(registryName);
+            System.out.printf("\nRegistering model '%s' in the Comet model registry under workspace '%s'.\n",
+                    registryName, experiment.getWorkspaceName());
+
+            Model model = Model.newModel(SOME_MODEL_NAME)
+                    .withRegistryName(registryName)
+                    .withDescription(SOME_MODEL_DESCRIPTION)
+                    .withStages(Collections.singletonList("example"))
+                    .withVersion(SOME_MODEL_VERSION).build();
+            ModelRegistryRecord record = api.registerModel(model, experiment.getExperimentKey());
+
+            System.out.printf("The experiment's model was successfully registered under record: %s\n\n", record);
+
+
+            // create new version of the registered model
+            //
+            System.out.printf("Updating model '%s' in the Comet model registry with new version '%s'.\n",
+                    registryName, SOME_MODEL_VERSION_UP);
+            Model updatedModel = Model.newModel(SOME_MODEL_NAME)
+                    .withRegistryName(registryName)
+                    .withDescription(SOME_MODEL_DESCRIPTION)
+                    .withStages(Collections.singletonList("production"))
+                    .withVersion(SOME_MODEL_VERSION_UP).build();
+
+            record = api.registerModel(updatedModel, experiment.getExperimentKey());
+            System.out.printf("The experiment's model was successfully updated with record: %s\n\n", record);
+        }
 
         System.out.println("===== Experiment completed ====");
     }

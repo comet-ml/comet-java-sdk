@@ -2,6 +2,8 @@ package ml.comet.experiment;
 
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.Model;
+import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 
 import java.io.Closeable;
 import java.util.List;
@@ -16,23 +18,32 @@ public interface CometApi extends Closeable {
     /**
      * Gets all workspaces available for current API key.
      *
-     * @return List of workspace names
+     * @return the list of workspace names
      */
     List<String> getAllWorkspaces();
 
     /**
-     * Gets all project DTOs under specified workspace name.
+     * Gets all projects under specified workspace name.
      *
      * @param workspaceName workspace name
-     * @return List of project DTOs
+     * @return the list of projects
      */
     List<Project> getAllProjects(String workspaceName);
 
     /**
-     * Gets all experiment DTOs under specified project id.
+     * Gets metadata of all experiments created under specified project id.
      *
-     * @param projectId Project id
-     * @return List of experiment DTOs
+     * @param projectId the ID of the project.
+     * @return the list of experiments' metadata objects.
      */
     List<ExperimentMetadata> getAllExperiments(String projectId);
+
+    /**
+     * Register model defined in the specified experiment in the Comet's model registry.
+     *
+     * @param model         the {@link Model} to be registered.
+     * @param experimentKey the identifier of the experiment where model assets was logged.
+     * @return the {@link ModelRegistryRecord} instance holding information about model registry record.
+     */
+    ModelRegistryRecord registerModel(Model model, String experimentKey);
 }

@@ -25,6 +25,7 @@ import ml.comet.experiment.impl.rest.CreateExperimentRequest;
 import ml.comet.experiment.impl.rest.CreateExperimentResponse;
 import ml.comet.experiment.impl.rest.ExperimentAssetListResponse;
 import ml.comet.experiment.impl.rest.ExperimentMetadataRest;
+import ml.comet.experiment.impl.rest.ExperimentModelListResponse;
 import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
 import ml.comet.experiment.impl.rest.ExperimentTimeRequest;
 import ml.comet.experiment.impl.rest.GetExperimentsResponse;
@@ -40,6 +41,11 @@ import ml.comet.experiment.impl.rest.MetricRest;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
+import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelCreateResponse;
+import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelItemCreateResponse;
+import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.TagsResponse;
 import ml.comet.experiment.impl.utils.AssetUtils;
@@ -60,11 +66,14 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL_ITEM;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_DETAIL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_FILES;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ASSETS_LIST;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_EXPERIMENT_ASSET;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_EXPERIMENT_MODEL_LIST;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GIT_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_GRAPH;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_HTML;
@@ -73,6 +82,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_METRICS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_PARAMETERS;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_LIST;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_TAGS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.NEW_EXPERIMENT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
@@ -280,6 +290,30 @@ final class RestApiClient implements Disposable {
     Single<RestApiResponse> downloadArtifactAsset(final DownloadArtifactAssetOptions options, String experimentKey) {
         Map<QueryParamName, String> queryParams = downloadAssetParams(options, experimentKey);
         return this.singleFromAsyncDownload(options.getFile(), GET_EXPERIMENT_ASSET, queryParams);
+    }
+
+    Single<ExperimentModelListResponse> getExperimentModels(String experimentKey) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(EXPERIMENT_KEY, experimentKey);
+        return this.singleFromSyncGetWithRetries(
+                GET_EXPERIMENT_MODEL_LIST, queryParams, ExperimentModelListResponse.class);
+    }
+
+    Single<RegistryModelOverviewListResponse> getRegistryModelsForWorkspace(String workspaceName) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(WORKSPACE_NAME, workspaceName);
+        return this.singleFromSyncGetWithRetries(
+                GET_REGISTRY_MODEL_LIST, queryParams, RegistryModelOverviewListResponse.class);
+    }
+
+    Single<RegistryModelCreateResponse> createRegistryModel(final RegistryModelCreateRequest request) {
+        return singleFromSyncPostWithRetries(request, CREATE_REGISTRY_MODEL, true,
+                RegistryModelCreateResponse.class);
+    }
+
+    Single<RegistryModelItemCreateResponse> createRegistryModelItem(final RegistryModelItemCreateRequest request) {
+        return singleFromSyncPostWithRetries(request, CREATE_REGISTRY_MODEL_ITEM, true,
+                RegistryModelItemCreateResponse.class);
     }
 
     private Single<RestApiResponse> singleFromAsyncDownload(@NonNull File file,

@@ -22,6 +22,8 @@ public final class ApiEndpoints {
     public static final String ADD_METRIC = UPDATE_API_URL + "/experiment/metric";
     public static final String UPSERT_ARTIFACT = UPDATE_API_URL + "/artifacts/upsert";
     public static final String UPDATE_ARTIFACT_STATE = UPDATE_API_URL + "/artifacts/state";
+    public static final String CREATE_REGISTRY_MODEL = UPDATE_API_URL + "/registry-model";
+    public static final String CREATE_REGISTRY_MODEL_ITEM = CREATE_REGISTRY_MODEL + "/item";
 
     public static final String READ_API_URL = "/api/rest/v2";
     public static final String GET_ASSETS_LIST = READ_API_URL + "/experiment/asset/list";
@@ -40,4 +42,6 @@ public final class ApiEndpoints {
     public static final String GET_ARTIFACT_VERSION_DETAIL = READ_API_URL + "/artifacts/version";
     public static final String GET_ARTIFACT_VERSION_FILES = READ_API_URL + "/artifacts/version/files";
     public static final String GET_EXPERIMENT_ASSET = READ_API_URL + "/experiment/asset/get-asset";
+    public static final String GET_EXPERIMENT_MODEL_LIST = READ_API_URL + "/experiment/model";
+    public static final String GET_REGISTRY_MODEL_LIST = READ_API_URL + "/registry-model";
 }

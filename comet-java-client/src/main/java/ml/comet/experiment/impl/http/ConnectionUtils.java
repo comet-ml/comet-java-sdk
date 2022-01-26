@@ -196,7 +196,7 @@ public class ConnectionUtils {
             return;
         }
         // check for status code and raise appropriate exception
-        if ((statusCode == 400 || statusCode == 403) && response.hasResponseBody()) {
+        if ((statusCode == 400 || statusCode == 403 || statusCode == 405) && response.hasResponseBody()) {
             throw JsonUtils.fromJson(
                     response.getResponseBody(), CometWebJavaSdkException.class);
         }

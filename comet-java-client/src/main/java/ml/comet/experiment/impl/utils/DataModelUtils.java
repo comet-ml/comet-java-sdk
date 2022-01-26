@@ -5,6 +5,7 @@ import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.ArtifactImpl;
+import ml.comet.experiment.impl.RegistryModelImpl;
 import ml.comet.experiment.impl.rest.AddExperimentTagsRest;
 import ml.comet.experiment.impl.rest.AddGraphRest;
 import ml.comet.experiment.impl.rest.ArtifactRequest;
@@ -17,6 +18,8 @@ import ml.comet.experiment.impl.rest.MetricRest;
 import ml.comet.experiment.impl.rest.OutputLine;
 import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
+import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.model.GitMetaData;
 
 import java.util.Collections;
@@ -220,6 +223,41 @@ public class DataModelUtils {
         r.setArtifactVersionId(artifactVersionId);
         r.setState(state);
         return r;
+    }
+
+    /**
+     * Prepares request to create new registry record of the model associated with particular experiment.
+     *
+     * @param model the {@link RegistryModelImpl} instance holding all required data.
+     * @return the properly initialized instance of {@link RegistryModelCreateRequest}.
+     */
+    public static RegistryModelCreateRequest createRegistryModelCreateRequest(RegistryModelImpl model) {
+        RegistryModelCreateRequest request = new RegistryModelCreateRequest();
+        request.setExperimentModelId(model.getExperimentModelId());
+        request.setRegistryModelName(model.getRegistryName());
+        request.setVersion(model.getVersion());
+        request.setPublic(model.isPublic());
+        request.setComment(model.getComment());
+        request.setDescription(model.getDescription());
+        request.setStages(model.getStages());
+        return request;
+    }
+
+    /**
+     * Prepares request which can be used to update the existing registry record of the model associated
+     * with particular experiment.
+     *
+     * @param model the {@link RegistryModelImpl} instance holding all required data.
+     * @return the properly initialized instance of {@link RegistryModelItemCreateRequest}.
+     */
+    public static RegistryModelItemCreateRequest createRegistryModelItemCreateRequest(RegistryModelImpl model) {
+        RegistryModelItemCreateRequest request = new RegistryModelItemCreateRequest();
+        request.setExperimentModelId(model.getExperimentModelId());
+        request.setRegistryModelName(model.getRegistryName());
+        request.setVersion(model.getVersion());
+        request.setComment(model.getComment());
+        request.setStages(model.getStages());
+        return request;
     }
 
     /**
