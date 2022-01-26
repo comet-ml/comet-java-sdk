@@ -3,12 +3,15 @@ package ml.comet.experiment.impl;
 import com.vdurmont.semver4j.Semver;
 import lombok.Getter;
 import lombok.Setter;
-import ml.comet.experiment.impl.utils.ModelUtils;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelBuilder;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+
+import static ml.comet.experiment.impl.resources.LogMessages.INVALID_MODEL_REGISTRY_NAME_PROVIDED;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
+import static ml.comet.experiment.impl.utils.ModelUtils.createRegistryModelName;
 
 /**
  * The implementation of the {@link Model}.
@@ -68,7 +71,7 @@ public final class RegistryModelImpl implements Model {
      * The implementation of the {@link ModelBuilder}.
      */
     public static class RegistryModelBuilderImpl implements ModelBuilder {
-        private final RegistryModelImpl model;
+        final RegistryModelImpl model;
 
         public RegistryModelBuilderImpl(String name) {
             this.model = new RegistryModelImpl(name);
@@ -119,7 +122,12 @@ public final class RegistryModelImpl implements Model {
         @Override
         public Model build() {
             if (StringUtils.isBlank(this.model.registryModelName)) {
-                this.model.registryModelName = ModelUtils.createRegistryModelName(this.model.name);
+                this.model.registryModelName = createRegistryModelName(this.model.name);
+            } else if (!createRegistryModelName(this.model.registryModelName).equals(this.model.registryModelName)) {
+                // check that provided registry name is valid
+                throw new IllegalArgumentException(
+                        getString(INVALID_MODEL_REGISTRY_NAME_PROVIDED,
+                                this.model.registryModelName, createRegistryModelName(this.model.registryModelName)));
             }
 
             return this.model;

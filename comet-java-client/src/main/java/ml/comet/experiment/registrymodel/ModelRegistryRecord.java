@@ -8,7 +8,7 @@ import lombok.Data;
  */
 @Data
 @AllArgsConstructor
-public class ModelRegistry {
+public class ModelRegistryRecord {
     private String registryModelId;
     private String registryModelItemId;
 }

@@ -78,6 +78,7 @@ public class LogMessages {
     public static final String FAILED_TO_LOG_MODEL_FOLDER = "FAILED_TO_LOG_MODEL_FOLDER";
     public static final String EXPERIMENT_HAS_NO_MODELS = "EXPERIMENT_HAS_NO_MODELS";
     public static final String FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME = "FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME";
+    public static final String INVALID_MODEL_REGISTRY_NAME_PROVIDED = "INVALID_MODEL_REGISTRY_NAME_PROVIDED";
 
 
     /**

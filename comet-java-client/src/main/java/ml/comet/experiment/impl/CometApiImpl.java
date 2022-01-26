@@ -20,7 +20,7 @@ import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
-import ml.comet.experiment.registrymodel.ModelRegistry;
+import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +111,7 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public ModelRegistry registerModel(@NonNull final Model model, @NonNull final String experimentKey) {
+    public ModelRegistryRecord registerModel(@NonNull final Model model, @NonNull final String experimentKey) {
         // get list of experiment models
         List<ExperimentModelResponse> experimentModels = this.restApiClient
                 .getExperimentModels(experimentKey)
@@ -150,7 +150,7 @@ public final class CometApiImpl implements CometApi {
                 .any(registryModel -> Objects.equals(registryModel.getModelName(), model.getRegistryName()))
                 .blockingGet();
 
-        ModelRegistry registry;
+        ModelRegistryRecord registry;
         if (modelInRegistry) {
             // create new version of the model
             if (StringUtils.isNotBlank(modelImpl.getDescription())) {

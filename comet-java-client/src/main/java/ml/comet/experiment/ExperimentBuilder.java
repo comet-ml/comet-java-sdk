@@ -2,8 +2,10 @@ package ml.comet.experiment;
 
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.builder.ApiExperimentBuilder;
+import ml.comet.experiment.builder.CometApiBuilder;
 import ml.comet.experiment.builder.OnlineExperimentBuilder;
 import ml.comet.experiment.impl.ApiExperimentImpl;
+import ml.comet.experiment.impl.CometApiImpl;
 import ml.comet.experiment.impl.OnlineExperimentImpl;
 
 /**
@@ -39,5 +41,16 @@ public class ExperimentBuilder {
     @SuppressWarnings({"MethodName"})
     public static ApiExperimentBuilder ApiExperiment() {
         return ApiExperimentImpl.builder();
+    }
+
+    /**
+     * The factory to create instance of the {@link CometApiBuilder} which can be used to configure
+     * and create fully initialized instance of the {@link CometApi}.
+     *
+     * @return the instance of the {@link CometApiBuilder}.
+     */
+    @SuppressWarnings("checkstyle:MethodName")
+    public static CometApiBuilder CometApi() {
+        return CometApiImpl.builder();
     }
 }

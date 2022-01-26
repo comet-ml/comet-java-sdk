@@ -10,7 +10,7 @@ import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
-import ml.comet.experiment.registrymodel.ModelRegistry;
+import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -112,7 +112,7 @@ public class CometApiTest extends AssetsBaseTest {
                 .withDescription(SOME_DESCRIPTION)
                 .asPublic(true)
                 .withStages(stages).build();
-        ModelRegistry modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+        ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
         assertNotNull(modelRegistry, "model registry record expected");
 
         // check that model record exists and has appropriate values
@@ -139,7 +139,7 @@ public class CometApiTest extends AssetsBaseTest {
                 .withDescription(SOME_DESCRIPTION)
                 .asPublic(true)
                 .withStages(Collections.singletonList("production")).build();
-        ModelRegistry modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+        ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
         assertNotNull(modelRegistry, "model registry record expected");
 
         // update model
