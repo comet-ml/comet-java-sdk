@@ -32,11 +32,14 @@ import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
 import static ml.comet.experiment.impl.TestUtils.SOME_METADATA;
 import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
 import static ml.comet.experiment.impl.asset.AssetType.MODEL_ELEMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * The integration tests to test {@link CometApi} implementation by sending/retrieving data from the backend.
@@ -176,8 +179,29 @@ public class CometApiTest extends AssetsBaseTest {
         Model model = Model.newModel(wrongModelName).build();
         ModelNotFoundException ex = assertThrows(ModelNotFoundException.class,
                 () -> COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey()));
-        assertNotNull(ex, "exception expected");
         assertTrue(ex.getMessage().contains(modelName), String.format("wrong message: %s", ex.getMessage()));
+    }
+
+    @Test
+    public void testRegisterModel_experimentHasNoModels() {
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+            // check that exception thrown if experiment has no models
+            //
+            Model model = Model.newModel(modelName)
+                    .withVersion(DEFAULT_MODEL_VERSION)
+                    .withComment(SOME_COMMENT)
+                    .withDescription(SOME_DESCRIPTION)
+                    .asPublic(true)
+                    .withStages(Collections.singletonList("production")).build();
+            ModelNotFoundException ex = assertThrows(ModelNotFoundException.class,
+                    () -> COMET_API.registerModel(model, experiment.getExperimentKey()));
+            String expectedMessage = getString(EXPERIMENT_HAS_NO_MODELS, experiment.getExperimentKey());
+            assertEquals(expectedMessage, ex.getMessage(), "wrong error message");
+        } catch (Throwable t) {
+            fail(t);
+        }
     }
 
     private void checkLatestModelVersionItem(RegistryModelOverview registryModel, String registryName,
