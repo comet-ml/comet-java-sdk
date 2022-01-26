@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>ml.comet</groupId>
 		<artifactId>comet-java-sdk</artifactId>
-		<version>1.1.6-SNAPSHOT</version>
+		<version>1.1.7-SNAPSHOT</version>
 	</parent>
 
 	<dependencyManagement>
@@ -77,12 +77,12 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.32</version>
+			<version>1.7.33</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
-			<version>1.7.32</version>
+			<version>1.7.33</version>
 		</dependency>
 
 		<!-- tests -->
