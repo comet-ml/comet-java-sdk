@@ -2,10 +2,12 @@ package ml.comet.experiment;
 
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 
 import java.io.Closeable;
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -46,4 +48,17 @@ public interface CometApi extends Closeable {
      * @return the {@link ModelRegistryRecord} instance holding information about model registry record.
      */
     ModelRegistryRecord registerModel(Model model, String experimentKey);
+
+    /**
+     * Downloads and saves all files from the registered model.
+     *
+     * @param workspace    the name of the workspace.
+     * @param registryName the name of the model as in models' registry.
+     * @param outputPath   the output directory to save files.
+     * @param options      the {@link DownloadModelOptions} defining additional download options.
+     */
+    void downloadRegistryModel(String workspace, String registryName, Path outputPath,
+                               DownloadModelOptions options);
+
+    void downloadRegistryModel(String workspace, String registryName, Path outputPath);
 }

@@ -18,6 +18,7 @@ import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.DataModelUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
@@ -27,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -171,6 +173,17 @@ public final class CometApiImpl implements CometApi {
                     model.getRegistryName(), model.getVersion(), model.getWorkspace()));
         }
         return registry;
+    }
+
+    @Override
+    public void downloadRegistryModel(String workspace, String registryName, Path outputPath,
+                               DownloadModelOptions options) {
+        // TODO downloadRegistryModel
+    }
+
+    @Override
+    public void downloadRegistryModel(String workspace, String registryName, Path outputPath) {
+        this.downloadRegistryModel(workspace, registryName, outputPath, DownloadModelOptions.Op().build());
     }
 
     /**
