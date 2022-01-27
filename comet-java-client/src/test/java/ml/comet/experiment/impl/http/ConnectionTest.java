@@ -5,11 +5,11 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import lombok.NonNull;
 import ml.comet.experiment.exception.CometApiException;
+import ml.comet.experiment.impl.TestUtils;
 import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.constants.SdkErrorCodes;
 import ml.comet.experiment.impl.rest.CometWebJavaSdkException;
 import ml.comet.experiment.impl.utils.JsonUtils;
-import ml.comet.experiment.impl.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -50,6 +51,7 @@ import static io.netty.handler.codec.http.HttpHeaderValues.APPLICATION_OCTET_STR
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
 import static ml.comet.experiment.impl.http.Connection.COMET_SDK_API_HEADER;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -388,7 +390,7 @@ public class ConnectionTest {
                     .exceptionally(throwable -> fail("response failed", throwable))
                     .get(10, TimeUnit.SECONDS);
             assertEquals(200, response.getStatusCode(), "wrong response status");
-        });
+        }, "failed to join download response");
 
         // check that inventory was fully processed
         assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
@@ -497,6 +499,50 @@ public class ConnectionTest {
 
         // check exception values
         checkWebJavaSdkException((CometApiException) exception.getCause());
+    }
+
+    @Test
+    public void testDownloadAsync_outputStream(@NonNull WireMockRuntimeInfo wmRuntimeInfo) throws IOException {
+        // create test HTTP stub
+        //
+        File expectedFile = TestUtils.getFile(IMAGE_FILE_NAME);
+        byte[] bodyData = Files.readAllBytes(Objects.requireNonNull(expectedFile).toPath());
+        stubFor(get(urlPathEqualTo(SOME_ENDPOINT))
+                .withQueryParams(createQueryParams(SOME_PARAMS))
+                .willReturn(aResponse()
+                        .withBody(bodyData)
+                        .withHeader(CONTENT_TYPE.toString(), APPLICATION_OCTET_STREAM.toString())));
+
+        // execute request and check results
+        //
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Connection connection = new Connection(
+                wmRuntimeInfo.getHttpBaseUrl(), TEST_API_KEY, MAX_AUTH_RETRIES_DEFAULT, logger);
+
+        ListenableFuture<Response> responseListenableFuture = connection.downloadAsync(
+                baos, SOME_ENDPOINT, SOME_PARAMS);
+        assertNotNull(responseListenableFuture, "future expected");
+
+        // check that inventory was set
+        assertEquals(1, connection.getRequestsInventory().get(), "inventory must be set");
+
+        // wait for result
+        CompletableFuture<Response> completableFuture = responseListenableFuture.toCompletableFuture();
+        assertDoesNotThrow(() -> {
+                    Response response = completableFuture
+                            .exceptionally(throwable -> fail("response failed", throwable))
+                            .get(10, TimeUnit.SECONDS);
+                    assertEquals(200, response.getStatusCode(), "wrong response status");
+                }, "failed to join download response");
+
+
+        // check received data
+        byte[] received = baos.toByteArray();
+        assertEquals(IMAGE_FILE_SIZE, received.length, "wrong received data length");
+        assertArrayEquals(bodyData, received, "wrong data received");
+
+        // check that inventory was fully processed
+        assertEquals(0, connection.getRequestsInventory().get(), "inventory must be empty");
     }
 
     private static void checkWebJavaSdkException(CometApiException apiException) {

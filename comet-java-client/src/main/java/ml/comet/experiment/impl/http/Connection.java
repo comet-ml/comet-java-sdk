@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.time.Duration;
@@ -49,7 +50,7 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 @Value
 public class Connection implements Closeable {
     // The default read timeout in milliseconds
-    public static final int READ_TIMEOUT_MS = 60 * 1000;
+    public static final int READ_TIMEOUT_MS = 600 * 1000;
     // The default request timeout in milliseconds
     public static final int REQUEST_TIMEOUT_MS = 60 * 1000;
     // The default connection shutdown timeout in milliseconds
@@ -228,7 +229,7 @@ public class Connection implements Closeable {
     }
 
     /**
-     * Allows downloading remote assets to the provided file.
+     * Allows downloading remote assets to the provided file asynchronously.
      *
      * @param file     the {@link File} instance to collect received data.
      * @param endpoint the request path of the endpoint.
@@ -250,6 +251,26 @@ public class Connection implements Closeable {
             return new ListenableFuture.CompletedFailure<>(e);
         }
         return this.executeDownloadAsync(request, handler);
+    }
+
+    /**
+     * Allows downloading data from remote endpoint and write it into provided {@link OutputStream} asynchronously.
+     *
+     * <p>The provided {@link OutputStream} will be closed when response from server completed either successfully or
+     * failed.
+     *
+     * @param outputStream the {@link OutputStream} to write received data into.
+     * @param endpoint     the request path of the endpoint.
+     * @param params       the map with request parameters.
+     * @return the {@link ListenableFuture} which can be used to monitor status of the request execution.
+     */
+    public ListenableFuture<Response> downloadAsync(@NonNull OutputStream outputStream,
+                                                    @NonNull String endpoint,
+                                                    @NonNull Map<QueryParamName, String> params) {
+        Request request = createGetRequest(this.buildCometUrl(endpoint), params);
+
+        return this.executeDownloadAsync(request,
+                new AsyncOutputStreamDownloadHandler(outputStream, request.getUrl(), this.logger));
     }
 
     /**
@@ -309,6 +330,7 @@ public class Connection implements Closeable {
     ListenableFuture<Response> executeRequestAsync(@NonNull Request request) {
         return this.executeRequestAsync(request, null);
     }
+
 
     /**
      * Executes provided request asynchronously.
@@ -383,8 +405,9 @@ public class Connection implements Closeable {
                     this.logger.debug("for endpoint {} got response {}, retrying", endpoint, body);
                     try {
                         Thread.sleep((2 ^ i) * 1000L);
-                    } catch (InterruptedException ignore) {
-                        this.logger.error("Interrupted while sleeping");
+                    } catch (InterruptedException ex) {
+                        this.logger.error("Interrupted while sleeping before next attempt of executing request to {}",
+                                endpoint, ex);
                     }
                 } else {
                     // maximal number of attempts exceeded - throw or return
@@ -558,7 +581,7 @@ public class Connection implements Closeable {
         final Logger logger;
         RandomAccessFile file;
 
-        AsyncFileDownloadHandler(File file, Logger logger) {
+        AsyncFileDownloadHandler(final File file, final Logger logger) {
             this.outFile = file;
             this.logger = logger;
         }
@@ -600,6 +623,55 @@ public class Connection implements Closeable {
                 }
             } catch (IOException e) {
                 this.logger.error("Failed to close the download file {}", this.outFile.getPath(), e);
+            }
+        }
+    }
+
+    /**
+     * The handler to manage downloading to the {@link OutputStream}.
+     */
+    static final class AsyncOutputStreamDownloadHandler implements DownloadListener {
+        final OutputStream output;
+        final Logger logger;
+        final String requestUri;
+
+        AsyncOutputStreamDownloadHandler(final OutputStream outputStream, String requestUri, final Logger logger) {
+            this.output = outputStream;
+            this.logger = logger;
+            this.requestUri = requestUri;
+        }
+
+        @Override
+        public void onBytesReceived(byte[] bytes) throws IOException {
+            this.output.write(bytes);
+        }
+
+        @Override
+        public void onRequestResponseCompleted() {
+            try {
+                this.closeOut();
+            } catch (IOException e) {
+                this.logger.warn(
+                        "Failed to close output stream after fully receiving response for the request {}",
+                        this.requestUri, e);
+            }
+        }
+
+        @Override
+        public void onThrowable(Throwable t) {
+            this.logger.error("Failed downloading to the output stream for the request {}", this.requestUri, t);
+            try {
+                this.closeOut();
+            } catch (IOException e) {
+                this.logger.warn("Failed to close output stream", e);
+            }
+        }
+
+        void closeOut() throws IOException {
+            try {
+                output.flush();
+            } finally {
+                output.close();
             }
         }
     }
