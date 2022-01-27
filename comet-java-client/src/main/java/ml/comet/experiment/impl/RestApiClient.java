@@ -50,8 +50,11 @@ import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.TagsResponse;
 import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.impl.utils.JsonUtils;
+import ml.comet.experiment.registrymodel.DownloadModelOptions;
+import org.asynchttpclient.Response;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,6 +71,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL_ITEM;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_DETAIL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_FILES;
@@ -101,6 +105,7 @@ import static ml.comet.experiment.impl.http.ConnectionUtils.checkResponseStatus;
 import static ml.comet.experiment.impl.utils.ArtifactUtils.downloadAssetParams;
 import static ml.comet.experiment.impl.utils.ArtifactUtils.versionDetailsParams;
 import static ml.comet.experiment.impl.utils.ArtifactUtils.versionFilesParams;
+import static ml.comet.experiment.impl.utils.ModelUtils.downloadModelParams;
 
 /**
  * Represents Comet REST API client providing access to all exposed REST endpoints.
@@ -113,6 +118,18 @@ final class RestApiClient implements Disposable {
 
     RestApiClient(Connection connection) {
         this.connection = connection;
+    }
+
+    @Override
+    public void dispose() {
+        this.disposed = true;
+        // release reference to the connection
+        this.connection = null;
+    }
+
+    @Override
+    public boolean isDisposed() {
+        return this.disposed;
     }
 
     Single<GetWorkspacesResponse> getAllWorkspaces() {
@@ -316,6 +333,22 @@ final class RestApiClient implements Disposable {
                 RegistryModelItemCreateResponse.class);
     }
 
+    Single<RestApiResponse> downloadRegistryModel(
+            final OutputStream output, String workspace, String registryName, final DownloadModelOptions options) {
+        Map<QueryParamName, String> queryParams = downloadModelParams(workspace, registryName, options);
+        return this.singleFromAsyncDownload(output, DOWNLOAD_REGISTRY_MODEL, queryParams);
+    }
+
+    private Single<RestApiResponse> singleFromAsyncDownload(@NonNull OutputStream output,
+                                                            @NonNull String endpoint,
+                                                            @NonNull Map<QueryParamName, String> queryParams) {
+        if (isDisposed()) {
+            return Single.error(ALREADY_DISPOSED);
+        }
+        return Single.fromFuture(this.connection.downloadAsync(output, endpoint, queryParams))
+                .map(RestApiClient::mapResponse);
+    }
+
     private Single<RestApiResponse> singleFromAsyncDownload(@NonNull File file,
                                                             @NonNull String endpoint,
                                                             @NonNull Map<QueryParamName, String> queryParams) {
@@ -324,16 +357,7 @@ final class RestApiClient implements Disposable {
         }
 
         return Single.fromFuture(this.connection.downloadAsync(file, endpoint, queryParams))
-                .map(response -> {
-                    try {
-                        checkResponseStatus(response);
-                    } catch (CometApiException ex) {
-                        return new RestApiResponse(ex.getStatusCode(), ex.getStatusMessage());
-                    } catch (CometWebJavaSdkException ex) {
-                        return new RestApiResponse(ex.getCode(), ex.getMsg(), ex.getSdkErrorCode());
-                    }
-                    return new RestApiResponse(200);
-                });
+                .map(RestApiClient::mapResponse);
     }
 
     private <T> Single<T> singleFromAsyncPost(@NonNull String endpoint,
@@ -438,15 +462,14 @@ final class RestApiClient implements Disposable {
                         String.format("No response was returned by endpoint: %s", endpoint))));
     }
 
-    @Override
-    public void dispose() {
-        this.disposed = true;
-        // release reference to the connection
-        this.connection = null;
-    }
-
-    @Override
-    public boolean isDisposed() {
-        return this.disposed;
+    private static RestApiResponse mapResponse(Response response) {
+        try {
+            checkResponseStatus(response);
+        } catch (CometApiException ex) {
+            return new RestApiResponse(ex.getStatusCode(), ex.getStatusMessage());
+        } catch (CometWebJavaSdkException ex) {
+            return new RestApiResponse(ex.getCode(), ex.getMsg(), ex.getSdkErrorCode());
+        }
+        return new RestApiResponse(200);
     }
 }
