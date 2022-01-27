@@ -32,14 +32,14 @@ public class DownloadModelOptions {
     }
 
     /**
-     * Factory to create {@link DownloadModelOptions.DownloadModelOptionsBuilder} which can be used to create
+     * Factory to create {@link DownloadModelOptionsBuilder} which can be used to create
      * properly initialized instance of the {@link DownloadModelOptions}.
      *
-     * @return the initialized {@link DownloadModelOptions.DownloadModelOptionsBuilder} instance.
+     * @return the initialized {@link DownloadModelOptionsBuilder} instance.
      */
     @SuppressWarnings("checkstyle:MethodName")
-    public static DownloadModelOptions.DownloadModelOptionsBuilder Op() {
-        return new DownloadModelOptions.DownloadModelOptionsBuilder();
+    public static DownloadModelOptionsBuilder Op() {
+        return new DownloadModelOptionsBuilder();
     }
 
     /**

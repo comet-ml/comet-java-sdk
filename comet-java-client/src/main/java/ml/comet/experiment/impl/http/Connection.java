@@ -48,6 +48,8 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
  */
 @Value
 public class Connection implements Closeable {
+    // The default read timeout in milliseconds
+    public static final int READ_TIMEOUT_MS = 60 * 1000;
     // The default request timeout in milliseconds
     public static final int REQUEST_TIMEOUT_MS = 60 * 1000;
     // The default connection shutdown timeout in milliseconds
@@ -88,7 +90,10 @@ public class Connection implements Closeable {
         this.requestsInventory = new AtomicInteger();
         // create configured HTTP client
         AsyncHttpClientConfig conf = new DefaultAsyncHttpClientConfig.Builder()
-                .setRequestTimeout(REQUEST_TIMEOUT_MS).setShutdownTimeout(CONNECTION_SHUTDOWN_TIMEOUT_MS).build();
+                .setReadTimeout(READ_TIMEOUT_MS)
+                .setRequestTimeout(REQUEST_TIMEOUT_MS)
+                .setShutdownTimeout(CONNECTION_SHUTDOWN_TIMEOUT_MS)
+                .build();
         this.asyncHttpClient = asyncHttpClient(conf);
     }
 
