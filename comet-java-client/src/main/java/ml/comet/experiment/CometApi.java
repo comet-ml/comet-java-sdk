@@ -7,6 +7,7 @@ import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -56,9 +57,10 @@ public interface CometApi extends Closeable {
      * @param registryName the name of the model as in models' registry.
      * @param outputPath   the output directory to save files.
      * @param options      the {@link DownloadModelOptions} defining additional download options.
+     * @throws IOException if an I/O exception occurs while saving model files.
      */
     void downloadRegistryModel(String workspace, String registryName, Path outputPath,
-                               DownloadModelOptions options);
+                               DownloadModelOptions options) throws IOException;
 
-    void downloadRegistryModel(String workspace, String registryName, Path outputPath);
+    void downloadRegistryModel(String workspace, String registryName, Path outputPath) throws IOException;
 }
