@@ -4,12 +4,9 @@ import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.asset.RemoteAsset;
-import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAssetImpl;
-import ml.comet.experiment.impl.constants.FormParamName;
-import ml.comet.experiment.impl.constants.QueryParamName;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -17,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -25,16 +21,6 @@ import java.util.stream.Stream;
 
 import static ml.comet.experiment.impl.asset.AssetType.POINTS_3D;
 import static ml.comet.experiment.impl.asset.AssetType.UNKNOWN;
-import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
-import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
-import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
-import static ml.comet.experiment.impl.constants.QueryParamName.EXTENSION;
-import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
-import static ml.comet.experiment.impl.constants.QueryParamName.GROUPING_NAME;
-import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
-import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
-import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
-import static ml.comet.experiment.impl.utils.CometUtils.putNotNull;
 
 /**
  * Utilities to work with assets.
@@ -140,52 +126,6 @@ public class AssetUtils {
         asset.setFileExtension(FilenameUtils.getExtension(logicalPath));
 
         return updateAsset(asset, overwrite, metadata, type);
-    }
-
-    /**
-     * Extracts query parameters from the provided {@link Asset}.
-     *
-     * @param asset         the {@link AssetImpl} to extract HTTP query parameters from.
-     * @param experimentKey the key of the Comet experiment.
-     * @return the map with query parameters.
-     */
-    public static Map<QueryParamName, String> assetQueryParameters(
-            @NonNull final AssetImpl asset, @NonNull String experimentKey) {
-        Map<QueryParamName, String> queryParams = new HashMap<>();
-        queryParams.put(EXPERIMENT_KEY, experimentKey);
-        queryParams.put(TYPE, asset.getType());
-
-        putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
-        putNotNull(queryParams, FILE_NAME, asset.getLogicalPath());
-        putNotNull(queryParams, EXTENSION, asset.getFileExtension());
-
-        if (asset.getExperimentContext().isPresent()) {
-            ExperimentContext context = asset.getExperimentContext().get();
-            putNotNull(queryParams, CONTEXT, context.getContext());
-            putNotNull(queryParams, STEP, context.getStep());
-            putNotNull(queryParams, EPOCH, context.getEpoch());
-        }
-
-        if (asset.getGroupingName().isPresent()) {
-            queryParams.put(GROUPING_NAME, asset.getGroupingName().get());
-        }
-
-        return queryParams;
-    }
-
-    /**
-     * Extracts form parameters from the provided {@link Asset}.
-     *
-     * @param asset the {@link Asset} to extract HTTP form parameters from.
-     * @return the map with form parameters.
-     */
-    public static Map<FormParamName, Object> assetFormParameters(@NonNull final Asset asset) {
-        Map<FormParamName, Object> map = new HashMap<>();
-        if (asset.getMetadata() != null) {
-            // encode metadata to JSON and store
-            map.put(FormParamName.METADATA, JsonUtils.toJson(asset.getMetadata()));
-        }
-        return map;
     }
 
     /**

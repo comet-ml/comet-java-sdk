@@ -8,7 +8,7 @@ import ml.comet.experiment.artifact.ArtifactAsset;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.AssetOverwriteStrategy;
 import ml.comet.experiment.artifact.LoggedArtifactAsset;
-import ml.comet.experiment.impl.utils.DataModelUtils;
+import ml.comet.experiment.impl.utils.RestApiUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +107,7 @@ public final class LoggedArtifactAssetImpl implements LoggedArtifactAsset {
         }
         if (StringUtils.isNotBlank(this.metadataJson)) {
             try {
-                this.metadata = DataModelUtils.metadataFromJson(this.metadataJson);
+                this.metadata = RestApiUtils.metadataFromJson(this.metadataJson);
                 return this.metadata;
             } catch (Throwable e) {
                 this.logger.error("Failed to parse artifact asset metadata from JSON {}", this.metadataJson, e);

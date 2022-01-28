@@ -4,7 +4,7 @@ import com.vdurmont.semver4j.Semver;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import ml.comet.experiment.impl.utils.DataModelUtils;
+import ml.comet.experiment.impl.utils.RestApiUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -47,7 +47,7 @@ abstract class BaseArtifactImpl {
         }
         if (StringUtils.isNotBlank(this.metadataJson)) {
             try {
-                this.metadata = DataModelUtils.metadataFromJson(this.metadataJson);
+                this.metadata = RestApiUtils.metadataFromJson(this.metadataJson);
                 return this.metadata;
             } catch (Throwable e) {
                 this.getLogger().error("Failed to parse artifact metadata from JSON {}", this.metadataJson, e);

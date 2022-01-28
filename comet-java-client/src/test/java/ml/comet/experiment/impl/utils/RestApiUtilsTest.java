@@ -8,7 +8,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class DataModelUtilsTest {
+public class RestApiUtilsTest {
 
     @Test
     public void testMetadataFromJson() {
@@ -20,7 +20,7 @@ public class DataModelUtilsTest {
         String json = JsonUtils.toJson(expected);
 
         // convert back and check
-        Map<String, Object> actual = DataModelUtils.metadataFromJson(json);
+        Map<String, Object> actual = RestApiUtils.metadataFromJson(json);
         assertNotNull(actual);
 
         assertEquals(expected, actual);

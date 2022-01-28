@@ -59,16 +59,16 @@ import static ml.comet.experiment.impl.resources.LogMessages.LOG_REMOTE_ASSET_UR
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createGitMetadataRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createGraphRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogEndTimeRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogHtmlRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogLineRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogMetricRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createGitMetadataRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createGraphRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogEndTimeRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogHtmlRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogLineRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogMetricRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogOtherRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogParamRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogStartTimeRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createTagRequest;
 
 /**
  * The base class for all asynchronous experiment implementations providing implementation of common routines

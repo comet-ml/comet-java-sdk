@@ -3,9 +3,15 @@ package ml.comet.experiment.impl.utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import ml.comet.experiment.artifact.GetArtifactOptions;
+import ml.comet.experiment.asset.Asset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.ArtifactImpl;
 import ml.comet.experiment.impl.RegistryModelImpl;
+import ml.comet.experiment.impl.asset.AssetImpl;
+import ml.comet.experiment.impl.asset.DownloadArtifactAssetOptions;
+import ml.comet.experiment.impl.constants.FormParamName;
+import ml.comet.experiment.impl.constants.QueryParamName;
 import ml.comet.experiment.impl.rest.AddExperimentTagsRest;
 import ml.comet.experiment.impl.rest.AddGraphRest;
 import ml.comet.experiment.impl.rest.ArtifactRequest;
@@ -21,15 +27,43 @@ import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.model.GitMetaData;
+import ml.comet.experiment.registrymodel.DownloadModelOptions;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
+import static ml.comet.experiment.impl.constants.QueryParamName.ALIAS;
+import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_ID;
+import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_VERSION_ID;
+import static ml.comet.experiment.impl.constants.QueryParamName.ASSET_ID;
+import static ml.comet.experiment.impl.constants.QueryParamName.CONSUMER_EXPERIMENT_KEY;
+import static ml.comet.experiment.impl.constants.QueryParamName.CONTEXT;
+import static ml.comet.experiment.impl.constants.QueryParamName.EPOCH;
+import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
+import static ml.comet.experiment.impl.constants.QueryParamName.EXTENSION;
+import static ml.comet.experiment.impl.constants.QueryParamName.FILE_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.GROUPING_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.MODEL_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.OVERWRITE;
+import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT;
+import static ml.comet.experiment.impl.constants.QueryParamName.STAGE;
+import static ml.comet.experiment.impl.constants.QueryParamName.STEP;
+import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
+import static ml.comet.experiment.impl.constants.QueryParamName.VERSION;
+import static ml.comet.experiment.impl.constants.QueryParamName.VERSION_ID;
+import static ml.comet.experiment.impl.constants.QueryParamName.VERSION_OR_ALIAS;
+import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE;
+import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
+import static ml.comet.experiment.impl.utils.CometUtils.putNotNull;
+
 /**
- * The common factory methods to create initialized model DTO instances.
+ * The common factory methods to create initialized DTO instances used in REST API.
  */
 @UtilityClass
-public class DataModelUtils {
+public class RestApiUtils {
     /**
      * The factory to create {@link MetricRest} instance.
      *
@@ -269,5 +303,130 @@ public class DataModelUtils {
     public Map<String, Object> metadataFromJson(String json) {
         return JsonUtils.fromJson(json, new TypeReference<Map<String, Object>>() {
         });
+    }
+
+    /**
+     * Creates query parameters to be used to download model from the Comet registry.
+     *
+     * @param workspace    the name of the model's workspace.
+     * @param registryName the model's name in the registry.
+     * @param options      the additional download options.
+     * @return the map with query parameters.
+     */
+    public static Map<QueryParamName, String> downloadModelParams(
+            @NonNull String workspace, @NonNull String registryName, @NonNull DownloadModelOptions options) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(WORKSPACE_NAME, workspace);
+        queryParams.put(MODEL_NAME, registryName);
+        if (StringUtils.isNotBlank(options.getVersion())) {
+            queryParams.put(VERSION, options.getVersion());
+        }
+        if (StringUtils.isNotBlank(options.getStage())) {
+            queryParams.put(STAGE, options.getStage());
+        }
+        return queryParams;
+    }
+
+    /**
+     * Extracts query parameters from the provided {@link Asset}.
+     *
+     * @param asset         the {@link AssetImpl} to extract HTTP query parameters from.
+     * @param experimentKey the key of the Comet experiment.
+     * @return the map with query parameters.
+     */
+    public static Map<QueryParamName, String> assetQueryParameters(
+            @NonNull final AssetImpl asset, @NonNull String experimentKey) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(EXPERIMENT_KEY, experimentKey);
+        queryParams.put(TYPE, asset.getType());
+
+        putNotNull(queryParams, OVERWRITE, asset.getOverwrite());
+        putNotNull(queryParams, FILE_NAME, asset.getLogicalPath());
+        putNotNull(queryParams, EXTENSION, asset.getFileExtension());
+
+        if (asset.getExperimentContext().isPresent()) {
+            ExperimentContext context = asset.getExperimentContext().get();
+            putNotNull(queryParams, CONTEXT, context.getContext());
+            putNotNull(queryParams, STEP, context.getStep());
+            putNotNull(queryParams, EPOCH, context.getEpoch());
+        }
+
+        if (asset.getGroupingName().isPresent()) {
+            queryParams.put(GROUPING_NAME, asset.getGroupingName().get());
+        }
+
+        return queryParams;
+    }
+
+    /**
+     * Extracts form parameters from the provided {@link Asset}.
+     *
+     * @param asset the {@link Asset} to extract HTTP form parameters from.
+     * @return the map with form parameters.
+     */
+    public static Map<FormParamName, Object> assetFormParameters(@NonNull final Asset asset) {
+        Map<FormParamName, Object> map = new HashMap<>();
+        if (asset.getMetadata() != null) {
+            // encode metadata to JSON and store
+            map.put(FormParamName.METADATA, JsonUtils.toJson(asset.getMetadata()));
+        }
+        return map;
+    }
+
+    /**
+     * Extracts query parameters from provided {@link GetArtifactOptions} object to be used for getting details about
+     * particular artifact version.
+     *
+     * @param options       the {@link GetArtifactOptions}
+     * @param experimentKey the current experiment's key
+     * @return the map with query parameters.
+     */
+    public static Map<QueryParamName, String> artifactVersionDetailsParams(
+            @NonNull final GetArtifactOptions options, @NonNull String experimentKey) {
+        Map<QueryParamName, String> queryParams = artifactVersionParams(options);
+        queryParams.put(CONSUMER_EXPERIMENT_KEY, options.getConsumerExperimentKey());
+        queryParams.put(EXPERIMENT_KEY, experimentKey);
+        queryParams.put(PROJECT, options.getProject());
+        queryParams.put(VERSION_OR_ALIAS, options.getVersionOrAlias());
+        return queryParams;
+    }
+
+    /**
+     * Extracts query parameters from provided {@link GetArtifactOptions} object to be used for getting list of assets
+     * associated with particular artifact.
+     *
+     * @param options the {@link GetArtifactOptions}
+     * @return the map with query parameters.
+     */
+    public static Map<QueryParamName, String> artifactVersionFilesParams(@NonNull final GetArtifactOptions options) {
+        return artifactVersionParams(options);
+    }
+
+    static Map<QueryParamName, String> artifactVersionParams(@NonNull final GetArtifactOptions options) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(ALIAS, options.getAlias());
+        queryParams.put(ARTIFACT_ID, options.getArtifactId());
+        queryParams.put(ARTIFACT_NAME, options.getArtifactName());
+        queryParams.put(VERSION_ID, options.getVersionId());
+        queryParams.put(VERSION, options.getVersion());
+        queryParams.put(WORKSPACE, options.getWorkspace());
+        return queryParams;
+    }
+
+    /**
+     * Extracts query parameters from provided {@link DownloadArtifactAssetOptions} to be used to download specific
+     * asset associated with Comet artifact.
+     *
+     * @param options       the {@link DownloadArtifactAssetOptions}
+     * @param experimentKey the current experiment's key
+     * @return the map with query parameters.
+     */
+    public static Map<QueryParamName, String> artifactDownloadAssetParams(
+            @NonNull final DownloadArtifactAssetOptions options, @NonNull String experimentKey) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(EXPERIMENT_KEY, experimentKey);
+        queryParams.put(ASSET_ID, options.getAssetId());
+        queryParams.put(ARTIFACT_VERSION_ID, options.getArtifactVersionId());
+        return queryParams;
     }
 }

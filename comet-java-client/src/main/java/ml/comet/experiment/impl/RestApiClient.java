@@ -48,8 +48,8 @@ import ml.comet.experiment.impl.rest.RegistryModelItemCreateResponse;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.TagsResponse;
-import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.impl.utils.JsonUtils;
+import ml.comet.experiment.impl.utils.RestApiUtils;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import org.asynchttpclient.Response;
 
@@ -102,10 +102,10 @@ import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.http.ConnectionUtils.checkResponseStatus;
-import static ml.comet.experiment.impl.utils.ArtifactUtils.downloadAssetParams;
-import static ml.comet.experiment.impl.utils.ArtifactUtils.versionDetailsParams;
-import static ml.comet.experiment.impl.utils.ArtifactUtils.versionFilesParams;
-import static ml.comet.experiment.impl.utils.ModelUtils.downloadModelParams;
+import static ml.comet.experiment.impl.utils.RestApiUtils.artifactDownloadAssetParams;
+import static ml.comet.experiment.impl.utils.RestApiUtils.artifactVersionDetailsParams;
+import static ml.comet.experiment.impl.utils.RestApiUtils.artifactVersionFilesParams;
+import static ml.comet.experiment.impl.utils.RestApiUtils.downloadModelParams;
 
 /**
  * Represents Comet REST API client providing access to all exposed REST endpoints.
@@ -243,8 +243,8 @@ final class RestApiClient implements Disposable {
     }
 
     <T extends Asset> Single<RestApiResponse> logAsset(final T asset, String experimentKey) {
-        Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters((AssetImpl) asset, experimentKey);
-        Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
+        Map<QueryParamName, String> queryParams = RestApiUtils.assetQueryParameters((AssetImpl) asset, experimentKey);
+        Map<FormParamName, Object> formParams = RestApiUtils.assetFormParameters(asset);
         if (asset instanceof ArtifactAsset) {
             queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAssetImpl) asset).getArtifactVersionId());
         }
@@ -266,13 +266,13 @@ final class RestApiClient implements Disposable {
     }
 
     <T extends RemoteAsset> Single<RestApiResponse> logRemoteAsset(final T asset, String experimentKey) {
-        Map<QueryParamName, String> queryParams = AssetUtils.assetQueryParameters((AssetImpl) asset, experimentKey);
+        Map<QueryParamName, String> queryParams = RestApiUtils.assetQueryParameters((AssetImpl) asset, experimentKey);
         queryParams.put(IS_REMOTE, Boolean.TRUE.toString());
         if (asset instanceof ArtifactAsset) {
             queryParams.put(ARTIFACT_VERSION_ID, ((ArtifactAssetImpl) asset).getArtifactVersionId());
         }
 
-        Map<FormParamName, Object> formParams = AssetUtils.assetFormParameters(asset);
+        Map<FormParamName, Object> formParams = RestApiUtils.assetFormParameters(asset);
         if (asset.getLink().isPresent()) {
             formParams.put(LINK, asset.getLink().get().toASCIIString());
         }
@@ -294,18 +294,18 @@ final class RestApiClient implements Disposable {
             final GetArtifactOptions request, String experimentKey) {
 
         return this.singleFromSyncGetWithRetries(
-                GET_ARTIFACT_VERSION_DETAIL, versionDetailsParams(request, experimentKey),
+                GET_ARTIFACT_VERSION_DETAIL, artifactVersionDetailsParams(request, experimentKey),
                 true, ArtifactVersionDetail.class);
     }
 
     Single<ArtifactVersionAssetResponse> getArtifactVersionFiles(final GetArtifactOptions request) {
         return this.singleFromSyncGetWithRetries(
-                GET_ARTIFACT_VERSION_FILES, versionFilesParams(request),
+                GET_ARTIFACT_VERSION_FILES, artifactVersionFilesParams(request),
                 true, ArtifactVersionAssetResponse.class);
     }
 
     Single<RestApiResponse> downloadArtifactAsset(final DownloadArtifactAssetOptions options, String experimentKey) {
-        Map<QueryParamName, String> queryParams = downloadAssetParams(options, experimentKey);
+        Map<QueryParamName, String> queryParams = artifactDownloadAssetParams(options, experimentKey);
         return this.singleFromAsyncDownload(options.getFile(), GET_EXPERIMENT_ASSET, queryParams);
     }
 
