@@ -1,8 +1,6 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Single;
-import io.reactivex.rxjava3.schedulers.Schedulers;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import ml.comet.experiment.CometApi;
@@ -189,13 +187,13 @@ public final class CometApiImpl implements CometApi {
             this.logger.info(getString(MODEL_REGISTERED_IN_WORKSPACE,
                     model.getRegistryName(), model.getVersion(), model.getWorkspace()));
         }
+        registry.setRegistryName(model.getRegistryName());
         return registry;
     }
 
     @Override
-    public void downloadRegistryModel(@NonNull String workspace, @NonNull String registryName,
-                                      @NonNull Path outputPath, @NonNull DownloadModelOptions options)
-            throws IOException {
+    public void downloadRegistryModel(@NonNull Path outputPath, @NonNull String workspace, @NonNull String registryName,
+                                      @NonNull DownloadModelOptions options) throws IOException {
         this.logger.info(getString(DOWNLOADING_REGISTRY_MODEL_PROMPT,
                 registryName, options.getVersion(), options.getStage(), workspace));
         RestApiResponse response;
@@ -218,9 +216,9 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public void downloadRegistryModel(@NonNull String workspace, @NonNull String registryName,
-                                      @NonNull Path outputPath) throws IOException {
-        this.downloadRegistryModel(workspace, registryName, outputPath, DownloadModelOptions.Op().build());
+    public void downloadRegistryModel(@NonNull Path outputPath, @NonNull String workspace,
+                                      @NonNull String registryName) throws IOException {
+        this.downloadRegistryModel(outputPath, workspace, registryName, DownloadModelOptions.Op().build());
     }
 
     /**
@@ -286,23 +284,21 @@ public final class CometApiImpl implements CometApi {
             throws IOException {
         try (PipedOutputStream out = new PipedOutputStream()) {
             try (PipedInputStream pin = new PipedInputStream(out)) {
-                return this.deflateZipInputStream(pin, dirPath)
-                        .doOnSuccess(numFiles ->
-                                this.logger.info(getString(EXTRACTED_N_REGISTRY_MODEL_FILES, numFiles, dirPath)))
-                        .subscribeOn(Schedulers.io())
-                        .concatMap(unused ->
-                                this.restApiClient.downloadRegistryModel(out, workspace, registryName, options))
-                        .blockingGet();
+                return Observable.zip(
+                        Observable.fromCallable(() -> {
+                            // ZIP stream deflate
+                            try (ZipInputStream zis = new ZipInputStream(pin)) {
+                                return ZipUtils.unzipToFolder(zis, dirPath);
+                            }
+                        }),
+                        Observable.fromSingle(
+                                this.restApiClient.downloadRegistryModel(out, workspace, registryName, options)),
+                        (numFiles, apiResponse) -> {
+                            this.logger.info(getString(EXTRACTED_N_REGISTRY_MODEL_FILES, numFiles, dirPath));
+                            return apiResponse;
+                        }).blockingFirst();
             }
         }
-    }
-
-    Single<Integer> deflateZipInputStream(@NonNull PipedInputStream pin, @NonNull Path dirPath) {
-        return Single.fromCallable(() -> {
-            try (ZipInputStream zis = new ZipInputStream(pin)) {
-                return ZipUtils.unzipToFolder(zis, dirPath);
-            }
-        });
     }
 
     /**

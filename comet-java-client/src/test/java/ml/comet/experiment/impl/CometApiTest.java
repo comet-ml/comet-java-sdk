@@ -6,22 +6,32 @@ import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.impl.rest.RegistryModelItemOverview;
 import ml.comet.experiment.impl.rest.RegistryModelOverview;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
+import ml.comet.experiment.impl.utils.ZipUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
+import org.apache.commons.io.file.Counters;
+import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.zip.ZipInputStream;
 
 import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
 import static ml.comet.experiment.impl.ExperimentTestFactory.PROJECT_NAME;
@@ -34,6 +44,8 @@ import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
 import static ml.comet.experiment.impl.asset.AssetType.MODEL_ELEMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
+import static ml.comet.experiment.impl.utils.ModelUtils.createRegistryModelName;
+import static ml.comet.experiment.impl.utils.ModelUtils.registryModelZipFileName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -105,7 +117,7 @@ public class CometApiTest extends AssetsBaseTest {
         String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
         // log model
         //
-        this.logModel(modelName);
+        logModel(modelName, true);
 
         // register model and check results
         //
@@ -117,13 +129,14 @@ public class CometApiTest extends AssetsBaseTest {
                 .withStages(stages).build();
         ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
         assertNotNull(modelRegistry, "model registry record expected");
+        assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
 
         // check that model record exists and has appropriate values
         //
-        RegistryModelOverview registryModel = this.getRegistryModelWithName(model.getRegistryName());
+        RegistryModelOverview registryModel = getRegistryModelWithName(model.getRegistryName());
         assertNotNull(registryModel, "model registry record expected");
 
-        this.checkLatestModelVersionItem(registryModel, model.getRegistryName(), DEFAULT_MODEL_VERSION, SOME_COMMENT);
+        checkLatestModelVersionItem(registryModel, model.getRegistryName(), DEFAULT_MODEL_VERSION, SOME_COMMENT);
         assertEquals(stages, registryModel.getLatestVersion().getStages(), "wrong stages");
     }
 
@@ -132,7 +145,7 @@ public class CometApiTest extends AssetsBaseTest {
         String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
         // log model
         //
-        this.logModel(modelName);
+        logModel(modelName, true);
 
         // register model and check results
         //
@@ -158,10 +171,10 @@ public class CometApiTest extends AssetsBaseTest {
 
         // check that model record exists and has appropriate values
         //
-        RegistryModelOverview registryModel = this.getRegistryModelWithName(model.getRegistryName());
+        RegistryModelOverview registryModel = getRegistryModelWithName(model.getRegistryName());
         assertNotNull(registryModel, "model registry record expected");
 
-        this.checkLatestModelVersionItem(registryModel, model.getRegistryName(), newVersion, newComment);
+        checkLatestModelVersionItem(registryModel, model.getRegistryName(), newVersion, newComment);
         List<String> stages = registryModel.getLatestVersion().getStages();
         assertEquals(0, stages.size(), "no stages expected");
     }
@@ -171,7 +184,7 @@ public class CometApiTest extends AssetsBaseTest {
         String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
         // log model
         //
-        this.logModel(modelName);
+        logModel(modelName, false);
 
         // check that exception thrown for wrong model name
         //
@@ -204,8 +217,104 @@ public class CometApiTest extends AssetsBaseTest {
         }
     }
 
-    private void checkLatestModelVersionItem(RegistryModelOverview registryModel, String registryName,
-                                             String version, String comment) {
+
+    @Test
+    public void testDownloadRegistryModel_toFile() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testDownloadRegistryModel_ToFile");
+        try {
+            String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+            // log model folder
+            //
+            logModelFolder(modelName);
+
+            // register model and check results
+            //
+            List<String> stages = Collections.singletonList("production");
+            Model model = Model.newModel(modelName)
+                    .withComment(SOME_COMMENT)
+                    .withDescription(SOME_DESCRIPTION)
+                    .asPublic(true)
+                    .withStages(stages).build();
+            ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+            assertNotNull(modelRegistry, "model registry record expected");
+            assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
+
+            // download registry model to file and check results
+            //
+            DownloadModelOptions options = DownloadModelOptions.Op().withExpand(false).build();
+            COMET_API.downloadRegistryModel(tmpDir, SHARED_EXPERIMENT.getWorkspaceName(),
+                    modelRegistry.getRegistryName(), options);
+
+            String registryName = createRegistryModelName(modelName);
+            Path zipFilePath = tmpDir.resolve(registryModelZipFileName(registryName, options));
+            assertTrue(Files.isRegularFile(zipFilePath), "model file not found");
+            checkModelZipFile(zipFilePath, toAssetFileNames(assetFolderFiles));
+
+        } finally {
+            PathUtils.deleteDirectory(tmpDir);
+        }
+    }
+
+    @Test
+    public void testDownloadRegistryModel_toDir() throws IOException {
+        Path tmpDir = Files.createTempDirectory("testDownloadRegistryModel_toDir");
+        try {
+            String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+            // log model folder
+            //
+            logModelFolder(modelName);
+
+            // register model and check results
+            //
+            List<String> stages = Collections.singletonList("production");
+            Model model = Model.newModel(modelName)
+                    .withComment(SOME_COMMENT)
+                    .withDescription(SOME_DESCRIPTION)
+                    .asPublic(true)
+                    .withStages(stages).build();
+            ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+            assertNotNull(modelRegistry, "model registry record expected");
+            assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
+
+            // download registry model to file and check results
+            //
+            COMET_API.downloadRegistryModel(tmpDir, SHARED_EXPERIMENT.getWorkspaceName(),
+                    modelRegistry.getRegistryName());
+
+            checkModelFileInDir(tmpDir, toAssetFileNames(assetFolderFiles));
+        } finally {
+            PathUtils.deleteDirectory(tmpDir);
+        }
+    }
+
+    // UnZip model's file into temporary directory and check that expected model files are present
+    private static void checkModelZipFile(Path zipFilePath, String... fileNames) throws IOException {
+        Path tmpDir = Files.createTempDirectory("checkModelZipFile");
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFilePath.toFile()))) {
+            ZipUtils.unzipToFolder(zis, tmpDir);
+            checkModelFileInDir(tmpDir, fileNames);
+        } finally {
+            PathUtils.deleteDirectory(tmpDir);
+        }
+    }
+
+    // Checks that provided dir has model file inside
+    private static void checkModelFileInDir(Path dirPath, String... fileNames) throws IOException {
+        List<String> fileNamesList = Arrays.asList(fileNames);
+        Counters.PathCounters counters = PathUtils.countDirectory(dirPath);
+        assertEquals(fileNames.length, counters.getFileCounter().get(), "wrong number of files in model's zip");
+        assertTrue(Files.walk(dirPath).allMatch(path -> {
+            if (Files.isRegularFile(path)) {
+                return fileNamesList.contains(path.getFileName().toString());
+            } else {
+                // we do not check directories
+                return true;
+            }
+        }), "expected model's file not found");
+    }
+
+    private static void checkLatestModelVersionItem(RegistryModelOverview registryModel, String registryName,
+                                                    String version, String comment) {
         assertEquals(registryName, registryModel.getModelName(), "wrong model name");
         assertTrue(registryModel.isPublic(), "should be public");
         assertEquals(SOME_DESCRIPTION, registryModel.getDescription(), "wrong description");
@@ -216,7 +325,7 @@ public class CometApiTest extends AssetsBaseTest {
         assertEquals(comment, modelItem.getComment(), "wrong comment");
     }
 
-    private RegistryModelOverview getRegistryModelWithName(String modelName) {
+    private static RegistryModelOverview getRegistryModelWithName(String modelName) {
         return COMET_API.getRestApiClient().getRegistryModelsForWorkspace(SHARED_EXPERIMENT.getWorkspaceName())
                 .map(RegistryModelOverviewListResponse::getRegistryModels)
                 .flatMapObservable(Observable::fromIterable)
@@ -224,9 +333,17 @@ public class CometApiTest extends AssetsBaseTest {
                 .blockingFirst();
     }
 
-    private void logModel(String modelName) {
+    private static void logModel(String modelName, boolean witMetadata) {
+        Map<String, Object> metadata = witMetadata ? SOME_METADATA : null;
         SHARED_EXPERIMENT.logModel(modelName, Objects.requireNonNull(TestUtils.getFile(CODE_FILE_NAME)),
-                CODE_FILE_NAME, true, SOME_METADATA, SOME_FULL_CONTEXT);
+                CODE_FILE_NAME, true, metadata, SOME_FULL_CONTEXT);
+
+        awaitForCondition(() -> !SHARED_EXPERIMENT.getAssetList(MODEL_ELEMENT.type()).isEmpty(),
+                "Failed to get logged model file");
+    }
+
+    private static void logModelFolder(String modelName) {
+        SHARED_EXPERIMENT.logModelFolder(modelName, assetsFolder.toFile());
 
         awaitForCondition(() -> !SHARED_EXPERIMENT.getAssetList(MODEL_ELEMENT.type()).isEmpty(),
                 "Failed to get logged model file");

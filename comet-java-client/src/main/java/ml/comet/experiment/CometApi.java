@@ -53,14 +53,14 @@ public interface CometApi extends Closeable {
     /**
      * Downloads and saves all files from the registered model.
      *
+     * @param outputPath   the output directory to save files.
      * @param workspace    the name of the workspace.
      * @param registryName the name of the model as in models' registry.
-     * @param outputPath   the output directory to save files.
      * @param options      the {@link DownloadModelOptions} defining additional download options.
      * @throws IOException if an I/O exception occurs while saving model files.
      */
-    void downloadRegistryModel(String workspace, String registryName, Path outputPath,
+    void downloadRegistryModel(Path outputPath, String workspace, String registryName,
                                DownloadModelOptions options) throws IOException;
 
-    void downloadRegistryModel(String workspace, String registryName, Path outputPath) throws IOException;
+    void downloadRegistryModel(Path outputPath, String workspace, String registryName) throws IOException;
 }
