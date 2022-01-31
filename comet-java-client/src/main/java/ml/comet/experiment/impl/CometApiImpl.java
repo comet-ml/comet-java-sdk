@@ -284,14 +284,17 @@ public final class CometApiImpl implements CometApi {
     RestApiResponse downloadRegistryModelToDir(@NonNull Path dirPath, @NonNull String workspace,
                                                @NonNull String registryName, @NonNull DownloadModelOptions options)
             throws IOException {
-        PipedOutputStream out = new PipedOutputStream();
-        PipedInputStream pin = new PipedInputStream(out);
-        return this.deflateZipInputStream(pin, dirPath)
-                .doOnSuccess(numFiles ->
-                        this.logger.info(getString(EXTRACTED_N_REGISTRY_MODEL_FILES, numFiles, dirPath)))
-                .subscribeOn(Schedulers.io())
-                .concatMap(unused -> this.restApiClient.downloadRegistryModel(out, workspace, registryName, options))
-                .blockingGet();
+        try (PipedOutputStream out = new PipedOutputStream()) {
+            try (PipedInputStream pin = new PipedInputStream(out)) {
+                return this.deflateZipInputStream(pin, dirPath)
+                        .doOnSuccess(numFiles ->
+                                this.logger.info(getString(EXTRACTED_N_REGISTRY_MODEL_FILES, numFiles, dirPath)))
+                        .subscribeOn(Schedulers.io())
+                        .concatMap(unused ->
+                                this.restApiClient.downloadRegistryModel(out, workspace, registryName, options))
+                        .blockingGet();
+            }
+        }
     }
 
     Single<Integer> deflateZipInputStream(@NonNull PipedInputStream pin, @NonNull Path dirPath) {
