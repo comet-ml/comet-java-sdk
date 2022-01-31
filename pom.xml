@@ -61,19 +61,6 @@
     </snapshotRepository>
   </distributionManagement>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-gpg-plugin</artifactId>
-      <version>3.0.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.sonatype.plugins</groupId>
-      <artifactId>nexus-staging-maven-plugin</artifactId>
-      <version>1.6.8</version>
-    </dependency>
-  </dependencies>
-
   <profiles>
 
     <!-- GPG Signature on release -->
@@ -90,6 +77,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.0.1</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -109,7 +97,8 @@
         </plugins>
       </build>
     </profile>
- 
+
+    <!-- Release to maven central -->
     <profile>
       <id>releases</id>
       <build>
@@ -117,6 +106,7 @@
           <plugin>
             <groupId>org.sonatype.plugins</groupId>
             <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>1.6.8</version>
             <executions>
               <execution>
                 <id>default-deploy</id>
@@ -181,7 +171,7 @@
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.7</version>
+        <version>1.6.8</version>
         <extensions>true</extensions>
         <executions>
           <execution>
