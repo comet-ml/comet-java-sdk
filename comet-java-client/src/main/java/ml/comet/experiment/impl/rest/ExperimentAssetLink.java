@@ -53,6 +53,7 @@ public class ExperimentAssetLink {
     /**
      * Converts this into {@link LoggedExperimentAsset} exposed by public API.
      *
+     * @param logger the logger to be used for output.
      * @return the initialized {@link LoggedExperimentAsset} instance.
      */
     public LoggedExperimentAsset toExperimentAsset(Logger logger) {

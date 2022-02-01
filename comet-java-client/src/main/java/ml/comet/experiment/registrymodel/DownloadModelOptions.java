@@ -1,7 +1,6 @@
 package ml.comet.experiment.registrymodel;
 
 import com.vdurmont.semver4j.Semver;
-import lombok.Getter;
 
 import static ml.comet.experiment.impl.resources.LogMessages.VERSION_AND_STAGE_SET_DOWNLOAD_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
@@ -11,9 +10,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.getString;
  */
 public class DownloadModelOptions {
     private Semver semver;
-    @Getter
     private String stage;
-    @Getter
     private boolean expand;
 
     private DownloadModelOptions() {
@@ -29,6 +26,24 @@ public class DownloadModelOptions {
             return this.semver.getValue();
         }
         return null;
+    }
+
+    /**
+     * Returns {@code true} if downloaded model's ZIP should be expanded.
+     *
+     * @return the {@code true} if downloaded model's ZIP should be expanded.
+     */
+    public boolean isExpand() {
+        return this.expand;
+    }
+
+    /**
+     * Returns stage to be associated with given model version.
+     *
+     * @return the stage to be associated with given model version.
+     */
+    public String getStage() {
+        return this.stage;
     }
 
     /**
