@@ -22,6 +22,7 @@ import ml.comet.experiment.impl.utils.RestApiUtils;
 import ml.comet.experiment.impl.utils.ZipUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
@@ -192,19 +193,23 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public void downloadRegistryModel(@NonNull Path outputPath, @NonNull String workspace, @NonNull String registryName,
-                                      @NonNull DownloadModelOptions options) throws IOException {
+    public ModelDownloadInfo downloadRegistryModel(@NonNull Path outputPath, @NonNull String registryName,
+                                                   @NonNull String workspace, @NonNull DownloadModelOptions options)
+            throws IOException {
         this.logger.info(getString(DOWNLOADING_REGISTRY_MODEL_PROMPT,
                 registryName, options.getVersion(), options.getStage(), workspace));
         RestApiResponse response;
+        ModelDownloadInfo info;
         if (!options.isExpand()) {
             String fileName = ModelUtils.registryModelZipFileName(registryName, options);
             Path filePath = outputPath.resolve(fileName);
             this.logger.info(getString(DOWNLOADING_REGISTRY_MODEL_TO_FILE, filePath));
             response = this.downloadRegistryModelToFile(filePath, workspace, registryName, options);
+            info = new ModelDownloadInfo(filePath, options);
         } else {
             this.logger.info(getString(DOWNLOADING_REGISTRY_MODEL_TO_DIR, outputPath));
             response = this.downloadRegistryModelToDir(outputPath, workspace, registryName, options);
+            info = new ModelDownloadInfo(outputPath, options);
         }
 
         if (response.hasFailed()) {
@@ -213,12 +218,13 @@ public final class CometApiImpl implements CometApi {
             throw new CometApiException(getString(
                     FAILED_TO_DOWNLOAD_REGISTRY_MODEL, response.getMsg(), response.getSdkErrorCode()));
         }
+        return info;
     }
 
     @Override
-    public void downloadRegistryModel(@NonNull Path outputPath, @NonNull String workspace,
-                                      @NonNull String registryName) throws IOException {
-        this.downloadRegistryModel(outputPath, workspace, registryName, DownloadModelOptions.Op().build());
+    public ModelDownloadInfo downloadRegistryModel(@NonNull Path outputPath, @NonNull String registryName,
+                                                   @NonNull String workspace) throws IOException {
+        return this.downloadRegistryModel(outputPath, registryName, workspace, DownloadModelOptions.Op().build());
     }
 
     /**

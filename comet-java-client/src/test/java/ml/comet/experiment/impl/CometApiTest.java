@@ -9,6 +9,7 @@ import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.utils.ZipUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
@@ -44,8 +45,6 @@ import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
 import static ml.comet.experiment.impl.asset.AssetType.MODEL_ELEMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
-import static ml.comet.experiment.impl.utils.ModelUtils.createRegistryModelName;
-import static ml.comet.experiment.impl.utils.ModelUtils.registryModelZipFileName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -242,13 +241,12 @@ public class CometApiTest extends AssetsBaseTest {
             // download registry model to file and check results
             //
             DownloadModelOptions options = DownloadModelOptions.Op().withExpand(false).build();
-            COMET_API.downloadRegistryModel(tmpDir, SHARED_EXPERIMENT.getWorkspaceName(),
-                    modelRegistry.getRegistryName(), options);
+            ModelDownloadInfo info = COMET_API.downloadRegistryModel(
+                    tmpDir, modelRegistry.getRegistryName(), SHARED_EXPERIMENT.getWorkspaceName(), options);
+            assertNotNull(info, "download info expected");
 
-            String registryName = createRegistryModelName(modelName);
-            Path zipFilePath = tmpDir.resolve(registryModelZipFileName(registryName, options));
-            assertTrue(Files.isRegularFile(zipFilePath), "model file not found");
-            checkModelZipFile(zipFilePath, toAssetFileNames(assetFolderFiles));
+            assertTrue(Files.isRegularFile(info.getDownloadPath()), "model file not found");
+            checkModelZipFile(info.getDownloadPath(), toAssetFileNames(assetFolderFiles));
 
         } finally {
             PathUtils.deleteDirectory(tmpDir);
@@ -278,10 +276,11 @@ public class CometApiTest extends AssetsBaseTest {
 
             // download registry model to file and check results
             //
-            COMET_API.downloadRegistryModel(tmpDir, SHARED_EXPERIMENT.getWorkspaceName(),
-                    modelRegistry.getRegistryName());
+            ModelDownloadInfo info = COMET_API.downloadRegistryModel(
+                    tmpDir, modelRegistry.getRegistryName(), SHARED_EXPERIMENT.getWorkspaceName());
+            assertNotNull(info, "download info expected");
 
-            checkModelFileInDir(tmpDir, toAssetFileNames(assetFolderFiles));
+            checkModelFileInDir(info.getDownloadPath(), toAssetFileNames(assetFolderFiles));
         } finally {
             PathUtils.deleteDirectory(tmpDir);
         }
