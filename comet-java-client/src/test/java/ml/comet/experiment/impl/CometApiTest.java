@@ -64,6 +64,7 @@ public class CometApiTest extends AssetsBaseTest {
     private static final String SOME_COMMENT = "some short comment";
     private static final String SOME_DESCRIPTION = "test model for the experiment";
     private static final String DEFAULT_MODEL_VERSION = "1.0.0";
+    private static final String SOME_STAGE = "some_stage";
 
     @BeforeAll
     public static void initEnvVariables() {
@@ -228,22 +229,28 @@ public class CometApiTest extends AssetsBaseTest {
 
             // register model and check results
             //
-            List<String> stages = Collections.singletonList("production");
             Model model = Model.newModel(modelName)
                     .withComment(SOME_COMMENT)
                     .withDescription(SOME_DESCRIPTION)
+                    .withStages(Collections.singletonList(SOME_STAGE))
                     .asPublic(true)
-                    .withStages(stages).build();
+                    .build();
             ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
             assertNotNull(modelRegistry, "model registry record expected");
             assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
 
             // download registry model to file and check results
             //
-            DownloadModelOptions options = DownloadModelOptions.Op().withExpand(false).build();
+            DownloadModelOptions options = DownloadModelOptions.Op()
+                    .withExpand(false).withStage(SOME_STAGE).build();
             ModelDownloadInfo info = COMET_API.downloadRegistryModel(
                     tmpDir, modelRegistry.getRegistryName(), SHARED_EXPERIMENT.getWorkspaceName(), options);
             assertNotNull(info, "download info expected");
+            assertNotNull(info.getDownloadPath(), "download path expected");
+            assertNotNull(info.getDownloadOptions(), "download options expected");
+            options = info.getDownloadOptions();
+            assertFalse(options.isExpand(), "expand must not be set");
+            assertEquals(SOME_STAGE, options.getStage(), "wrong stage");
 
             assertTrue(Files.isRegularFile(info.getDownloadPath()), "model file not found");
             checkModelZipFile(info.getDownloadPath(), toAssetFileNames(assetFolderFiles));
@@ -264,21 +271,24 @@ public class CometApiTest extends AssetsBaseTest {
 
             // register model and check results
             //
-            List<String> stages = Collections.singletonList("production");
             Model model = Model.newModel(modelName)
                     .withComment(SOME_COMMENT)
                     .withDescription(SOME_DESCRIPTION)
                     .asPublic(true)
-                    .withStages(stages).build();
+                    .withStages(Collections.singletonList(SOME_STAGE))
+                    .build();
             ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
             assertNotNull(modelRegistry, "model registry record expected");
             assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
 
-            // download registry model to file and check results
+            // download registry model to folder and check results
             //
             ModelDownloadInfo info = COMET_API.downloadRegistryModel(
                     tmpDir, modelRegistry.getRegistryName(), SHARED_EXPERIMENT.getWorkspaceName());
             assertNotNull(info, "download info expected");
+            assertNotNull(info.getDownloadPath(), "download path expected");
+            assertNotNull(info.getDownloadOptions(), "download options expected");
+            assertTrue(info.getDownloadOptions().isExpand(), "expand must be set");
 
             checkModelFileInDir(info.getDownloadPath(), toAssetFileNames(assetFolderFiles));
         } finally {
