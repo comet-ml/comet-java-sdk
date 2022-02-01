@@ -49,14 +49,13 @@ public class RegistryModelExample {
      * @throws Exception if experiment failed.
      */
     public static void main(String[] args) throws Exception {
-        try (OnlineExperiment experiment = ExperimentBuilder.OnlineExperiment().interceptStdout().build()) {
+        try (OnlineExperiment experiment = ExperimentBuilder.OnlineExperiment()
+                .interceptStdout().withExperimentName("RegistryModel Examples").build()) {
             RegistryModelExample.run(experiment);
         }
     }
 
     private static void run(OnlineExperiment experiment) throws Exception {
-        experiment.setExperimentName("RegistryModel Examples");
-
         // log model folder
         //
         ExperimentContext context = new ExperimentContext(0, 0, "example");
