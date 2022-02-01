@@ -14,6 +14,7 @@ import java.util.PropertyResourceBundle;
 public class LogMessages {
 
     public static final String EXPERIMENT_LIVE = "EXPERIMENT_LIVE";
+    public static final String EXPERIMENT_CREATED = "EXPERIMENT_CREATED";
     public static final String EXPERIMENT_CLEANUP_PROMPT = "EXPERIMENT_CLEANUP_PROMPT";
     public static final String EXPERIMENT_HEARTBEAT_STOPPED_PROMPT = "EXPERIMENT_HEARTBEAT_STOPPED_PROMPT";
     public static final String ASSETS_FOLDER_UPLOAD_COMPLETED = "ASSETS_FOLDER_UPLOAD_COMPLETED";

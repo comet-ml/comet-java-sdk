@@ -70,6 +70,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_READY;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITH_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.COMPLETED_DOWNLOAD_ARTIFACT_ASSET;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CREATED;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_COMPARE_CONTENT_OF_FILES;
@@ -196,14 +197,20 @@ abstract class BaseExperiment implements Experiment {
         CreateExperimentResponse result = this.restApiClient.registerExperiment(
                         new CreateExperimentRequest(this.workspaceName, this.projectName, this.experimentName))
                 .blockingGet();
-        this.experimentKey = result.getExperimentKey();
-        this.experimentLink = result.getLink();
-
-        getLogger().info(getString(EXPERIMENT_LIVE, this.experimentLink));
-
-        if (StringUtils.isBlank(this.experimentKey)) {
+        if (StringUtils.isBlank(result.getExperimentKey())) {
             throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
         }
+
+        this.experimentKey = result.getExperimentKey();
+        this.experimentLink = result.getLink();
+        this.workspaceName = result.getWorkspaceName();
+        this.projectName = result.getProjectName();
+        if (StringUtils.isBlank(this.experimentName)) {
+            this.experimentName = result.getName();
+        }
+
+        getLogger().info(getString(EXPERIMENT_CREATED, this.workspaceName, this.projectName, this.experimentName));
+        getLogger().info(getString(EXPERIMENT_LIVE, this.experimentLink));
     }
 
     @Override
