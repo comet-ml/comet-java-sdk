@@ -18,7 +18,7 @@ import static ml.comet.examples.Utils.getResourceFile;
 import static ml.comet.experiment.impl.asset.AssetType.MODEL_ELEMENT;
 
 /**
- * Provides examples of working with models: logging and retrieval of model assets.
+ * Provides examples of working with models: logging and listing of model assets.
  *
  * <p>To run from command line execute the following at the root of this module:
  * <pre>
