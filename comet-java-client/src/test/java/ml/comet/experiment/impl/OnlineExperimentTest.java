@@ -90,10 +90,10 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
     @Test
     public void testInitAndUpdateExistingExperiment() {
-        // create dummy experiment and make sure it has no name
+        // create dummy experiment and make sure it has default name assigned by backend
         OnlineExperiment experiment = createOnlineExperiment();
         experiment.end();
-        assertNull(experiment.getExperimentName());
+        assertNotNull(experiment.getExperimentName());
 
         // get previous experiment by key and check that update is working
         String experimentKey = experiment.getExperimentKey();
@@ -104,6 +104,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         awaitForCondition(
                 () -> SOME_NAME.equals(updatedExperiment.getMetadata().getExperimentName()),
                 "Experiment name updated timeout");
+        assertNotEquals(experiment.getExperimentName(), updatedExperiment.getExperimentName(),
+                "experiment name should be different");
         updatedExperiment.end();
     }
 
