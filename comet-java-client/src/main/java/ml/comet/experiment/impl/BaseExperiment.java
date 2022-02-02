@@ -73,6 +73,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.COMPLETED_DOWNLOAD_
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CREATED;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_REGISTER_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_COMPARE_CONTENT_OF_FILES;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_CREATE_TEMPORARY_ASSET_DOWNLOAD_FILE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_TEMPORARY_ASSET_FILE;
@@ -194,19 +195,24 @@ abstract class BaseExperiment implements Experiment {
         }
 
         // do synchronous call to register experiment
-        CreateExperimentResponse result = this.restApiClient.registerExperiment(
-                        new CreateExperimentRequest(this.workspaceName, this.projectName, this.experimentName))
-                .blockingGet();
-        if (StringUtils.isBlank(result.getExperimentKey())) {
-            throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
-        }
+        try {
+            CreateExperimentResponse result = this.restApiClient.registerExperiment(
+                            new CreateExperimentRequest(this.workspaceName, this.projectName, this.experimentName))
+                    .blockingGet();
+            if (StringUtils.isBlank(result.getExperimentKey())) {
+                throw new CometGeneralException(getString(FAILED_REGISTER_EXPERIMENT));
+            }
 
-        this.experimentKey = result.getExperimentKey();
-        this.experimentLink = result.getLink();
-        this.workspaceName = result.getWorkspaceName();
-        this.projectName = result.getProjectName();
-        if (StringUtils.isBlank(this.experimentName)) {
-            this.experimentName = result.getName();
+            this.experimentKey = result.getExperimentKey();
+            this.experimentLink = result.getLink();
+            this.workspaceName = result.getWorkspaceName();
+            this.projectName = result.getProjectName();
+            if (StringUtils.isBlank(this.experimentName)) {
+                this.experimentName = result.getName();
+            }
+        } catch (CometApiException ex) {
+            this.getLogger().error(getString(FAILED_REGISTER_EXPERIMENT), ex);
+            throw new CometGeneralException(getString(FAILED_REGISTER_EXPERIMENT), ex);
         }
 
         getLogger().info(getString(EXPERIMENT_CREATED, this.workspaceName, this.projectName, this.experimentName));
