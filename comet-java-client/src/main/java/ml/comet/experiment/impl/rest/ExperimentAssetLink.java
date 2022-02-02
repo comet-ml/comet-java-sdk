@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.impl.asset.LoggedExperimentAssetImpl;
-import ml.comet.experiment.impl.utils.DataModelUtils;
+import ml.comet.experiment.impl.utils.RestApiUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -53,6 +53,7 @@ public class ExperimentAssetLink {
     /**
      * Converts this into {@link LoggedExperimentAsset} exposed by public API.
      *
+     * @param logger the logger to be used for output.
      * @return the initialized {@link LoggedExperimentAsset} instance.
      */
     public LoggedExperimentAsset toExperimentAsset(Logger logger) {
@@ -97,7 +98,7 @@ public class ExperimentAssetLink {
     private Map<String, Object> parseMetadata(Logger logger) {
         if (StringUtils.isNotBlank(this.metadata)) {
             try {
-                return DataModelUtils.metadataFromJson(this.metadata);
+                return RestApiUtils.metadataFromJson(this.metadata);
             } catch (Throwable e) {
                 logger.error("Failed to parse experiment's asset metadata from JSON {}", this.metadata, e);
             }

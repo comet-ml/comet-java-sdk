@@ -30,6 +30,7 @@ import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -89,10 +90,10 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
     @Test
     public void testInitAndUpdateExistingExperiment() {
-        // create dummy experiment and make sure it has no name
+        // create dummy experiment and make sure it has default name assigned by backend
         OnlineExperiment experiment = createOnlineExperiment();
         experiment.end();
-        assertNull(experiment.getExperimentName());
+        assertNotNull(experiment.getExperimentName());
 
         // get previous experiment by key and check that update is working
         String experimentKey = experiment.getExperimentKey();
@@ -103,6 +104,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         awaitForCondition(
                 () -> SOME_NAME.equals(updatedExperiment.getMetadata().getExperimentName()),
                 "Experiment name updated timeout");
+        assertNotEquals(experiment.getExperimentName(), updatedExperiment.getExperimentName(),
+                "experiment name should be different");
         updatedExperiment.end();
     }
 
@@ -321,39 +324,50 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
     @Test
     public void testLogAndGetExperimentTime() {
-        OnlineExperiment experiment = createOnlineExperiment();
-
-        // Get experiment metadata
+        String experimentKey = null;
+        Instant startTimeMillis = null;
+        Instant endTimeMillis = null;
+        // Create experiment and get experiment metadata
         //
-        ExperimentMetadata metadata = experiment.getMetadata();
-        Instant startTimeMillis = metadata.getStartTime();
-        Instant endTimeMillis = metadata.getEndTime();
-        String experimentKey = experiment.getExperimentKey();
-        experiment.end();
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            ExperimentMetadata metadata = experiment.getMetadata();
+            startTimeMillis = metadata.getStartTime();
+            endTimeMillis = metadata.getEndTime();
+            experimentKey = experiment.getExperimentKey();
+        } catch (Throwable t) {
+            fail(t);
+        }
+
+        assertNotNull(experimentKey, "experiment key expected");
+        assertNotNull(startTimeMillis, "start time expected");
+        assertNotNull(endTimeMillis, "end time expected");
 
         // fetch existing experiment and update time
         //
-        OnlineExperimentImpl existingExperiment = (OnlineExperimentImpl) onlineExperiment(experimentKey);
-        long now = System.currentTimeMillis();
+        try (OnlineExperimentImpl existingExperiment = (OnlineExperimentImpl) onlineExperiment(experimentKey)) {
+            long now = System.currentTimeMillis();
 
-        OnCompleteAction onComplete = new OnCompleteAction();
-        existingExperiment.logStartTime(now, Optional.of(onComplete));
-        awaitForCondition(onComplete, "logStartTime onComplete timeout", 120);
+            OnCompleteAction onComplete = new OnCompleteAction();
+            existingExperiment.logStartTime(now, Optional.of(onComplete));
+            awaitForCondition(onComplete, "logStartTime onComplete timeout", 120);
 
-        onComplete = new OnCompleteAction();
-        existingExperiment.logEndTime(now, Optional.of(onComplete));
-        awaitForCondition(onComplete, "logEndTime onComplete timeout", 120);
+            onComplete = new OnCompleteAction();
+            existingExperiment.logEndTime(now, Optional.of(onComplete));
+            awaitForCondition(onComplete, "logEndTime onComplete timeout", 120);
 
-        // Get updated experiment metadata and check results
-        //
-        awaitForCondition(() -> {
-            ExperimentMetadata data = existingExperiment.getMetadata();
-            return data.getStartTime().toEpochMilli() == now && data.getEndTime().toEpochMilli() == now;
-        }, "Experiment get start/stop time timeout", 240);
+            // Get updated experiment metadata and check results
+            //
+            awaitForCondition(() -> {
+                ExperimentMetadata data = existingExperiment.getMetadata();
+                return data.getStartTime().toEpochMilli() == now && data.getEndTime().toEpochMilli() == now;
+            }, "Experiment get start/stop time timeout", 240);
 
-        ExperimentMetadata updatedMetadata = existingExperiment.getMetadata();
-        assertNotEquals(startTimeMillis, updatedMetadata.getStartTime());
-        assertNotEquals(endTimeMillis, updatedMetadata.getEndTime());
+            ExperimentMetadata updatedMetadata = existingExperiment.getMetadata();
+            assertNotEquals(startTimeMillis, updatedMetadata.getStartTime());
+            assertNotEquals(endTimeMillis, updatedMetadata.getEndTime());
+        } catch (Throwable t) {
+            fail(t);
+        }
     }
 
     @Test

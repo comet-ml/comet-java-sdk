@@ -471,7 +471,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         this.executeLogAction(() ->
                         this.logAssetFolder(folder, logFilePath, true, logFilePath,
                                 Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
-                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
+                                ofNullable(metadata), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_FOLDER, folder, modelName));
     }
 
@@ -497,7 +497,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         this.executeLogAction(() ->
                         this.logAssetFileAsync(file, logicalPath, overwrite,
                                 Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
-                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
+                                ofNullable(metadata), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_ASSET, modelName, logicalPath));
     }
 
@@ -530,7 +530,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
         this.executeLogAction(() ->
                         this.logAssetDataAsync(data, logicalPath, overwrite,
                                 Optional.of(AssetType.MODEL_ELEMENT.type()), Optional.of(modelName),
-                                Optional.of(metadata), context, this.getLogAssetOnCompleteAction()),
+                                ofNullable(metadata), context, this.getLogAssetOnCompleteAction()),
                 this.assetsInProgress, getString(FAILED_TO_LOG_MODEL_ASSET, modelName, logicalPath));
     }
 

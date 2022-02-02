@@ -1,11 +1,14 @@
 package ml.comet.experiment.impl.utils;
 
+import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import org.apache.commons.lang3.StringUtils;
 
 /**
  * The collection of utilities to work with registry models.
  */
 public class ModelUtils {
+
+    static final String DEFAULT_MODEL_NAME_SUFFIX = "latest";
 
     /**
      * Creates the proper model name to be used in the Comet registry from provided experiment model name.
@@ -47,4 +50,24 @@ public class ModelUtils {
 
         return modelName;
     }
+
+    /**
+     * Creates standard name of the ZIP file for the registry model.
+     *
+     * @param registryName the name of model in registry.
+     * @param options      the {@link DownloadModelOptions} with additional options.
+     * @return the standard name of the ZIP file for the registry model.
+     */
+    public static String registryModelZipFileName(String registryName, DownloadModelOptions options) {
+        String suffix;
+        if (StringUtils.isNotBlank(options.getVersion())) {
+            suffix = options.getVersion();
+        } else if (StringUtils.isNotBlank(options.getStage())) {
+            suffix = options.getStage();
+        } else {
+            suffix = DEFAULT_MODEL_NAME_SUFFIX;
+        }
+        return String.format("%s_%s.zip", registryName, suffix);
+    }
+
 }

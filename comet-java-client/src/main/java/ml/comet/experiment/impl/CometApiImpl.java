@@ -6,6 +6,7 @@ import lombok.SneakyThrows;
 import ml.comet.experiment.CometApi;
 import ml.comet.experiment.builder.BaseCometBuilder;
 import ml.comet.experiment.builder.CometApiBuilder;
+import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.config.CometConfig;
 import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
@@ -14,10 +15,15 @@ import ml.comet.experiment.impl.rest.ExperimentModelResponse;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
+import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
-import ml.comet.experiment.impl.utils.DataModelUtils;
+import ml.comet.experiment.impl.utils.ModelUtils;
+import ml.comet.experiment.impl.utils.RestApiUtils;
+import ml.comet.experiment.impl.utils.ZipUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
+import ml.comet.experiment.registrymodel.ModelDownloadInfo;
+import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
@@ -27,16 +33,28 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.zip.ZipInputStream;
 
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
+import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_PROMPT;
+import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_TO_DIR;
+import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_TO_FILE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
+import static ml.comet.experiment.impl.resources.LogMessages.EXTRACTED_N_REGISTRY_MODEL_FILES;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
@@ -159,18 +177,54 @@ public final class CometApiImpl implements CometApi {
             if (modelImpl.getIsPublic() != null) {
                 this.logger.warn(getString(UPDATE_REGISTRY_MODEL_IS_PUBLIC_IGNORED));
             }
-            RegistryModelItemCreateRequest request = DataModelUtils.createRegistryModelItemCreateRequest(modelImpl);
+            RegistryModelItemCreateRequest request = RestApiUtils.createRegistryModelItemCreateRequest(modelImpl);
             registry = this.restApiClient.createRegistryModelItem(request).blockingGet().toModelRegistry();
             this.logger.info(getString(MODEL_VERSION_CREATED_IN_WORKSPACE,
                     model.getVersion(), model.getRegistryName(), model.getWorkspace()));
         } else {
             // create model's registry record
-            RegistryModelCreateRequest request = DataModelUtils.createRegistryModelCreateRequest(modelImpl);
+            RegistryModelCreateRequest request = RestApiUtils.createRegistryModelCreateRequest(modelImpl);
             registry = this.restApiClient.createRegistryModel(request).blockingGet().toModelRegistry();
             this.logger.info(getString(MODEL_REGISTERED_IN_WORKSPACE,
                     model.getRegistryName(), model.getVersion(), model.getWorkspace()));
         }
+        registry.setRegistryName(model.getRegistryName());
         return registry;
+    }
+
+    @Override
+    public ModelDownloadInfo downloadRegistryModel(@NonNull Path outputPath, @NonNull String registryName,
+                                                   @NonNull String workspace, @NonNull DownloadModelOptions options)
+            throws IOException {
+        this.logger.info(getString(DOWNLOADING_REGISTRY_MODEL_PROMPT,
+                registryName, options.getVersion(), options.getStage(), workspace));
+        RestApiResponse response;
+        ModelDownloadInfo info;
+        if (!options.isExpand()) {
+            String fileName = ModelUtils.registryModelZipFileName(registryName, options);
+            Path filePath = outputPath.resolve(fileName);
+            this.logger.info(getString(DOWNLOADING_REGISTRY_MODEL_TO_FILE, filePath));
+            response = this.downloadRegistryModelToFile(filePath, workspace, registryName, options);
+            info = new ModelDownloadInfo(filePath, options);
+        } else {
+            this.logger.info(getString(DOWNLOADING_REGISTRY_MODEL_TO_DIR, outputPath));
+            response = this.downloadRegistryModelToDir(outputPath, workspace, registryName, options);
+            info = new ModelDownloadInfo(outputPath, options);
+        }
+
+        if (response.hasFailed()) {
+            this.logger.info(getString(
+                    FAILED_TO_DOWNLOAD_REGISTRY_MODEL, response.getMsg(), response.getSdkErrorCode()));
+            throw new CometApiException(getString(
+                    FAILED_TO_DOWNLOAD_REGISTRY_MODEL, response.getMsg(), response.getSdkErrorCode()));
+        }
+        return info;
+    }
+
+    @Override
+    public ModelDownloadInfo downloadRegistryModel(@NonNull Path outputPath, @NonNull String registryName,
+                                                   @NonNull String workspace) throws IOException {
+        return this.downloadRegistryModel(outputPath, registryName, workspace, DownloadModelOptions.Op().build());
     }
 
     /**
@@ -201,6 +255,56 @@ public final class CometApiImpl implements CometApi {
 
     RestApiClient getRestApiClient() {
         return this.restApiClient;
+    }
+
+    /**
+     * Downloads registry model with given name into specified file.
+     *
+     * @param filePath     the path to the model file.
+     * @param workspace    the name of the workspace.
+     * @param registryName the model name in the registry.
+     * @param options      the download options.
+     * @throws IOException thrown if I/O exception occurred during while saving model to the file.
+     */
+    RestApiResponse downloadRegistryModelToFile(@NonNull Path filePath, @NonNull String workspace,
+                                                @NonNull String registryName, @NonNull DownloadModelOptions options)
+            throws IOException {
+
+        try (OutputStream out = Files.newOutputStream(filePath, CREATE_NEW)) {
+            return this.restApiClient.downloadRegistryModel(out, workspace, registryName, options)
+                    .blockingGet();
+        }
+    }
+
+    /**
+     * Downloads and expand the registry model file into specified folder.
+     *
+     * @param dirPath      the folder to save registry model files.
+     * @param workspace    the name of the model's workspace.
+     * @param registryName the name of the model in the registry.
+     * @param options      the download options.
+     * @throws IOException thrown if I/O exception occurred during while saving model's files.
+     */
+    RestApiResponse downloadRegistryModelToDir(@NonNull Path dirPath, @NonNull String workspace,
+                                               @NonNull String registryName, @NonNull DownloadModelOptions options)
+            throws IOException {
+        try (PipedOutputStream out = new PipedOutputStream()) {
+            try (PipedInputStream pin = new PipedInputStream(out)) {
+                return Observable.zip(
+                        Observable.fromCallable(() -> {
+                            // ZIP stream deflate
+                            try (ZipInputStream zis = new ZipInputStream(pin)) {
+                                return ZipUtils.unzipToFolder(zis, dirPath);
+                            }
+                        }),
+                        Observable.fromSingle(
+                                this.restApiClient.downloadRegistryModel(out, workspace, registryName, options)),
+                        (numFiles, apiResponse) -> {
+                            this.logger.info(getString(EXTRACTED_N_REGISTRY_MODEL_FILES, numFiles, dirPath));
+                            return apiResponse;
+                        }).blockingFirst();
+            }
+        }
     }
 
     /**

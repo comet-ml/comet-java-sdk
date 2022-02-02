@@ -71,6 +71,7 @@ public final class CometUtils {
      * @param map   the container map.
      * @param key   the key to use.
      * @param value the optional value.
+     * @param <T>   the type of the key.
      */
     public static <T> void putNotNull(@NonNull Map<T, String> map, @NonNull T key, Object value) {
         if (value != null) {
@@ -124,6 +125,7 @@ public final class CometUtils {
      * Safe conversion of list to set.
      *
      * @param list the list to be converted
+     * @param <T>  the type of the data objects in the list.
      * @return the set from provided list or empty set if list is {@code null}.
      */
     public <T> Set<T> setFromList(List<T> list) {

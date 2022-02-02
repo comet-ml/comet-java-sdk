@@ -183,4 +183,18 @@ public class AssetsBaseTest {
                     String.format("empty metadata expected: %s", expectedAssetLogicalPath));
         }
     }
+
+    /**
+     * Converts provided list of file path objects into array of file names.
+     *
+     * @param assetFiles the list of file path objects
+     * @return array with names of asset files.
+     */
+    static String[] toAssetFileNames(List<Path> assetFiles) {
+        List<String> files = assetFiles.stream().collect(
+                ArrayList::new,
+                (objects, path) -> objects.add(path.getFileName().toString()),
+                ArrayList::addAll);
+        return files.toArray(new String[]{});
+    }
 }

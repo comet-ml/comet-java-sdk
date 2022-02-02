@@ -70,8 +70,10 @@ import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_NOT_READY;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITHOUT_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.ARTIFACT_VERSION_CREATED_WITH_PREVIOUS;
 import static ml.comet.experiment.impl.resources.LogMessages.COMPLETED_DOWNLOAD_ARTIFACT_ASSET;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CREATED;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_LIVE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_READ_DATA_FOR_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_REGISTER_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_COMPARE_CONTENT_OF_FILES;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_CREATE_TEMPORARY_ASSET_DOWNLOAD_FILE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_TEMPORARY_ASSET_FILE;
@@ -87,18 +89,18 @@ import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createArtifactUpsertRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createArtifactVersionStateRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createGitMetadataRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createGraphRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogEndTimeRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogHtmlRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogLineRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogMetricRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogOtherRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogParamRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createLogStartTimeRequest;
-import static ml.comet.experiment.impl.utils.DataModelUtils.createTagRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createArtifactUpsertRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createArtifactVersionStateRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createGitMetadataRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createGraphRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogEndTimeRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogHtmlRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogLineRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogMetricRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogOtherRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogParamRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createLogStartTimeRequest;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createTagRequest;
 
 /**
  * The base class for all synchronous experiment implementations providing implementation of common routines
@@ -193,17 +195,28 @@ abstract class BaseExperiment implements Experiment {
         }
 
         // do synchronous call to register experiment
-        CreateExperimentResponse result = this.restApiClient.registerExperiment(
-                        new CreateExperimentRequest(this.workspaceName, this.projectName, this.experimentName))
-                .blockingGet();
-        this.experimentKey = result.getExperimentKey();
-        this.experimentLink = result.getLink();
+        try {
+            CreateExperimentResponse result = this.restApiClient.registerExperiment(
+                            new CreateExperimentRequest(this.workspaceName, this.projectName, this.experimentName))
+                    .blockingGet();
+            if (StringUtils.isBlank(result.getExperimentKey())) {
+                throw new CometGeneralException(getString(FAILED_REGISTER_EXPERIMENT));
+            }
 
-        getLogger().info(getString(EXPERIMENT_LIVE, this.experimentLink));
-
-        if (StringUtils.isBlank(this.experimentKey)) {
-            throw new CometGeneralException("Failed to register onlineExperiment with Comet ML");
+            this.experimentKey = result.getExperimentKey();
+            this.experimentLink = result.getLink();
+            this.workspaceName = result.getWorkspaceName();
+            this.projectName = result.getProjectName();
+            if (StringUtils.isBlank(this.experimentName)) {
+                this.experimentName = result.getName();
+            }
+        } catch (CometApiException ex) {
+            this.getLogger().error(getString(FAILED_REGISTER_EXPERIMENT), ex);
+            throw new CometGeneralException(getString(FAILED_REGISTER_EXPERIMENT), ex);
         }
+
+        getLogger().info(getString(EXPERIMENT_CREATED, this.workspaceName, this.projectName, this.experimentName));
+        getLogger().info(getString(EXPERIMENT_LIVE, this.experimentLink));
     }
 
     @Override

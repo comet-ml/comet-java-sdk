@@ -44,4 +44,5 @@ public final class ApiEndpoints {
     public static final String GET_EXPERIMENT_ASSET = READ_API_URL + "/experiment/asset/get-asset";
     public static final String GET_EXPERIMENT_MODEL_LIST = READ_API_URL + "/experiment/model";
     public static final String GET_REGISTRY_MODEL_LIST = READ_API_URL + "/registry-model";
+    public static final String DOWNLOAD_REGISTRY_MODEL = READ_API_URL + "/registry-model/item/download";
 }
