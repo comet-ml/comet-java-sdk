@@ -3,7 +3,6 @@ package ml.comet.experiment.impl;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Scheduler;
 import io.reactivex.rxjava3.core.Single;
-import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
@@ -29,6 +28,7 @@ import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.AssetUtils;
 import ml.comet.experiment.model.GitMetaData;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -77,8 +77,6 @@ import static ml.comet.experiment.impl.utils.RestApiUtils.createTagRequest;
 abstract class BaseExperimentAsync extends BaseExperiment {
     ExperimentContext baseContext;
 
-    final CompositeDisposable disposables = new CompositeDisposable();
-
     BaseExperimentAsync(@NonNull final String apiKey,
                         @NonNull final String baseUrl,
                         int maxAuthRetries,
@@ -88,20 +86,6 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                         final String workspaceName) {
         super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, projectName, workspaceName);
         this.baseContext = ExperimentContext.empty();
-    }
-
-    @Override
-    public void end() {
-        if (!this.alive) {
-            return;
-        }
-        super.end();
-
-        // dispose all pending asynchronous calls
-        if (disposables.size() > 0) {
-            getLogger().warn("{} calls still has not been processed, disposing", disposables.size());
-        }
-        this.disposables.dispose();
     }
 
     void updateContext(ExperimentContext context) {
@@ -281,7 +265,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logLine(String line, long offset, boolean stderr, String context, @NonNull Optional<Action> onComplete) {
-        if (!this.alive) {
+        if (!this.alive || StringUtils.isBlank(this.experimentKey)) {
             // to avoid exceptions from StdOut logger
             return;
         }
@@ -297,7 +281,11 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         // subscribe to receive operation results but do not log anything
-        single.subscribe();
+        single
+                .doOnError(throwable -> {
+                    // just ignore to avoid infinite loop
+                })
+                .subscribe();
     }
 
     /**
@@ -355,12 +343,11 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             // subscribe for processing results
             responseObservable
                     .ignoreElements() // ignore items which already processed, see: logAsset
-                    .subscribe(
-                            () -> getLogger().info(
-                                    getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, successfullyLoggedCount.get())),
-                            (throwable) -> getLogger().error(
-                                    getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable),
-                            disposables);
+                    .doOnComplete(() -> getLogger().info(
+                            getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, successfullyLoggedCount.get())))
+                    .doOnError(throwable -> getLogger().error(
+                            getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable))
+                    .subscribe();
         } catch (Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
         }
@@ -462,30 +449,29 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         // subscribe to get processing results
         observable
                 .ignoreElements() // ignore already processed items (see: logAsset), we are interested only in result
-                .subscribe(
-                        () -> {
-                            getLogger().info(
-                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(),
-                                            successfullySentCount.get()));
-                            // mark artifact version status as closed
-                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
-                            // mark future as completed
-                            if (!future.isCompletedExceptionally()) {
-                                future.complete(loggedArtifact);
-                            }
-                        },
-                        (throwable) -> {
-                            getLogger().error(
-                                    getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getFullName()),
-                                    throwable);
-                            // mark artifact version status as failed
-                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR, future);
-                            // mark future as failed
-                            if (!future.isCompletedExceptionally()) {
-                                future.obtrudeException(throwable);
-                            }
-                        },
-                        disposables);
+                .doOnComplete(() -> {
+                    getLogger().info(
+                            getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(),
+                                    successfullySentCount.get()));
+                    // mark artifact version status as closed
+                    this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
+                    // mark future as completed
+                    if (!future.isCompletedExceptionally()) {
+                        future.complete(loggedArtifact);
+                    }
+                })
+                .doOnError((throwable) -> {
+                    getLogger().error(
+                            getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getFullName()),
+                            throwable);
+                    // mark artifact version status as failed
+                    this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR, future);
+                    // mark future as failed
+                    if (!future.isCompletedExceptionally()) {
+                        future.obtrudeException(throwable);
+                    }
+                })
+                .subscribe();
 
         return future;
     }
@@ -601,14 +587,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         // subscribe to get operation completed
-        single.subscribe(
-                (restApiResponse) -> {
-                    // ignore - already logged, see: sendAssetAsync
-                },
-                (throwable) -> {
-                    // ignore - already logged, see: sendAssetAsync
-                },
-                disposables);
+        single.subscribe();
     }
 
     /**
@@ -685,10 +664,9 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         // subscribe to receive operation results
         single
                 .observeOn(Schedulers.single())
-                .subscribe(
-                        (restApiResponse) -> checkAndLogResponse(restApiResponse, getLogger(), request),
-                        (throwable) -> getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, request), throwable),
-                        disposables);
+                .doOnSuccess(restApiResponse -> checkAndLogResponse(restApiResponse, getLogger(), request))
+                .doOnError(throwable -> getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, request), throwable))
+                .subscribe();
     }
 
     /**
