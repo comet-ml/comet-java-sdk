@@ -5,6 +5,7 @@ import ml.comet.experiment.ApiExperiment;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -12,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -26,12 +28,15 @@ import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperim
 import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
 import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_REGISTER_EXPERIMENT;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -504,6 +509,15 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         } catch (Throwable t) {
             fail(t);
         }
+    }
+
+    @Test
+    @Timeout(60)
+    public void testCreateExperiment_wrongApiKey() {
+        String wrongApiKey = "not existing API key";
+        CometGeneralException ex = assertThrows(CometGeneralException.class, () ->
+                OnlineExperimentImpl.builder().withApiKey(wrongApiKey).build());
+        assertEquals(getString(FAILED_REGISTER_EXPERIMENT), ex.getMessage());
     }
 
     static final class OnCompleteAction implements Action, BooleanSupplier {

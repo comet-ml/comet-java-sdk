@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>ml.comet</groupId>
 		<artifactId>comet-java-sdk</artifactId>
-		<version>1.1.8-SNAPSHOT</version>
+		<version>1.1.9-SNAPSHOT</version>
 	</parent>
 
 	<dependencyManagement>
@@ -77,12 +77,12 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.33</version>
+			<version>1.7.35</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
-			<version>1.7.33</version>
+			<version>1.7.35</version>
 		</dependency>
 
 		<!-- tests -->
@@ -94,7 +94,7 @@
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-inline</artifactId>
-			<version>4.2.0</version>
+			<version>4.3.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -107,6 +107,7 @@
 			<groupId>org.apache.maven.plugins</groupId>
 			<artifactId>maven-surefire-plugin</artifactId>
 			<version>3.0.0-M5</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
