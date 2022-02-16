@@ -8,6 +8,7 @@ import ml.comet.experiment.artifact.Artifact;
 import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.log.StdOutLogger;
 import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
@@ -38,6 +39,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_ALREADY_
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HEARTBEAT_STOPPED_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_INVENTORY_STATUS_PROMPT;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_LOG_SYSTEM_DETAILS;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_CLEAN_EXPERIMENT_INVENTORY;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
@@ -556,6 +558,13 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
         setupStdOutIntercept();
         registerExperiment();
+
+        // send system details
+        try {
+            this.logSystemDetails();
+        } catch (CometApiException ex) {
+            this.logger.error(getString(FAILED_LOG_SYSTEM_DETAILS), ex);
+        }
 
         this.heartbeatSendFuture = this.scheduledExecutorService.scheduleAtFixedRate(
                 new OnlineExperimentImpl.HeartbeatPing(this), 1, 3, TimeUnit.SECONDS);

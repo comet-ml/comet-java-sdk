@@ -20,6 +20,7 @@ public final class ApiEndpoints {
     public static final String ADD_HTML = UPDATE_API_URL + "/experiment/html";
     public static final String ADD_PARAMETER = UPDATE_API_URL + "/experiment/parameter";
     public static final String ADD_METRIC = UPDATE_API_URL + "/experiment/metric";
+    public static final String SET_SYSTEM_DETAILS = UPDATE_API_URL + "/experiment/system-details";
     public static final String UPSERT_ARTIFACT = UPDATE_API_URL + "/artifacts/upsert";
     public static final String UPDATE_ARTIFACT_STATE = UPDATE_API_URL + "/artifacts/state";
     public static final String CREATE_REGISTRY_MODEL = UPDATE_API_URL + "/registry-model";

@@ -36,8 +36,10 @@ import ml.comet.experiment.impl.rest.CreateExperimentResponse;
 import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
+import ml.comet.experiment.impl.rest.SetSystemDetailsRequest;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.FileUtils;
+import ml.comet.experiment.impl.utils.SystemUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -217,6 +219,16 @@ abstract class BaseExperiment implements Experiment {
 
         getLogger().info(getString(EXPERIMENT_CREATED, this.workspaceName, this.projectName, this.experimentName));
         getLogger().info(getString(EXPERIMENT_LIVE, this.experimentLink));
+    }
+
+    /**
+     * Allows logging of all available details about the host system where experiment is executing. This is blocking
+     * operation which will block invoking thread until it completes.
+     *
+     * @throws CometApiException if API access exception occurs.
+     */
+    void logSystemDetails() throws CometApiException {
+        sendSynchronously(restApiClient::logSystemDetails, SystemUtils.readSystemDetails());
     }
 
     @Override
