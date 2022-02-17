@@ -593,7 +593,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         // subscribe to get operation completed
-        single.subscribe();
+        //noinspection ResultOfMethodCallIgnored
+        single.subscribe(
+                (apiResponse, throwable) -> {
+                    // ignore - it is already processed by sendAssetAsync()
+                }
+        );
     }
 
     /**
