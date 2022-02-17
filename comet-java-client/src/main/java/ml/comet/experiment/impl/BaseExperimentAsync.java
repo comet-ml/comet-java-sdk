@@ -673,11 +673,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         // subscribe to receive operation results
+        //noinspection ResultOfMethodCallIgnored
         single
                 .observeOn(Schedulers.single())
-                .doOnSuccess(restApiResponse -> checkAndLogResponse(restApiResponse, getLogger(), request))
-                .doOnError(throwable -> getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, request), throwable))
-                .subscribe();
+                .subscribe(
+                        restApiResponse -> checkAndLogResponse(restApiResponse, getLogger(), request),
+                        throwable -> getLogger().error(getString(FAILED_TO_SEND_LOG_REQUEST, request), throwable)
+                );
     }
 
     /**
