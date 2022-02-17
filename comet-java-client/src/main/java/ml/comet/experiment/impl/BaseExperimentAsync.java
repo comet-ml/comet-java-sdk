@@ -451,31 +451,33 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         // subscribe to get processing results
+        //noinspection ResultOfMethodCallIgnored
         observable
                 .ignoreElements() // ignore already processed items (see: logAsset), we are interested only in result
-                .doOnComplete(() -> {
-                    getLogger().info(
-                            getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(),
-                                    successfullySentCount.get()));
-                    // mark artifact version status as closed
-                    this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
-                    // mark future as completed
-                    if (!future.isCompletedExceptionally()) {
-                        future.complete(loggedArtifact);
-                    }
-                })
-                .doOnError((throwable) -> {
-                    getLogger().error(
-                            getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getFullName()),
-                            throwable);
-                    // mark artifact version status as failed
-                    this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR, future);
-                    // mark future as failed
-                    if (!future.isCompletedExceptionally()) {
-                        future.obtrudeException(throwable);
-                    }
-                })
-                .subscribe();
+                .subscribe(
+                        () -> {
+                            getLogger().info(
+                                    getString(ARTIFACT_UPLOAD_COMPLETED, loggedArtifact.getFullName(),
+                                            successfullySentCount.get()));
+                            // mark artifact version status as closed
+                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.CLOSED, future);
+                            // mark future as completed
+                            if (!future.isCompletedExceptionally()) {
+                                future.complete(loggedArtifact);
+                            }
+                        },
+                        (throwable) -> {
+                            getLogger().error(
+                                    getString(FAILED_TO_UPLOAD_SOME_ARTIFACT_ASSET, loggedArtifact.getFullName()),
+                                    throwable);
+                            // mark artifact version status as failed
+                            this.updateArtifactVersionState(loggedArtifact, ArtifactVersionState.ERROR, future);
+                            // mark future as failed
+                            if (!future.isCompletedExceptionally()) {
+                                future.obtrudeException(throwable);
+                            }
+                        }
+                );
 
         return future;
     }
