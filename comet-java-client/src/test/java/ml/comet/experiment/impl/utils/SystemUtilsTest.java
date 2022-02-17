@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 
+import static ml.comet.experiment.impl.utils.SystemUtils.extraKeys;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,10 +28,15 @@ public class SystemUtilsTest {
         assertNotNull(infoList, "additional properties expected");
 
         Properties props = System.getProperties();
-        props.forEach((k, v) -> checkPropertyLogged(k, v, infoList));
+        extraKeys.forEach(key -> {
+            if (props.containsKey(key)) {
+                checkPropertyLogged(key, props.getProperty(key), infoList);
+            }
+        });
     }
 
     static void checkPropertyLogged(Object key, Object value, List<LogAdditionalSystemInfo> infoList) {
+        System.out.printf("%s : %s\n", key, value);
         assertTrue(infoList.stream()
                         .anyMatch(info -> Objects.equals(key, info.getKey()) && Objects.equals(value, info.getValue())),
                 String.format("property must be logged, %s : %s", key, value));
