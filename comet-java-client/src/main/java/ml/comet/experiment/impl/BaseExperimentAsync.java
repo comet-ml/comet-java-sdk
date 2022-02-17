@@ -281,11 +281,14 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         }
 
         // subscribe to receive operation results but do not log anything
-        single
-                .doOnError(throwable -> {
+        //noinspection ResultOfMethodCallIgnored
+        single.subscribe(
+                apiResponse -> {
+                    // nothing to process here
+                },
+                throwable -> {
                     // just ignore to avoid infinite loop
-                })
-                .subscribe();
+                });
     }
 
     /**
@@ -341,13 +344,14 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             }
 
             // subscribe for processing results
+            //noinspection ResultOfMethodCallIgnored
             responseObservable
                     .ignoreElements() // ignore items which already processed, see: logAsset
-                    .doOnComplete(() -> getLogger().info(
-                            getString(ASSETS_FOLDER_UPLOAD_COMPLETED, folder, successfullyLoggedCount.get())))
-                    .doOnError(throwable -> getLogger().error(
-                            getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable))
-                    .subscribe();
+                    .subscribe(
+                            () -> getLogger().info(getString(ASSETS_FOLDER_UPLOAD_COMPLETED,
+                                    folder, successfullyLoggedCount.get())),
+                            throwable -> getLogger().error(
+                                    getString(FAILED_TO_LOG_SOME_ASSET_FROM_FOLDER, folder), throwable));
         } catch (Throwable t) {
             getLogger().error(getString(FAILED_TO_LOG_ASSET_FOLDER, folder), t);
         }
