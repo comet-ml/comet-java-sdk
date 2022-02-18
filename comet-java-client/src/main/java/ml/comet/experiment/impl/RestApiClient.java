@@ -47,6 +47,7 @@ import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateResponse;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
+import ml.comet.experiment.impl.rest.SetSystemDetailsRequest;
 import ml.comet.experiment.impl.rest.TagsResponse;
 import ml.comet.experiment.impl.utils.JsonUtils;
 import ml.comet.experiment.impl.utils.RestApiUtils;
@@ -91,6 +92,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_TAGS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.NEW_EXPERIMENT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_EXPERIMENT_STATUS;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_SYSTEM_DETAILS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.UPDATE_ARTIFACT_STATE;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.UPSERT_ARTIFACT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
@@ -240,6 +242,11 @@ final class RestApiClient implements Disposable {
 
     Single<CreateExperimentResponse> registerExperiment(final CreateExperimentRequest request) {
         return singleFromSyncPostWithRetries(request, NEW_EXPERIMENT, true, CreateExperimentResponse.class);
+    }
+
+    Single<RestApiResponse> logSystemDetails(final SetSystemDetailsRequest request, String experimentKey) {
+        request.setExperimentKey(experimentKey);
+        return singleFromAsyncPost(request, SET_SYSTEM_DETAILS, RestApiResponse.class);
     }
 
     <T extends Asset> Single<RestApiResponse> logAsset(final T asset, String experimentKey) {

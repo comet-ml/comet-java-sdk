@@ -1,6 +1,7 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.functions.Function;
 import lombok.Getter;
@@ -37,7 +38,9 @@ import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
+import ml.comet.experiment.impl.utils.ExceptionUtils;
 import ml.comet.experiment.impl.utils.FileUtils;
+import ml.comet.experiment.impl.utils.SystemUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -55,6 +58,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static java.util.Optional.empty;
 import static ml.comet.experiment.impl.asset.AssetType.ALL;
@@ -217,6 +222,16 @@ abstract class BaseExperiment implements Experiment {
 
         getLogger().info(getString(EXPERIMENT_CREATED, this.workspaceName, this.projectName, this.experimentName));
         getLogger().info(getString(EXPERIMENT_LIVE, this.experimentLink));
+    }
+
+    /**
+     * Allows logging of all available details about the host system where experiment is executing. This is blocking
+     * operation which will block invoking thread until it completes.
+     *
+     * @throws CometApiException if API access exception occurs.
+     */
+    void logSystemDetails() throws CometApiException {
+        sendSynchronously(restApiClient::logSystemDetails, SystemUtils.readSystemDetails());
     }
 
     @Override
@@ -926,13 +941,31 @@ abstract class BaseExperiment implements Experiment {
      */
     private <T> void sendSynchronously(final BiFunction<T, String, Single<RestApiResponse>> func,
                                        final T request) throws CometApiException {
-        RestApiResponse response = validateAndGetExperimentKey()
+        CompletableFuture<RestApiResponse> future = new CompletableFuture<>();
+        Disposable disposable = validateAndGetExperimentKey()
                 .concatMap(experimentKey -> func.apply(request, experimentKey))
-                .blockingGet();
+                .subscribe(
+                        future::complete,
+                        future::completeExceptionally
+                );
 
-        if (response.hasFailed()) {
-            throw new CometApiException("Failed to log {}, reason: %s, sdk error code: %d",
-                    request, response.getMsg(), response.getSdkErrorCode());
+        try {
+            RestApiResponse response = future.get();
+            if (response.hasFailed()) {
+                throw new CometApiException("Failed to log {}, reason: %s, sdk error code: %d",
+                        request, response.getMsg(), response.getSdkErrorCode());
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            Throwable rootCause = ExceptionUtils.unwrap(e);
+            if (rootCause instanceof CometApiException) {
+                // the root is CometApiException - rethrow it
+                throw (CometApiException) rootCause;
+            } else {
+                // wrap into runtime exception
+                throw new RuntimeException(e);
+            }
+        } finally {
+            disposable.dispose();
         }
     }
 
