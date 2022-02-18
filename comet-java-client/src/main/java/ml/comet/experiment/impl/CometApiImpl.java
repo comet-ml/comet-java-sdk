@@ -13,6 +13,7 @@ import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.rest.ExperimentModelListResponse;
 import ml.comet.experiment.impl.rest.ExperimentModelResponse;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelDetailsResponse;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
@@ -22,10 +23,11 @@ import ml.comet.experiment.impl.utils.RestApiUtils;
 import ml.comet.experiment.impl.utils.ZipUtils;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
-import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
+import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
+import ml.comet.experiment.registrymodel.ModelOverview;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -56,6 +58,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_M
 import static ml.comet.experiment.impl.resources.LogMessages.EXTRACTED_N_REGISTRY_MODEL_FILES;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_DETAILS;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_DESCRIPTION_IGNORED;
@@ -225,6 +228,23 @@ public final class CometApiImpl implements CometApi {
     public ModelDownloadInfo downloadRegistryModel(@NonNull Path outputPath, @NonNull String registryName,
                                                    @NonNull String workspace) throws IOException {
         return this.downloadRegistryModel(outputPath, registryName, workspace, DownloadModelOptions.Op().build());
+    }
+
+    @Override
+    public ModelOverview getRegistryModelDetails(@NonNull String registryName, @NonNull String workspace)
+            throws ModelNotFoundException {
+        try {
+            RegistryModelDetailsResponse details = this.restApiClient.getRegistryModelDetails(registryName, workspace)
+                    .blockingGet();
+            return details.toModelOverview(this.logger);
+        } catch (CometApiException ex) {
+            this.logger.error(getString(FAILED_TO_GET_REGISTRY_MODEL_DETAILS,
+                    workspace, registryName, ex.getStatusMessage(), ex.getSdkErrorCode()), ex);
+            if (ex.getSdkErrorCode() == 42008) {
+                throw new ModelNotFoundException(ex.getMessage());
+            }
+            throw ex;
+        }
     }
 
     /**

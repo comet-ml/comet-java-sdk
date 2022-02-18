@@ -1,10 +1,13 @@
 package ml.comet.experiment;
 
+import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
-import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
+import ml.comet.experiment.registrymodel.ModelDownloadInfo;
+import ml.comet.experiment.registrymodel.ModelNotFoundException;
+import ml.comet.experiment.registrymodel.ModelOverview;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 
 import java.io.Closeable;
@@ -65,4 +68,14 @@ public interface CometApi extends Closeable {
                                             DownloadModelOptions options) throws IOException;
 
     ModelDownloadInfo downloadRegistryModel(Path outputPath, String registryName, String workspace) throws IOException;
+
+    /**
+     * Allows querying for details about specific registry model.
+     *
+     * @param registryName the name of the model as in models' registry.
+     * @param workspace    the name of the model's workspace.
+     * @return the {@link ModelOverview} with model overview.
+     * @throws ModelNotFoundException if failed to find model.
+     */
+    ModelOverview getRegistryModelDetails(String registryName, String workspace) throws ModelNotFoundException;
 }

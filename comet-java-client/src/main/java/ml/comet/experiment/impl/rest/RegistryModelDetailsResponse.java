@@ -6,7 +6,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ml.comet.experiment.registrymodel.ModelOverview;
+import ml.comet.experiment.registrymodel.ModelVersionOverview;
+import org.slf4j.Logger;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -30,4 +35,36 @@ public class RegistryModelDetailsResponse {
     private long createdAt;
     private long lastUpdated;
 
+    /**
+     * Converts this to {@link ModelOverview} exposed by public API.
+     *
+     * @param logger the logger to be used for output.
+     * @return the initialized instance of the {@link ModelOverview}.
+     */
+    public ModelOverview toModelOverview(Logger logger) {
+        ModelOverview model = new ModelOverview();
+        model.setRegistryModelId(this.registryModelId);
+        model.setWorkspaceId(this.workspaceId);
+        model.setModelName(this.modelName);
+        model.setDescription(this.description);
+        model.setNumberOfVersions(this.numberOfVersions);
+        model.setPublic(this.isPublic);
+        model.setUserName(this.userName);
+        if (this.createdAt > 0) {
+            model.setCreatedAt(Instant.ofEpochMilli(this.createdAt));
+        }
+        if (this.lastUpdated > 0) {
+            model.setLastUpdated(Instant.ofEpochMilli(this.lastUpdated));
+        }
+        if (this.versions != null) {
+            List<ModelVersionOverview> versions = this.versions
+                    .stream()
+                    .collect(ArrayList::new,
+                            (versionOverviews, modelItemDetails) -> versionOverviews.add(
+                                    modelItemDetails.toModelVersionOverview(logger)),
+                            ArrayList::addAll);
+            model.setVersions(versions);
+        }
+        return model;
+    }
 }

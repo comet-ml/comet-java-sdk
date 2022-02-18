@@ -43,6 +43,7 @@ import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelCreateResponse;
+import ml.comet.experiment.impl.rest.RegistryModelDetailsResponse;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateResponse;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
@@ -87,6 +88,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_METRICS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_PARAMETERS;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_DETAILS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_LIST;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_TAGS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.NEW_EXPERIMENT;
@@ -100,6 +102,7 @@ import static ml.comet.experiment.impl.constants.FormParamName.LINK;
 import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_VERSION_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.IS_REMOTE;
+import static ml.comet.experiment.impl.constants.QueryParamName.MODEL_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
@@ -338,6 +341,14 @@ final class RestApiClient implements Disposable {
     Single<RegistryModelItemCreateResponse> createRegistryModelItem(final RegistryModelItemCreateRequest request) {
         return singleFromSyncPostWithRetries(request, CREATE_REGISTRY_MODEL_ITEM, true,
                 RegistryModelItemCreateResponse.class);
+    }
+
+    Single<RegistryModelDetailsResponse> getRegistryModelDetails(String modelName, String workspaceName) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(WORKSPACE_NAME, workspaceName);
+        queryParams.put(MODEL_NAME, modelName);
+        return singleFromSyncGetWithRetries(GET_REGISTRY_MODEL_DETAILS, queryParams, true,
+                RegistryModelDetailsResponse.class);
     }
 
     Single<RestApiResponse> downloadRegistryModel(
