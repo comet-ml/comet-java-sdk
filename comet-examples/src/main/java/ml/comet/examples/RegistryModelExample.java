@@ -9,7 +9,9 @@ import ml.comet.experiment.impl.utils.ModelUtils;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelDownloadInfo;
+import ml.comet.experiment.registrymodel.ModelOverview;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
+import ml.comet.experiment.registrymodel.ModelVersionOverview;
 import org.apache.commons.io.file.PathUtils;
 import org.awaitility.Awaitility;
 
@@ -18,6 +20,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static ml.comet.examples.LogModelExample.SOME_MODEL_NAME;
@@ -128,6 +131,36 @@ public class RegistryModelExample {
                     modelTmpDir, registryName, experiment.getWorkspaceName(), opts);
             System.out.printf("Successfully downloaded model's file assets as ZIP file '%s'.\n\n",
                     info.getDownloadPath());
+
+            // get model's overview
+            //
+            System.out.printf("Retrieving overview details of the model '%s'\n", registryName);
+            Optional<ModelOverview> modelOverviewOptional = api.getRegistryModelDetails(
+                    registryName, experiment.getWorkspaceName());
+            if (modelOverviewOptional.isPresent()) {
+                ModelOverview modelOverview = modelOverviewOptional.get();
+                System.out.printf(
+                        "Retrieved overview details of the model '%s' which was created at '%s' and has %d versions.\n",
+                        registryName, modelOverview.getCreatedAt(), modelOverview.getVersions().size());
+            } else {
+                System.out.printf("Overview of the model '%s' not found\n", registryName);
+            }
+
+            // get details about model version
+            //
+            System.out.printf("Retrieving details of the model version '%s:%s'\n", registryName, SOME_MODEL_VERSION_UP);
+            Optional<ModelVersionOverview> versionOverviewOptional = api.getRegistryModelVersion(
+                    registryName, experiment.getWorkspaceName(), SOME_MODEL_VERSION_UP);
+            if (versionOverviewOptional.isPresent()) {
+                ModelVersionOverview versionOverview = versionOverviewOptional.get();
+                System.out.printf(
+                        "Retrieved overview of the model version '%s:%s' which was created at '%s' with stages '%s'.\n",
+                        registryName, versionOverview.getVersion(), versionOverview.getCreatedAt(),
+                        versionOverview.getStages());
+            } else {
+                System.out.printf("Overview of the model version '%s:%s' not found\n",
+                        registryName, SOME_MODEL_VERSION_UP);
+            }
 
         } finally {
             PathUtils.deleteDirectory(modelTmpDir);
