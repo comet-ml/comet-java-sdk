@@ -250,7 +250,7 @@ public final class CometApiImpl implements CometApi {
 
     @Override
     public Optional<ModelVersionOverview> getRegistryModelVersion(
-            String registryName, String workspace, String version) {
+            @NonNull String registryName, @NonNull String workspace, @NonNull String version) {
         Optional<ModelOverview> overviewOptional = this.getRegistryModelDetails(registryName, workspace);
         if (!overviewOptional.isPresent()) {
             return Optional.empty();

@@ -352,7 +352,7 @@ public class CometApiTest extends AssetsBaseTest {
     }
 
     @Test
-    public void testGetRegistryModelDetails_notFound() {
+    public void testGetRegistryModelDetails_not_found() {
         String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
 
         // try to get not existing model
@@ -360,6 +360,83 @@ public class CometApiTest extends AssetsBaseTest {
         Optional<ModelOverview> overviewOptional = COMET_API.getRegistryModelDetails(modelName,
                 SHARED_EXPERIMENT.getWorkspaceName());
         assertFalse(overviewOptional.isPresent());
+    }
+
+    @Test
+    public void testGetRegistryModelVersion() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // log model folder
+        //
+        logModelFolder(modelName);
+
+        // register model and check results
+        //
+        Model model = Model.newModel(modelName)
+                .withComment(SOME_COMMENT)
+                .withDescription(SOME_DESCRIPTION)
+                .asPublic(true)
+                .withStages(Collections.singletonList(SOME_STAGE))
+                .build();
+        ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+        assertNotNull(modelRegistry, "model registry record expected");
+        assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
+
+        // update model's version
+        //
+        String newVersion = "1.0.1";
+        String newComment = "updated model";
+        List<String> stages = Collections.singletonList("production");
+        Model updatedModel = Model.newModel(modelName)
+                .withComment(newComment)
+                .withVersion(newVersion)
+                .withStages(stages)
+                .build();
+        modelRegistry = COMET_API.registerModel(updatedModel, SHARED_EXPERIMENT.getExperimentKey());
+        assertNotNull(modelRegistry, "model registry record expected");
+
+        // trying to get model's version and check result
+        //
+        Optional<ModelVersionOverview> versionOverviewOptional = COMET_API.getRegistryModelVersion(
+                model.getRegistryName(), SHARED_EXPERIMENT.getWorkspaceName(), newVersion);
+        assertTrue(versionOverviewOptional.isPresent(), "version details expected");
+
+        ModelVersionOverview versionOverview = versionOverviewOptional.get();
+        assertEquals(newVersion, versionOverview.getVersion(), "wrong version");
+        assertEquals(newComment, versionOverview.getComment(), "wrong comment");
+        assertEquals(stages, versionOverview.getStages(), "wrong stages");
+
+        assertNotNull(versionOverview.getAssets(), "assets expected");
+        String[]fileNames = toAssetFileNames(assetFolderFiles);
+        assertEquals(fileNames.length, versionOverview.getAssets().size(), "wrong assets number");
+    }
+
+    @Test
+    public void testGetRegistryModelVersion_not_found() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // log model folder
+        //
+        logModelFolder(modelName);
+
+        // register model and check results
+        //
+        Model model = Model.newModel(modelName)
+                .withComment(SOME_COMMENT)
+                .withDescription(SOME_DESCRIPTION)
+                .asPublic(true)
+                .withStages(Collections.singletonList(SOME_STAGE))
+                .withVersion(DEFAULT_MODEL_VERSION)
+                .build();
+        ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+        assertNotNull(modelRegistry, "model registry record expected");
+        assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
+
+        // trying to get not existing model's version and check result
+        //
+        Optional<ModelVersionOverview> versionOverviewOptional = COMET_API.getRegistryModelVersion(
+                model.getRegistryName(), SHARED_EXPERIMENT.getWorkspaceName(), "10.0.0");
+        assertFalse(versionOverviewOptional.isPresent());
     }
 
     // UnZip model's file into temporary directory and check that expected model files are present
