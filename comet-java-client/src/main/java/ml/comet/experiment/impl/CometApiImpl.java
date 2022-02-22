@@ -29,6 +29,7 @@ import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import ml.comet.experiment.registrymodel.ModelOverview;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
+import ml.comet.experiment.registrymodel.ModelVersionOverview;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.EXTRACTED_N_REGISTR
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_DETAILS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_VERSIONS;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_DESCRIPTION_IGNORED;
@@ -231,20 +233,38 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public ModelOverview getRegistryModelDetails(@NonNull String registryName, @NonNull String workspace)
-            throws ModelNotFoundException {
+    public Optional<ModelOverview> getRegistryModelDetails(@NonNull String registryName, @NonNull String workspace) {
         try {
             RegistryModelDetailsResponse details = this.restApiClient.getRegistryModelDetails(registryName, workspace)
                     .blockingGet();
-            return details.toModelOverview(this.logger);
+            return Optional.of(details.toModelOverview(this.logger));
         } catch (CometApiException ex) {
             this.logger.error(getString(FAILED_TO_GET_REGISTRY_MODEL_DETAILS,
                     workspace, registryName, ex.getStatusMessage(), ex.getSdkErrorCode()), ex);
             if (ex.getSdkErrorCode() == 42008) {
-                throw new ModelNotFoundException(ex.getMessage());
+                return Optional.empty();
             }
             throw ex;
         }
+    }
+
+    @Override
+    public Optional<ModelVersionOverview> getRegistryModelVersion(
+            String registryName, String workspace, String version) {
+        Optional<ModelOverview> overviewOptional = this.getRegistryModelDetails(registryName, workspace);
+        if (!overviewOptional.isPresent()) {
+            return Optional.empty();
+        }
+        ModelOverview overview = overviewOptional.get();
+        if (overview.getVersions() == null || overview.getVersions().size() == 0) {
+            String msg = getString(FAILED_TO_GET_REGISTRY_MODEL_VERSIONS, workspace, registryName);
+            this.logger.error(msg);
+            throw new ModelNotFoundException(msg);
+        }
+        return overview.getVersions()
+                .stream()
+                .filter(versionOverview -> Objects.equals(versionOverview.getVersion(), version))
+                .findFirst();
     }
 
     /**

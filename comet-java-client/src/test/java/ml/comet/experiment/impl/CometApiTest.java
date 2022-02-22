@@ -321,10 +321,12 @@ public class CometApiTest extends AssetsBaseTest {
 
         // get model details and check results
         //
-        ModelOverview overview = COMET_API.getRegistryModelDetails(modelRegistry.getRegistryName(),
+        Optional<ModelOverview> overviewOptional = COMET_API.getRegistryModelDetails(modelRegistry.getRegistryName(),
                 SHARED_EXPERIMENT.getWorkspaceName());
 
-        assertNotNull(overview, "overview expected");
+        assertTrue(overviewOptional.isPresent(), "overview expected");
+
+        ModelOverview overview = overviewOptional.get();
         assertEquals(modelRegistry.getRegistryName(), overview.getModelName(), "wrong name");
         assertEquals(SOME_DESCRIPTION, overview.getDescription(), "wrong description");
         assertTrue(overview.isPublic(), "must be public");
@@ -355,8 +357,9 @@ public class CometApiTest extends AssetsBaseTest {
 
         // try to get not existing model
         //
-        assertThrows(ModelNotFoundException.class, () ->
-                COMET_API.getRegistryModelDetails(modelName, SHARED_EXPERIMENT.getWorkspaceName()));
+        Optional<ModelOverview> overviewOptional = COMET_API.getRegistryModelDetails(modelName,
+                SHARED_EXPERIMENT.getWorkspaceName());
+        assertFalse(overviewOptional.isPresent());
     }
 
     // UnZip model's file into temporary directory and check that expected model files are present
