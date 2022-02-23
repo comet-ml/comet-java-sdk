@@ -2,15 +2,18 @@ package ml.comet.experiment;
 
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
-import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
+import ml.comet.experiment.registrymodel.ModelDownloadInfo;
+import ml.comet.experiment.registrymodel.ModelOverview;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
+import ml.comet.experiment.registrymodel.ModelVersionOverview;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The utility providing direct access to the Comet REST API.
@@ -65,4 +68,23 @@ public interface CometApi extends Closeable {
                                             DownloadModelOptions options) throws IOException;
 
     ModelDownloadInfo downloadRegistryModel(Path outputPath, String registryName, String workspace) throws IOException;
+
+    /**
+     * Allows querying for details about specific registry model.
+     *
+     * @param registryName the name of the model as in models' registry.
+     * @param workspace    the name of the model's workspace.
+     * @return the optional {@link ModelOverview} with model version details.
+     */
+    Optional<ModelOverview> getRegistryModelDetails(String registryName, String workspace);
+
+    /**
+     * Allows querying for details about specific version of the registry model.
+     *
+     * @param registryName the name of the model as in models' registry.
+     * @param workspace    the name of the model's workspace.
+     * @param version      the version of the registry model to be returned.
+     * @return the optional {@link ModelOverview} with model version details.
+     */
+    Optional<ModelVersionOverview> getRegistryModelVersion(String registryName, String workspace, String version);
 }
