@@ -162,6 +162,12 @@ public class RegistryModelExample {
                         registryName, SOME_MODEL_VERSION_UP);
             }
 
+            // get registered model names
+            //
+            System.out.printf("Retrieving model names registered in workspace '%s'.\n", experiment.getWorkspaceName());
+            List<String> names = api.getRegistryModelNames(experiment.getWorkspaceName());
+            System.out.printf("Retrieved model names: '%s'\n", names);
+
         } finally {
             PathUtils.deleteDirectory(modelTmpDir);
         }

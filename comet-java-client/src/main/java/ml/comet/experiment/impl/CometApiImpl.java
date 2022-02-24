@@ -42,6 +42,7 @@ import java.io.PipedOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -65,6 +66,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_DESCRIPTION_IGNORED;
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_IS_PUBLIC_IGNORED;
+import static ml.comet.experiment.impl.resources.LogMessages.WORKSPACE_HAS_NO_REGISTRY_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
 /**
@@ -265,6 +267,20 @@ public final class CometApiImpl implements CometApi {
                 .stream()
                 .filter(versionOverview -> Objects.equals(versionOverview.getVersion(), version))
                 .findFirst();
+    }
+
+    @Override
+    public List<String> getRegistryModelNames(@NonNull String workspace) {
+        RegistryModelOverviewListResponse listResponse = this.restApiClient.getRegistryModelsForWorkspace(workspace)
+                .blockingGet();
+        if (listResponse.getRegistryModels() == null) {
+            this.logger.info(getString(WORKSPACE_HAS_NO_REGISTRY_MODELS, workspace));
+            return Collections.emptyList();
+        }
+        return listResponse.getRegistryModels().stream().collect(
+                ArrayList::new,
+                (strings, registryModelOverview) -> strings.add(registryModelOverview.getModelName()),
+                ArrayList::addAll);
     }
 
     /**
