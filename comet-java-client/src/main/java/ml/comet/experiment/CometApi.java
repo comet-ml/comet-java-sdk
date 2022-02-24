@@ -87,4 +87,12 @@ public interface CometApi extends Closeable {
      * @return the optional {@link ModelOverview} with model version details.
      */
     Optional<ModelVersionOverview> getRegistryModelVersion(String registryName, String workspace, String version);
+
+    /**
+     * Returns list of the registry model names registered in specified workspace.
+     *
+     * @param workspace the name of the workspace.
+     * @return the list of the registry model names registered in specified workspace.
+     */
+    List<String> getRegistryModelNames(String workspace);
 }

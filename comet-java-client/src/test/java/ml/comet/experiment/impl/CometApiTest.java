@@ -439,6 +439,14 @@ public class CometApiTest extends AssetsBaseTest {
         assertFalse(versionOverviewOptional.isPresent());
     }
 
+    @Test
+    public void testGetRegistryModelNames() {
+        // There are no way to delete models right now, so we almost always will get some model names.
+        // Until we have a way to remove models, we just check that model list returned without any errors
+        List<String> names = COMET_API.getRegistryModelNames(SHARED_EXPERIMENT.getWorkspaceName());
+        assertNotNull(names, "models list names expected either empty or populated");
+    }
+
     // UnZip model's file into temporary directory and check that expected model files are present
     private static void checkModelZipFile(Path zipFilePath, String... fileNames) throws IOException {
         Path tmpDir = Files.createTempDirectory("checkModelZipFile");
