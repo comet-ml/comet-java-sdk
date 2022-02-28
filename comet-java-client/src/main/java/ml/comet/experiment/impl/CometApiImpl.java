@@ -64,6 +64,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGIS
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_VERSIONS;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
+import static ml.comet.experiment.impl.resources.LogMessages.REGISTRY_MODEL_NOT_FOUND;
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_DESCRIPTION_IGNORED;
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_IS_PUBLIC_IGNORED;
 import static ml.comet.experiment.impl.resources.LogMessages.WORKSPACE_HAS_NO_REGISTRY_MODELS;
@@ -280,6 +281,26 @@ public final class CometApiImpl implements CometApi {
         return listResponse.getRegistryModels().stream().collect(
                 ArrayList::new,
                 (strings, registryModelOverview) -> strings.add(registryModelOverview.getModelName()),
+                ArrayList::addAll);
+    }
+
+    @Override
+    public List<String> getRegistryModelVersions(String registryName, String workspace) {
+        Optional<ModelOverview> overviewOptional = this.getRegistryModelDetails(registryName, workspace);
+        if (!overviewOptional.isPresent()) {
+            this.logger.warn(getString(REGISTRY_MODEL_NOT_FOUND, workspace, registryName));
+            return Collections.emptyList();
+        }
+
+        List<ModelVersionOverview> versions = overviewOptional.get().getVersions();
+        if (versions == null) {
+            this.logger.warn(getString(FAILED_TO_GET_REGISTRY_MODEL_VERSIONS, workspace, registryName));
+            return Collections.emptyList();
+        }
+
+        return versions.stream().collect(
+                ArrayList::new,
+                (strings, modelVersionOverview) -> strings.add(modelVersionOverview.getVersion()),
                 ArrayList::addAll);
     }
 
