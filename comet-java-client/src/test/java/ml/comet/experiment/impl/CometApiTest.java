@@ -11,6 +11,7 @@ import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.Project;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
+import ml.comet.experiment.registrymodel.ModelBuilder;
 import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import ml.comet.experiment.registrymodel.ModelOverview;
@@ -347,7 +348,7 @@ public class CometApiTest extends AssetsBaseTest {
         assertNotNull(version.getLastUpdated(), "last updated expected");
 
         assertNotNull(version.getAssets(), "assets expected");
-        String[]fileNames = toAssetFileNames(assetFolderFiles);
+        String[] fileNames = toAssetFileNames(assetFolderFiles);
         assertEquals(fileNames.length, version.getAssets().size(), "wrong assets number");
     }
 
@@ -366,39 +367,17 @@ public class CometApiTest extends AssetsBaseTest {
     public void testGetRegistryModelVersion() {
         String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
 
-        // log model folder
-        //
-        logModelFolder(modelName);
-
-        // register model and check results
-        //
-        Model model = Model.newModel(modelName)
-                .withComment(SOME_COMMENT)
-                .withDescription(SOME_DESCRIPTION)
-                .asPublic(true)
-                .withStages(Collections.singletonList(SOME_STAGE))
-                .build();
-        ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
-        assertNotNull(modelRegistry, "model registry record expected");
-        assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
-
-        // update model's version
+        // Register two model versions
         //
         String newVersion = "1.0.1";
         String newComment = "updated model";
         List<String> stages = Collections.singletonList("production");
-        Model updatedModel = Model.newModel(modelName)
-                .withComment(newComment)
-                .withVersion(newVersion)
-                .withStages(stages)
-                .build();
-        modelRegistry = COMET_API.registerModel(updatedModel, SHARED_EXPERIMENT.getExperimentKey());
-        assertNotNull(modelRegistry, "model registry record expected");
+        String registryName = registerTwoModelVersions(modelName, newVersion, newComment, stages);
 
         // trying to get model's version and check result
         //
         Optional<ModelVersionOverview> versionOverviewOptional = COMET_API.getRegistryModelVersion(
-                model.getRegistryName(), SHARED_EXPERIMENT.getWorkspaceName(), newVersion);
+                registryName, SHARED_EXPERIMENT.getWorkspaceName(), newVersion);
         assertTrue(versionOverviewOptional.isPresent(), "version details expected");
 
         ModelVersionOverview versionOverview = versionOverviewOptional.get();
@@ -407,7 +386,7 @@ public class CometApiTest extends AssetsBaseTest {
         assertEquals(stages, versionOverview.getStages(), "wrong stages");
 
         assertNotNull(versionOverview.getAssets(), "assets expected");
-        String[]fileNames = toAssetFileNames(assetFolderFiles);
+        String[] fileNames = toAssetFileNames(assetFolderFiles);
         assertEquals(fileNames.length, versionOverview.getAssets().size(), "wrong assets number");
     }
 
@@ -445,6 +424,62 @@ public class CometApiTest extends AssetsBaseTest {
         // Until we have a way to remove models, we just check that model list returned without any errors
         List<String> names = COMET_API.getRegistryModelNames(SHARED_EXPERIMENT.getWorkspaceName());
         assertNotNull(names, "models list names expected either empty or populated");
+    }
+
+    @Test
+    public void testGetRegistryModelVersions() {
+        // Test model not found
+        //
+        String modelName = "not existing model";
+        List<String> versions = COMET_API.getRegistryModelVersions(modelName, SHARED_EXPERIMENT.getWorkspaceName());
+        assertEquals(0, versions.size(), "empty list expected");
+
+        // Create model with two versions and check
+        //
+        modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+        String newVersion = "1.0.1";
+        String newComment = "updated model";
+        List<String> stages = Collections.singletonList("production");
+        registerTwoModelVersions(modelName, newVersion, newComment, stages);
+
+        versions = COMET_API.getRegistryModelVersions(modelName, SHARED_EXPERIMENT.getWorkspaceName());
+        assertEquals(2, versions.size(), "expected two model versions");
+        assertTrue(versions.contains(DEFAULT_MODEL_VERSION), "expected DEFAULT_MODEL_VERSION");
+        assertTrue(versions.contains(newVersion), "expected version");
+    }
+
+    private static String registerTwoModelVersions(String modelName, String nextVersion, String nextVersionComment,
+                                                   List<String> nextVersionStages) {
+        // log model folder
+        //
+        logModelFolder(modelName);
+
+        // register model and check results
+        //
+        Model model = Model.newModel(modelName)
+                .withComment(SOME_COMMENT)
+                .withDescription(SOME_DESCRIPTION)
+                .asPublic(true)
+                .withStages(Collections.singletonList(SOME_STAGE))
+                .build();
+        ModelRegistryRecord modelRegistry = COMET_API.registerModel(model, SHARED_EXPERIMENT.getExperimentKey());
+        assertNotNull(modelRegistry, "model registry record expected");
+        assertEquals(modelRegistry.getRegistryName(), model.getRegistryName(), "wrong registry name");
+
+        // update model's version
+        //
+        ModelBuilder builder = Model.newModel(modelName)
+                .withComment(nextVersionComment)
+                .withVersion(nextVersion);
+        if (nextVersionStages != null) {
+            builder.withStages(nextVersionStages);
+        }
+
+        Model updatedModel = builder.build();
+        modelRegistry = COMET_API.registerModel(updatedModel, SHARED_EXPERIMENT.getExperimentKey());
+        assertNotNull(modelRegistry, "model registry record expected");
+
+        return model.getRegistryName();
     }
 
     // UnZip model's file into temporary directory and check that expected model files are present
