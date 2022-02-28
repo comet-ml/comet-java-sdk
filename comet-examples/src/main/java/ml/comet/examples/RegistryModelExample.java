@@ -168,6 +168,13 @@ public class RegistryModelExample {
             List<String> names = api.getRegistryModelNames(experiment.getWorkspaceName());
             System.out.printf("Retrieved model names: '%s'\n", names);
 
+            // get registered model versions
+            //
+            System.out.printf("Retrieving versions of model '%s/%s'.\n",
+                    experiment.getWorkspaceName(), SOME_MODEL_NAME);
+            List<String> versions = api.getRegistryModelVersions(registryName, experiment.getWorkspaceName());
+            System.out.printf("Retrieved model versions: '%s'.\n", versions);
+
         } finally {
             PathUtils.deleteDirectory(modelTmpDir);
         }
