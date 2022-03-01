@@ -20,6 +20,7 @@ import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
+import ml.comet.experiment.impl.utils.ExceptionUtils;
 import ml.comet.experiment.impl.utils.ModelUtils;
 import ml.comet.experiment.impl.utils.RestApiUtils;
 import ml.comet.experiment.impl.utils.ZipUtils;
@@ -314,7 +315,20 @@ public final class CometApiImpl implements CometApi {
     public void updateRegistryModelNotes(
             @NonNull String notes, @NonNull String registryName, @NonNull String workspace) {
         RegistryModelNotesUpdateRequest request = createRegistryModelNotesUpdateRequest(notes, registryName, workspace);
-        RestApiResponse response = this.restApiClient.updateRegistryModelNotes(request).blockingGet();
+        RestApiResponse response;
+        try {
+            response = this.restApiClient.updateRegistryModelNotes(request).blockingGet();
+        } catch (Throwable e) {
+            this.logger.error(getString(FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES, workspace, registryName), e);
+            Throwable rootCause = ExceptionUtils.unwrap(e);
+            if (rootCause instanceof CometApiException) {
+                // the root is CometApiException - rethrow it
+                throw (CometApiException) rootCause;
+            } else {
+                // wrap into runtime exception
+                throw new RuntimeException(e);
+            }
+        }
         if (response.hasFailed()) {
             String msg = getString(FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES, workspace, registryName);
             this.logger.error(msg);
