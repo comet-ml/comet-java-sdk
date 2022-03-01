@@ -46,6 +46,8 @@ import ml.comet.experiment.impl.rest.RegistryModelCreateResponse;
 import ml.comet.experiment.impl.rest.RegistryModelDetailsResponse;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateResponse;
+import ml.comet.experiment.impl.rest.RegistryModelNotesResponse;
+import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.SetSystemDetailsRequest;
@@ -90,12 +92,14 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_PARAMETERS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_DETAILS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_LIST;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_NOTES;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_TAGS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.NEW_EXPERIMENT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_EXPERIMENT_STATUS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_SYSTEM_DETAILS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.UPDATE_ARTIFACT_STATE;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.UPDATE_REGISTRY_MODEL_NOTES;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.UPSERT_ARTIFACT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
 import static ml.comet.experiment.impl.constants.FormParamName.LINK;
@@ -357,6 +361,18 @@ final class RestApiClient implements Disposable {
         return this.singleFromAsyncDownload(output, DOWNLOAD_REGISTRY_MODEL, queryParams);
     }
 
+    Single<RegistryModelNotesResponse> getRegistryModelNotes(String modelName, String workspaceName) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(WORKSPACE_NAME, workspaceName);
+        queryParams.put(MODEL_NAME, modelName);
+        return singleFromSyncGetWithRetries(GET_REGISTRY_MODEL_NOTES, queryParams, true,
+                RegistryModelNotesResponse.class);
+    }
+
+    Single<RestApiResponse> updateRegistryModelNotes(RegistryModelNotesUpdateRequest request) {
+        return singleFromAsyncPost(request, UPDATE_REGISTRY_MODEL_NOTES);
+    }
+
     private Single<RestApiResponse> singleFromAsyncDownload(@NonNull OutputStream output,
                                                             @NonNull String endpoint,
                                                             @NonNull Map<QueryParamName, String> queryParams) {
@@ -375,6 +391,16 @@ final class RestApiClient implements Disposable {
         }
 
         return Single.fromFuture(this.connection.downloadAsync(file, endpoint, queryParams))
+                .map(RestApiClient::mapResponse);
+    }
+
+    private Single<RestApiResponse> singleFromAsyncPost(@NonNull Object payload,
+                                                        @NonNull String endpoint) {
+        if (isDisposed()) {
+            return Single.error(ALREADY_DISPOSED);
+        }
+        return Single.fromFuture(this.connection.sendPostAsync(JsonUtils.toJson(payload), endpoint))
+                .onTerminateDetach()
                 .map(RestApiClient::mapResponse);
     }
 

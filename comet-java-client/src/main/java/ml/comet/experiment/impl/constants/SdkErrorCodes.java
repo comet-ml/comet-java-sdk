@@ -8,6 +8,8 @@ public final class SdkErrorCodes {
     public static final int invalidOptimizationId = 5124123;
     public static final int noArtifactFound = 624522;
     public static final int noArtifactVersionFound = 624523;
+    public static final int noModelToUpdate = 42006;
+    public static final int registryModelNotFound = 42008;
     public static final int apiKeyNotRegistered = 90212;
     public static final int nonExistingTeam = 90219;
     public static final int noProjectNameSpecified = 98219;

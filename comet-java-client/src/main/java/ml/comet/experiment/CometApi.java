@@ -104,4 +104,22 @@ public interface CometApi extends Closeable {
      * @return the list of the version strings of the registry model.
      */
     List<String> getRegistryModelVersions(String registryName, String workspace);
+
+    /**
+     * Adds or updates notes associated with the registry model.
+     *
+     * @param notes        the notes to be associated.
+     * @param registryName the name of the model as in models' registry.
+     * @param workspace    the name of the model's workspace.
+     */
+    void updateRegistryModelNotes(String notes, String registryName, String workspace);
+
+    /**
+     * Returns notes associated with the registry model.
+     *
+     * @param registryName the name of the model as in models' registry.
+     * @param workspace    the name of the model's workspace.
+     * @return the notes associated with the registry model or empty.
+     */
+    Optional<String> getRegistryModelNotes(String registryName, String workspace);
 }

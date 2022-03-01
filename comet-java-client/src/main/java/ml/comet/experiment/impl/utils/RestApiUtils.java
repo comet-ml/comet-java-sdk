@@ -26,6 +26,7 @@ import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import org.apache.commons.lang3.StringUtils;
@@ -292,6 +293,19 @@ public class RestApiUtils {
         request.setComment(model.getComment());
         request.setStages(model.getStages());
         return request;
+    }
+
+    /**
+     * Creates request to create/update notes of the registry model.
+     *
+     * @param notes        the notes to be created.
+     * @param registryName the registry model name.
+     * @param workspace    the workspace name.
+     * @return the properly initialized instance of {@link RegistryModelNotesUpdateRequest}.
+     */
+    public static RegistryModelNotesUpdateRequest createRegistryModelNotesUpdateRequest(
+            String notes, String registryName, String workspace) {
+        return new RegistryModelNotesUpdateRequest(notes, registryName, workspace);
     }
 
     /**

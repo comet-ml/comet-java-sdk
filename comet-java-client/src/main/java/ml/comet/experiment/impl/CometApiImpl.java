@@ -15,6 +15,8 @@ import ml.comet.experiment.impl.rest.ExperimentModelResponse;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelDetailsResponse;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelNotesResponse;
+import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
@@ -53,6 +55,7 @@ import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
+import static ml.comet.experiment.impl.constants.SdkErrorCodes.registryModelNotFound;
 import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_TO_DIR;
 import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_TO_FILE;
@@ -61,7 +64,9 @@ import static ml.comet.experiment.impl.resources.LogMessages.EXTRACTED_N_REGISTR
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_DETAILS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_NOTES;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_VERSIONS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.REGISTRY_MODEL_NOT_FOUND;
@@ -69,6 +74,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MOD
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_IS_PUBLIC_IGNORED;
 import static ml.comet.experiment.impl.resources.LogMessages.WORKSPACE_HAS_NO_REGISTRY_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
+import static ml.comet.experiment.impl.utils.RestApiUtils.createRegistryModelNotesUpdateRequest;
 
 /**
  * The implementation of the {@link  CometApi}.
@@ -244,7 +250,7 @@ public final class CometApiImpl implements CometApi {
         } catch (CometApiException ex) {
             this.logger.error(getString(FAILED_TO_GET_REGISTRY_MODEL_DETAILS,
                     workspace, registryName, ex.getStatusMessage(), ex.getSdkErrorCode()), ex);
-            if (ex.getSdkErrorCode() == 42008) {
+            if (ex.getSdkErrorCode() == registryModelNotFound) {
                 return Optional.empty();
             }
             throw ex;
@@ -285,7 +291,7 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public List<String> getRegistryModelVersions(String registryName, String workspace) {
+    public List<String> getRegistryModelVersions(@NonNull String registryName, @NonNull String workspace) {
         Optional<ModelOverview> overviewOptional = this.getRegistryModelDetails(registryName, workspace);
         if (!overviewOptional.isPresent()) {
             this.logger.warn(getString(REGISTRY_MODEL_NOT_FOUND, workspace, registryName));
@@ -302,6 +308,35 @@ public final class CometApiImpl implements CometApi {
                 ArrayList::new,
                 (strings, modelVersionOverview) -> strings.add(modelVersionOverview.getVersion()),
                 ArrayList::addAll);
+    }
+
+    @Override
+    public void updateRegistryModelNotes(
+            @NonNull String notes, @NonNull String registryName, @NonNull String workspace) {
+        RegistryModelNotesUpdateRequest request = createRegistryModelNotesUpdateRequest(notes, registryName, workspace);
+        RestApiResponse response = this.restApiClient.updateRegistryModelNotes(request).blockingGet();
+        if (response.hasFailed()) {
+            String msg = getString(FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES, workspace, registryName);
+            this.logger.error(msg);
+            throw new CometApiException(msg);
+        }
+    }
+
+    @Override
+    public Optional<String> getRegistryModelNotes(@NonNull String registryName, @NonNull String workspace) {
+        try {
+            RegistryModelNotesResponse response = this.restApiClient
+                    .getRegistryModelNotes(registryName, workspace)
+                    .blockingGet();
+            return Optional.ofNullable(response.getNotes());
+        } catch (CometApiException ex) {
+            this.logger.error(getString(FAILED_TO_GET_REGISTRY_MODEL_NOTES,
+                    workspace, registryName, ex.getStatusMessage(), ex.getSdkErrorCode()), ex);
+            if (ex.getSdkErrorCode() == registryModelNotFound) {
+                return Optional.empty();
+            }
+            throw ex;
+        }
     }
 
     /**
