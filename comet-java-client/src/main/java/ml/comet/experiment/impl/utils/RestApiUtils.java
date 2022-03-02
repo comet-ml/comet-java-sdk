@@ -27,6 +27,7 @@ import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelUpdateRequest;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import org.apache.commons.lang3.StringUtils;
@@ -306,6 +307,23 @@ public class RestApiUtils {
     public static RegistryModelNotesUpdateRequest createRegistryModelNotesUpdateRequest(
             String notes, String registryName, String workspace) {
         return new RegistryModelNotesUpdateRequest(notes, registryName, workspace);
+    }
+
+    /**
+     * Creates request to update the registry model.
+     *
+     * @param registryModelName the new name for the model.
+     * @param description       the new description for the model.
+     * @param isPublic          the flag to change visibility status of the model.
+     * @return the property initialized instance of {@link RegistryModelUpdateRequest}.
+     */
+    public static RegistryModelUpdateRequest createRegistryModelUpdateRequest(
+            String registryModelName, String description, Boolean isPublic) {
+        RegistryModelUpdateRequest request = new RegistryModelUpdateRequest();
+        request.setRegistryModelName(registryModelName);
+        request.setDescription(description);
+        request.setIsPublic(isPublic);
+        return request;
     }
 
     /**

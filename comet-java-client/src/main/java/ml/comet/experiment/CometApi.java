@@ -5,6 +5,7 @@ import ml.comet.experiment.model.Project;
 import ml.comet.experiment.registrymodel.DownloadModelOptions;
 import ml.comet.experiment.registrymodel.Model;
 import ml.comet.experiment.registrymodel.ModelDownloadInfo;
+import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import ml.comet.experiment.registrymodel.ModelOverview;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 import ml.comet.experiment.registrymodel.ModelVersionOverview;
@@ -122,4 +123,24 @@ public interface CometApi extends Closeable {
      * @return the notes associated with the registry model or empty.
      */
     Optional<String> getRegistryModelNotes(String registryName, String workspace);
+
+    /**
+     * Updates the registry model with new values.
+     *
+     * @param registryName    the current name of the model.
+     * @param workspace       the name of the model's workspace.
+     * @param newRegistryName the new name for the model.
+     * @param newDescription  the new description of the model.
+     * @param isPublic        the new visibility status of the model.
+     * @throws ModelNotFoundException if model doesn't exists.
+     */
+    void updateRegistryModel(String registryName, String workspace,
+                             String newRegistryName, String newDescription, boolean isPublic)
+            throws ModelNotFoundException;
+
+    void updateRegistryModel(String registryName, String workspace, String newRegistryName, String newDescription)
+            throws ModelNotFoundException;
+
+    void updateRegistryModel(String registryName, String workspace, String newRegistryName)
+            throws ModelNotFoundException;
 }

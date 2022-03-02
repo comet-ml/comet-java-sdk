@@ -20,6 +20,7 @@ import ml.comet.experiment.registrymodel.ModelRegistryRecord;
 import ml.comet.experiment.registrymodel.ModelVersionOverview;
 import org.apache.commons.io.file.Counters;
 import org.apache.commons.io.file.PathUtils;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipInputStream;
 
 import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
@@ -433,6 +435,48 @@ public class CometApiTest extends AssetsBaseTest {
         Optional<String> notes = COMET_API.getRegistryModelNotes(modelName, SHARED_EXPERIMENT.getWorkspaceName());
         assertTrue(notes.isPresent(), "notes not present");
         assertEquals(SOME_NOTES, notes.get(), "wrong notes");
+    }
+
+    @Test
+    public void testUpdateRegistryModel_model_doesnt_exists() {
+        // try to update not existing model
+        //
+        String modelName = "not existing model";
+        assertThrows(CometApiException.class, () ->
+                COMET_API.updateRegistryModel(modelName, SHARED_EXPERIMENT.getWorkspaceName(), null));
+    }
+
+    @Test
+    public void testUpdateRegistryModel() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // register model with defaults
+        //
+        registerModelWithDefaults(modelName);
+
+        // update registry model with new values
+        //
+        String newModelName = String.format("%s-%d", "new-model-name", System.currentTimeMillis());
+        String newDescription = "updated model description";
+        COMET_API.updateRegistryModel(modelName, SHARED_EXPERIMENT.getWorkspaceName(), newModelName, newDescription, false);
+
+        // get registry model and check that it was updated
+        //
+        Awaitility.await("failed to get updated model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(newModelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        Optional<ModelOverview> overviewOptional = COMET_API.getRegistryModelDetails(newModelName,
+                SHARED_EXPERIMENT.getWorkspaceName());
+
+        assertTrue(overviewOptional.isPresent(), "model expected");
+        ModelOverview modelOverview = overviewOptional.get();
+
+        assertEquals(newModelName, modelOverview.getModelName(), "wrong model name");
+        assertEquals(newDescription, modelOverview.getDescription(), "wrong description");
+        assertFalse(modelOverview.isPublic(), "wrong visibility status");
     }
 
     private static String registerModelWithDefaults(String modelName) {
