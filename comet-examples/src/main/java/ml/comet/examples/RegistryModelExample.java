@@ -44,6 +44,7 @@ public class RegistryModelExample {
     static final String SOME_MODEL_VERSION = "1.0.0";
     static final String SOME_MODEL_VERSION_UP = "1.0.1";
     static final String STAGE_PRODUCTION = "production";
+    static final String SOME_NOTES = "some model notes";
 
     /**
      * The main entry point to the example.
@@ -174,6 +175,15 @@ public class RegistryModelExample {
                     experiment.getWorkspaceName(), SOME_MODEL_NAME);
             List<String> versions = api.getRegistryModelVersions(registryName, experiment.getWorkspaceName());
             System.out.printf("Retrieved model versions: '%s'.\n", versions);
+
+            // create and retrieve registry model notes
+            //
+            System.out.printf("Updating notes of the registry model '%s/%s'.\n",
+                    experiment.getWorkspaceName(), SOME_MODEL_NAME);
+            api.updateRegistryModelNotes(SOME_NOTES, registryName, experiment.getWorkspaceName());
+            System.out.println("Retrieving model notes...");
+            Optional<String> notes = api.getRegistryModelNotes(registryName, experiment.getWorkspaceName());
+            notes.ifPresent(s -> System.out.printf("Retrieved model notes: '%s'\n", s));
 
         } finally {
             PathUtils.deleteDirectory(modelTmpDir);
