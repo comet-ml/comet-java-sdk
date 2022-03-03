@@ -1,6 +1,7 @@
 package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import ml.comet.experiment.CometApi;
@@ -18,6 +19,7 @@ import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelNotesResponse;
 import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
+import ml.comet.experiment.impl.rest.RegistryModelUpdateRequest;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.ExceptionUtils;
@@ -49,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipInputStream;
 
@@ -67,6 +70,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPE
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_DETAILS;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_NOTES;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_VERSIONS;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
@@ -315,25 +319,11 @@ public final class CometApiImpl implements CometApi {
     public void updateRegistryModelNotes(
             @NonNull String notes, @NonNull String registryName, @NonNull String workspace) {
         RegistryModelNotesUpdateRequest request = createRegistryModelNotesUpdateRequest(notes, registryName, workspace);
-        RestApiResponse response;
-        try {
-            response = this.restApiClient.updateRegistryModelNotes(request).blockingGet();
-        } catch (Throwable e) {
-            this.logger.error(getString(FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES, workspace, registryName), e);
-            Throwable rootCause = ExceptionUtils.unwrap(e);
-            if (rootCause instanceof CometApiException) {
-                // the root is CometApiException - rethrow it
-                throw (CometApiException) rootCause;
-            } else {
-                // wrap into runtime exception
-                throw new RuntimeException(e);
-            }
-        }
-        if (response.hasFailed()) {
-            String msg = getString(FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES, workspace, registryName);
-            this.logger.error(msg);
-            throw new CometApiException(msg);
-        }
+        String errorMsg = getString(FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES, workspace, registryName);
+        RestApiResponse response = this.executeSyncRequest(
+                this.restApiClient::updateRegistryModelNotes, request, errorMsg);
+
+        this.checkRestApiResponse(response, errorMsg);
     }
 
     @Override
@@ -351,6 +341,43 @@ public final class CometApiImpl implements CometApi {
             }
             throw ex;
         }
+    }
+
+    @Override
+    public void updateRegistryModel(@NonNull String registryName, @NonNull String workspace,
+                                    String newRegistryName, String newDescription, boolean isPublic)
+            throws ModelNotFoundException {
+        this.updateRegistryModel(registryName, workspace,
+                RestApiUtils.createRegistryModelUpdateRequest(newRegistryName, newDescription, isPublic));
+    }
+
+    @Override
+    public void updateRegistryModel(@NonNull String registryName, @NonNull String workspace, String newRegistryName,
+                                    String newDescription) throws ModelNotFoundException {
+        this.updateRegistryModel(registryName, workspace,
+                RestApiUtils.createRegistryModelUpdateRequest(newRegistryName, newDescription, null));
+    }
+
+    @Override
+    public void updateRegistryModel(@NonNull String registryName, @NonNull String workspace, String newRegistryName)
+            throws ModelNotFoundException {
+        this.updateRegistryModel(registryName, workspace,
+                RestApiUtils.createRegistryModelUpdateRequest(newRegistryName, null, null));
+    }
+
+    private void updateRegistryModel(@NonNull String registryName, @NonNull String workspace,
+                                     @NonNull RegistryModelUpdateRequest request) {
+        // get registry model details
+        Optional<ModelOverview> overviewOptional = this.getRegistryModelDetails(registryName, workspace);
+        if (!overviewOptional.isPresent()) {
+            throw new ModelNotFoundException(getString(REGISTRY_MODEL_NOT_FOUND, workspace, registryName));
+        }
+
+        // update registry model details
+        request.setRegistryModelId(overviewOptional.get().getRegistryModelId());
+        String errorMsg = getString(FAILED_TO_UPDATE_REGISTRY_MODEL, workspace, registryName, request);
+        RestApiResponse response = this.executeSyncRequest(this.restApiClient::updateRegistryModel, request, errorMsg);
+        this.checkRestApiResponse(response, errorMsg);
     }
 
     /**
@@ -430,6 +457,38 @@ public final class CometApiImpl implements CometApi {
                             return apiResponse;
                         }).blockingFirst();
             }
+        }
+    }
+
+    /**
+     * Executes synchronous request to the Comet API using provided function with given request object as argument.
+     *
+     * @param func         the function to wrapping Comet API request.
+     * @param request      the request object.
+     * @param errorMessage the error message to be displayed if exception thrown during function execution.
+     * @param <T>          the type of the request object.
+     * @return the {@link RestApiResponse} encapsulating response.
+     */
+    <T> RestApiResponse executeSyncRequest(Function<T, Single<RestApiResponse>> func, T request, String errorMessage) {
+        try {
+            return func.apply(request).blockingGet();
+        } catch (Throwable e) {
+            this.logger.error(errorMessage, e);
+            Throwable rootCause = ExceptionUtils.unwrap(e);
+            if (rootCause instanceof CometApiException) {
+                // the root is CometApiException - rethrow it
+                throw (CometApiException) rootCause;
+            } else {
+                // wrap into runtime exception
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private void checkRestApiResponse(RestApiResponse response, String errorMessage) {
+        if (response.hasFailed()) {
+            this.logger.error(errorMessage);
+            throw new CometApiException(errorMessage);
         }
     }
 

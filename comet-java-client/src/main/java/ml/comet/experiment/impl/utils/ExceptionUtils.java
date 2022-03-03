@@ -1,5 +1,7 @@
 package ml.comet.experiment.impl.utils;
 
+import ml.comet.experiment.exception.CometApiException;
+
 import java.util.Objects;
 
 /**

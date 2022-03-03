@@ -40,7 +40,7 @@ import static ml.comet.experiment.impl.asset.AssetType.MODEL_ELEMENT;
  */
 public class RegistryModelExample {
 
-    static final String SOME_MODEL_DESCRIPTION = "LogModelExample model";
+    static final String SOME_MODEL_DESCRIPTION = "RegistryModelExample model";
     static final String SOME_MODEL_VERSION = "1.0.0";
     static final String SOME_MODEL_VERSION_UP = "1.0.1";
     static final String STAGE_PRODUCTION = "production";
@@ -184,6 +184,14 @@ public class RegistryModelExample {
             System.out.println("Retrieving model notes...");
             Optional<String> notes = api.getRegistryModelNotes(registryName, experiment.getWorkspaceName());
             notes.ifPresent(s -> System.out.printf("Retrieved model notes: '%s'\n", s));
+
+            // update registry model
+            //
+            System.out.printf("Updating registry model '%s/%s'.\n", experiment.getWorkspaceName(), SOME_MODEL_NAME);
+            String newModelName = String.format("%s-%d", "updatedModelNameExample", System.currentTimeMillis());
+            String newDescription = SOME_MODEL_DESCRIPTION + " updated";
+            api.updateRegistryModel(registryName, experiment.getWorkspaceName(), newModelName, newDescription);
+            System.out.println("Model was successfully updated");
 
         } finally {
             PathUtils.deleteDirectory(modelTmpDir);

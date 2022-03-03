@@ -49,6 +49,7 @@ import ml.comet.experiment.impl.rest.RegistryModelItemCreateResponse;
 import ml.comet.experiment.impl.rest.RegistryModelNotesResponse;
 import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
+import ml.comet.experiment.impl.rest.RegistryModelUpdateRequest;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.SetSystemDetailsRequest;
 import ml.comet.experiment.impl.rest.TagsResponse;
@@ -99,6 +100,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.PROJECTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_EXPERIMENT_STATUS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.SET_SYSTEM_DETAILS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.UPDATE_ARTIFACT_STATE;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.UPDATE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.UPDATE_REGISTRY_MODEL_NOTES;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.UPSERT_ARTIFACT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.WORKSPACES;
@@ -371,6 +373,10 @@ final class RestApiClient implements Disposable {
 
     Single<RestApiResponse> updateRegistryModelNotes(RegistryModelNotesUpdateRequest request) {
         return singleFromAsyncPost(request, UPDATE_REGISTRY_MODEL_NOTES);
+    }
+
+    Single<RestApiResponse> updateRegistryModel(RegistryModelUpdateRequest request) {
+        return singleFromAsyncPost(request, UPDATE_REGISTRY_MODEL);
     }
 
     private Single<RestApiResponse> singleFromAsyncDownload(@NonNull OutputStream output,
