@@ -188,7 +188,7 @@ public class RegistryModelExample {
             // update registry model
             //
             System.out.printf("Updating registry model '%s/%s'.\n", experiment.getWorkspaceName(), SOME_MODEL_NAME);
-            String newModelName = "updatedModelNameExample";
+            String newModelName = String.format("%s-%d", "updatedModelNameExample", System.currentTimeMillis());
             String newDescription = SOME_MODEL_DESCRIPTION + " updated";
             api.updateRegistryModel(registryName, experiment.getWorkspaceName(), newModelName, newDescription);
             System.out.println("Model was successfully updated");
