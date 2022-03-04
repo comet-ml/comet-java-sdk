@@ -193,6 +193,16 @@ public class RegistryModelExample {
             api.updateRegistryModel(registryName, experiment.getWorkspaceName(), newModelName, newDescription);
             System.out.println("Model was successfully updated");
 
+            // update registry model version details
+            //
+            System.out.printf("Updating version details of the registry model '%s/%s:%s'.\n",
+                    experiment.getWorkspaceName(), newModelName, SOME_MODEL_VERSION_UP);
+            String newComment = "updated version comment";
+            List<String> newStages = Collections.singletonList("updated stage");
+            api.updateRegistryModelVersion(newModelName, experiment.getWorkspaceName(), SOME_MODEL_VERSION_UP,
+                    newComment, newStages);
+            System.out.printf("Model version details was successfully updated for: %s\n", SOME_MODEL_VERSION_UP);
+
         } finally {
             PathUtils.deleteDirectory(modelTmpDir);
         }
