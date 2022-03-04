@@ -143,4 +143,18 @@ public interface CometApi extends Closeable {
 
     void updateRegistryModel(String registryName, String workspace, String newRegistryName)
             throws ModelNotFoundException;
+
+    /**
+     * Updates the comments and stages of particular version of the registered model.
+     *
+     * @param registryName the name of the model.
+     * @param workspace    the name of the model's workspace.
+     * @param version      the version of the registered model to be updated.
+     * @param comments     the comment to associate with new version.
+     * @param stages       the stages to associate with new version.
+     */
+    void updateRegistryModelVersion(String registryName, String workspace, String version,
+                                    String comments, List<String> stages);
+
+    void updateRegistryModelVersion(String registryName, String workspace, String version, String comments);
 }

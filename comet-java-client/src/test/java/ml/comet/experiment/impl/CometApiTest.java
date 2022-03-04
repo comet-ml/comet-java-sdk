@@ -17,6 +17,7 @@ import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import ml.comet.experiment.registrymodel.ModelOverview;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
+import ml.comet.experiment.registrymodel.ModelVersionNotFoundException;
 import ml.comet.experiment.registrymodel.ModelVersionOverview;
 import org.apache.commons.io.file.Counters;
 import org.apache.commons.io.file.PathUtils;
@@ -477,6 +478,76 @@ public class CometApiTest extends AssetsBaseTest {
         assertEquals(newModelName, modelOverview.getModelName(), "wrong model name");
         assertEquals(newDescription, modelOverview.getDescription(), "wrong description");
         assertFalse(modelOverview.isPublic(), "wrong visibility status");
+    }
+
+    @Test
+    public void testUpdateRegistryModelVersion_model_doesnt_exists() {
+        // try to update not existing model
+        //
+        String modelName = "not existing model";
+        assertThrows(CometApiException.class, () ->
+                COMET_API.updateRegistryModelVersion(
+                        modelName, SHARED_EXPERIMENT.getWorkspaceName(), "1.0.1", "some comment"));
+    }
+
+    @Test
+    public void testUpdateRegistryModelVersion_version_doesnt_exists() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // register model with defaults
+        //
+        registerModelWithDefaults(modelName);
+
+        // try to update not existing model
+        //
+        assertThrows(ModelVersionNotFoundException.class, () ->
+                COMET_API.updateRegistryModelVersion(
+                        modelName, SHARED_EXPERIMENT.getWorkspaceName(), "1.0.1", "some comment"));
+    }
+
+    @Test
+    public void testUpdateRegistryModelVersion() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // register model with defaults
+        //
+        registerModelWithDefaults(modelName);
+
+        // wait for registry model to be processed by backend
+        //
+        Awaitility.await("failed to get registry model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(modelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        // update model's version
+        //
+        String comment = "testUpdateRegistryModelVersion comment";
+        List<String> stages = Collections.singletonList("testUpdateRegistryModelVersion");
+        COMET_API.updateRegistryModelVersion(
+                modelName, SHARED_EXPERIMENT.getWorkspaceName(), DEFAULT_MODEL_VERSION, comment, stages);
+
+        // get registry model and check that it was updated
+        //
+        Awaitility.await("failed to get registry model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(modelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        Optional<ModelOverview> overviewOptional = COMET_API.getRegistryModelDetails(modelName,
+                SHARED_EXPERIMENT.getWorkspaceName());
+
+        assertTrue(overviewOptional.isPresent(), "model expected");
+        ModelOverview modelOverview = overviewOptional.get();
+
+        assertNotNull(modelOverview.getVersions(), "versions list expected");
+        assertEquals(1, modelOverview.getVersions().size(), "wrong versions list size");
+
+        ModelVersionOverview versionOverview = modelOverview.getVersions().get(0);
+        assertEquals(comment, versionOverview.getComment(), "wrong comment");
+        assertEquals(stages, versionOverview.getStages(), "wrong stages");
     }
 
     private static String registerModelWithDefaults(String modelName) {
