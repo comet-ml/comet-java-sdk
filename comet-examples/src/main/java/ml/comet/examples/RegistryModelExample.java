@@ -203,6 +203,12 @@ public class RegistryModelExample {
                     newComment, newStages);
             System.out.printf("Model version details was successfully updated for: %s\n", SOME_MODEL_VERSION_UP);
 
+            // delete the registry model
+            //
+            System.out.printf("Deleting registry model '%s/%s'.\n", experiment.getWorkspaceName(), newModelName);
+            api.deleteRegistryModel(newModelName, experiment.getWorkspaceName());
+            System.out.println("Model was successfully deleted.");
+
         } finally {
             PathUtils.deleteDirectory(modelTmpDir);
         }
