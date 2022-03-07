@@ -27,6 +27,7 @@ public final class ApiEndpoints {
     public static final String CREATE_REGISTRY_MODEL_ITEM = CREATE_REGISTRY_MODEL + "/item";
     public static final String UPDATE_REGISTRY_MODEL_NOTES = UPDATE_API_URL + "/registry-model/notes";
     public static final String UPDATE_REGISTRY_MODEL = UPDATE_API_URL + "/registry-model/update";
+    public static final String UPDATE_REGISTRY_MODEL_VERSION = UPDATE_API_URL + "/registry-model/item/update";
 
     public static final String READ_API_URL = "/api/rest/v2";
     public static final String GET_ASSETS_LIST = READ_API_URL + "/experiment/asset/list";

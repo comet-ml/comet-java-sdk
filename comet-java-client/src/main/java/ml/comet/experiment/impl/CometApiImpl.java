@@ -19,6 +19,7 @@ import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelNotesResponse;
 import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
+import ml.comet.experiment.impl.rest.RegistryModelUpdateItemRequest;
 import ml.comet.experiment.impl.rest.RegistryModelUpdateRequest;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
@@ -34,6 +35,7 @@ import ml.comet.experiment.registrymodel.ModelDownloadInfo;
 import ml.comet.experiment.registrymodel.ModelNotFoundException;
 import ml.comet.experiment.registrymodel.ModelOverview;
 import ml.comet.experiment.registrymodel.ModelRegistryRecord;
+import ml.comet.experiment.registrymodel.ModelVersionNotFoundException;
 import ml.comet.experiment.registrymodel.ModelVersionOverview;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -72,9 +74,11 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGIS
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_VERSIONS;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_REGISTRY_MODEL_NOTES;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPDATE_REGISTRY_MODEL_VERSION;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_REGISTERED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.MODEL_VERSION_CREATED_IN_WORKSPACE;
 import static ml.comet.experiment.impl.resources.LogMessages.REGISTRY_MODEL_NOT_FOUND;
+import static ml.comet.experiment.impl.resources.LogMessages.REGISTRY_MODEL_VERSION_NOT_FOUND;
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_DESCRIPTION_IGNORED;
 import static ml.comet.experiment.impl.resources.LogMessages.UPDATE_REGISTRY_MODEL_IS_PUBLIC_IGNORED;
 import static ml.comet.experiment.impl.resources.LogMessages.WORKSPACE_HAS_NO_REGISTRY_MODELS;
@@ -378,6 +382,46 @@ public final class CometApiImpl implements CometApi {
         String errorMsg = getString(FAILED_TO_UPDATE_REGISTRY_MODEL, workspace, registryName, request);
         RestApiResponse response = this.executeSyncRequest(this.restApiClient::updateRegistryModel, request, errorMsg);
         this.checkRestApiResponse(response, errorMsg);
+    }
+
+    @Override
+    public void updateRegistryModelVersion(@NonNull String registryName, @NonNull String workspace,
+                                           @NonNull String version, String comments, List<String> stages) {
+        // get registry model details
+        Optional<ModelOverview> overviewOptional = this.getRegistryModelDetails(registryName, workspace);
+        if (!overviewOptional.isPresent()) {
+            throw new ModelNotFoundException(getString(REGISTRY_MODEL_NOT_FOUND, workspace, registryName));
+        }
+
+        ModelOverview modelOverview = overviewOptional.get();
+        if (modelOverview.getVersions() == null || modelOverview.getVersions().size() == 0) {
+            throw new ModelNotFoundException(getString(FAILED_TO_GET_REGISTRY_MODEL_VERSIONS, workspace, registryName));
+        }
+
+        // get registry model's item ID which match version
+        Optional<ModelVersionOverview> versionOverviewOptional = modelOverview.getVersions()
+                .stream()
+                .filter(modelVersionOverview -> Objects.equals(modelVersionOverview.getVersion(), version))
+                .findFirst();
+        if (!versionOverviewOptional.isPresent()) {
+           throw new ModelVersionNotFoundException(
+                   getString(REGISTRY_MODEL_VERSION_NOT_FOUND, version, workspace, registryName));
+        }
+
+        // update model version details
+        RegistryModelUpdateItemRequest request = new RegistryModelUpdateItemRequest();
+        request.setRegistryModelItemId(versionOverviewOptional.get().getRegistryModelItemId());
+        request.setComment(comments);
+        request.setStages(stages);
+        String errorMsg = getString(FAILED_TO_UPDATE_REGISTRY_MODEL_VERSION, workspace, registryName, version, request);
+        RestApiResponse response = this.executeSyncRequest(
+                this.restApiClient::updateRegistryModelVersion, request, errorMsg);
+        this.checkRestApiResponse(response, errorMsg);
+    }
+
+    @Override
+    public void updateRegistryModelVersion(String registryName, String workspace, String version, String comments) {
+        this.updateRegistryModelVersion(registryName, workspace, version, null, null);
     }
 
     /**
