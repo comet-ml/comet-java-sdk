@@ -77,6 +77,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL_ITEM;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.DELETE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_DETAIL;
@@ -115,6 +116,8 @@ import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.http.ConnectionUtils.checkResponseStatus;
+import static ml.comet.experiment.impl.resources.LogMessages.NO_RESPONSE_RETURNED_BY_REMOTE_ENDPOINT;
+import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.RestApiUtils.artifactDownloadAssetParams;
 import static ml.comet.experiment.impl.utils.RestApiUtils.artifactVersionDetailsParams;
 import static ml.comet.experiment.impl.utils.RestApiUtils.artifactVersionFilesParams;
@@ -385,6 +388,13 @@ final class RestApiClient implements Disposable {
         return singleFromAsyncPost(request, UPDATE_REGISTRY_MODEL_VERSION);
     }
 
+    Single<RestApiResponse> deleteRegistryModel(String modelName, String workspaceName) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(WORKSPACE_NAME, workspaceName);
+        queryParams.put(MODEL_NAME, modelName);
+        return singleFromSyncGetWithRetries(DELETE_REGISTRY_MODEL, queryParams);
+    }
+
     private Single<RestApiResponse> singleFromAsyncDownload(@NonNull OutputStream output,
                                                             @NonNull String endpoint,
                                                             @NonNull Map<QueryParamName, String> queryParams) {
@@ -489,7 +499,15 @@ final class RestApiClient implements Disposable {
         return this.connection.sendPostWithRetries(JsonUtils.toJson(payload), endpoint, true)
                 .map(body -> Single.just(new RestApiResponse(200, body)))
                 .orElse(Single.error(new CometApiException(
-                        String.format("No response was returned by endpoint: %s", endpoint))));
+                        getString(NO_RESPONSE_RETURNED_BY_REMOTE_ENDPOINT, endpoint))));
+    }
+
+    private Single<RestApiResponse> singleFromSyncGetWithRetries(@NonNull String endpoint,
+                                                                 @NonNull Map<QueryParamName, String> params) {
+        return this.connection.sendGetWithRetries(endpoint, params, true)
+                .map(body -> Single.just(new RestApiResponse(200, body)))
+                .orElse(Single.error(new CometApiException(
+                        getString(NO_RESPONSE_RETURNED_BY_REMOTE_ENDPOINT, endpoint))));
     }
 
     private <T> Single<T> singleFromSyncGetWithRetries(@NonNull String endpoint,

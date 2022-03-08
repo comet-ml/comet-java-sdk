@@ -67,6 +67,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTR
 import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_TO_FILE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.EXTRACTED_N_REGISTRY_MODEL_FILES;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_DETAILS;
@@ -422,6 +423,13 @@ public final class CometApiImpl implements CometApi {
     @Override
     public void updateRegistryModelVersion(String registryName, String workspace, String version, String comments) {
         this.updateRegistryModelVersion(registryName, workspace, version, null, null);
+    }
+
+    @Override
+    public void deleteRegistryModel(String registryName, String workspace) {
+        RestApiResponse response = this.restApiClient.deleteRegistryModel(registryName, workspace)
+                .blockingGet();
+        this.checkRestApiResponse(response, getString(FAILED_TO_DELETE_REGISTRY_MODEL, registryName, workspace));
     }
 
     /**

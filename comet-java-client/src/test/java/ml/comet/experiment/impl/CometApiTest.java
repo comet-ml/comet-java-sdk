@@ -550,6 +550,34 @@ public class CometApiTest extends AssetsBaseTest {
         assertEquals(stages, versionOverview.getStages(), "wrong stages");
     }
 
+    @Test
+    public void testDeleteRegistryModel() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // register model with defaults
+        //
+        registerModelWithDefaults(modelName);
+
+        // wait for registry model to be processed by backend
+        //
+        Awaitility.await("failed to get registry model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(modelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        // try to delete the model
+        //
+        COMET_API.deleteRegistryModel(modelName, SHARED_EXPERIMENT.getWorkspaceName());
+    }
+
+    @Test
+    public void testDeleteRegistryModel_doesnt_exists() {
+        String modelName = "not existing model";
+        assertThrows(CometApiException.class, () ->
+                COMET_API.deleteRegistryModel(modelName, SHARED_EXPERIMENT.getWorkspaceName()));
+    }
+
     private static String registerModelWithDefaults(String modelName) {
         // log model folder
         //
