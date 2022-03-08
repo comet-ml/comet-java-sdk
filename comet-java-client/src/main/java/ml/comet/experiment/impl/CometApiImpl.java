@@ -68,6 +68,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTR
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.EXTRACTED_N_REGISTRY_MODEL_FILES;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_REGISTRY_MODEL;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_REGISTRY_MODEL_VERSION;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_DETAILS;
@@ -388,22 +389,9 @@ public final class CometApiImpl implements CometApi {
     @Override
     public void updateRegistryModelVersion(@NonNull String registryName, @NonNull String workspace,
                                            @NonNull String version, String comments, List<String> stages) {
-        // get registry model details
-        Optional<ModelOverview> overviewOptional = this.getRegistryModelDetails(registryName, workspace);
-        if (!overviewOptional.isPresent()) {
-            throw new ModelNotFoundException(getString(REGISTRY_MODEL_NOT_FOUND, workspace, registryName));
-        }
-
-        ModelOverview modelOverview = overviewOptional.get();
-        if (modelOverview.getVersions() == null || modelOverview.getVersions().size() == 0) {
-            throw new ModelNotFoundException(getString(FAILED_TO_GET_REGISTRY_MODEL_VERSIONS, workspace, registryName));
-        }
-
-        // get registry model's item ID which match version
-        Optional<ModelVersionOverview> versionOverviewOptional = modelOverview.getVersions()
-                .stream()
-                .filter(modelVersionOverview -> Objects.equals(modelVersionOverview.getVersion(), version))
-                .findFirst();
+        // get version details
+        Optional<ModelVersionOverview> versionOverviewOptional = this.getRegistryModelVersion(
+                registryName, workspace, version);
         if (!versionOverviewOptional.isPresent()) {
            throw new ModelVersionNotFoundException(
                    getString(REGISTRY_MODEL_VERSION_NOT_FOUND, version, workspace, registryName));
@@ -426,10 +414,26 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
-    public void deleteRegistryModel(String registryName, String workspace) {
+    public void deleteRegistryModel(@NonNull String registryName, @NonNull String workspace) {
         RestApiResponse response = this.restApiClient.deleteRegistryModel(registryName, workspace)
                 .blockingGet();
         this.checkRestApiResponse(response, getString(FAILED_TO_DELETE_REGISTRY_MODEL, registryName, workspace));
+    }
+
+    @Override
+    public void deleteRegistryModelVersion(@NonNull String registryName, @NonNull String workspace,
+                                           @NonNull String version) {
+        // get version details
+        Optional<ModelVersionOverview> versionOverviewOptional = this.getRegistryModelVersion(
+                registryName, workspace, version);
+        if (!versionOverviewOptional.isPresent()) {
+            throw new ModelVersionNotFoundException(
+                    getString(REGISTRY_MODEL_VERSION_NOT_FOUND, version, workspace, registryName));
+        }
+        String errorMsg = getString(FAILED_TO_DELETE_REGISTRY_MODEL_VERSION, workspace, registryName, version);
+        RestApiResponse response = this.executeSyncRequest(this.restApiClient::deleteRegistryModelVersion,
+                versionOverviewOptional.get().getRegistryModelItemId(), errorMsg);
+        this.checkRestApiResponse(response, errorMsg);
     }
 
     /**

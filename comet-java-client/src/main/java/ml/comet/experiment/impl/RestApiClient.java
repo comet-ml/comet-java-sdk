@@ -78,6 +78,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL_ITEM;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.DELETE_REGISTRY_MODEL;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.DELETE_REGISTRY_MODEL_ITEM;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.EXPERIMENTS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_ARTIFACT_VERSION_DETAIL;
@@ -111,6 +112,7 @@ import static ml.comet.experiment.impl.constants.FormParamName.LINK;
 import static ml.comet.experiment.impl.constants.QueryParamName.ARTIFACT_VERSION_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.constants.QueryParamName.IS_REMOTE;
+import static ml.comet.experiment.impl.constants.QueryParamName.MODEL_ITEM_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.MODEL_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
@@ -393,6 +395,12 @@ final class RestApiClient implements Disposable {
         queryParams.put(WORKSPACE_NAME, workspaceName);
         queryParams.put(MODEL_NAME, modelName);
         return singleFromSyncGetWithRetries(DELETE_REGISTRY_MODEL, queryParams);
+    }
+
+    Single<RestApiResponse> deleteRegistryModelVersion(String modelItemId) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(MODEL_ITEM_ID, modelItemId);
+        return singleFromSyncGetWithRetries(DELETE_REGISTRY_MODEL_ITEM, queryParams);
     }
 
     private Single<RestApiResponse> singleFromAsyncDownload(@NonNull OutputStream output,
