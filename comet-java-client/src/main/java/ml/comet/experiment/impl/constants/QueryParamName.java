@@ -34,7 +34,9 @@ public enum QueryParamName {
     ASSET_ID("assetId"), // string
 
     MODEL_NAME("modelName"), // string
-    STAGE("stage"); // string
+    STAGE("stage"), // string
+
+    MODEL_ITEM_ID("modelItemId"); // string
 
 
     private final String paramName;

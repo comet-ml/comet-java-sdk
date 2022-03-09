@@ -633,6 +633,62 @@ public class CometApiTest extends AssetsBaseTest {
         return model.getRegistryName();
     }
 
+    @Test
+    public void testDeleteRegistryModelVersion_model_doesnt_exists() {
+        // try to delete version of not existing model
+        //
+        String modelName = "not existing model";
+        assertThrows(CometApiException.class, ()->
+                COMET_API.deleteRegistryModelVersion(modelName, SHARED_EXPERIMENT.getWorkspaceName(),
+                        DEFAULT_MODEL_VERSION));
+    }
+
+    @Test
+    public void testDeleteRegistryModelVersion_version_doesnt_exists() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // register model with defaults
+        //
+        registerModelWithDefaults(modelName);
+
+        // try to delete not existing version of the model
+        //
+        assertThrows(ModelVersionNotFoundException.class, ()->
+                COMET_API.deleteRegistryModelVersion(modelName, SHARED_EXPERIMENT.getWorkspaceName(),
+                        "1.0.1"));
+    }
+
+    @Test
+    public void testDeleteRegistryModelVersion() {
+        // Create model with two versions and check
+        //
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+        String newVersion = "1.0.1";
+        String newComment = "updated model";
+        List<String> stages = Collections.singletonList("production");
+        registerTwoModelVersions(modelName, newVersion, newComment, stages);
+
+        // wait for model versions to be processed by backend
+        //
+        Awaitility.await("failed to get registry model version")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelVersion(
+                        modelName, SHARED_EXPERIMENT.getWorkspaceName(), newVersion).isPresent());
+
+        // Delete model version
+        //
+        COMET_API.deleteRegistryModelVersion(modelName, SHARED_EXPERIMENT.getWorkspaceName(), DEFAULT_MODEL_VERSION);
+
+        // Check that version was deleted
+        //
+        Awaitility.await("registry model version was not deleted")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> !COMET_API.getRegistryModelVersion(
+                        modelName, SHARED_EXPERIMENT.getWorkspaceName(), DEFAULT_MODEL_VERSION).isPresent());
+    }
+
     // UnZip model's file into temporary directory and check that expected model files are present
     private static void checkModelZipFile(Path zipFilePath, String... fileNames) throws IOException {
         Path tmpDir = Files.createTempDirectory("checkModelZipFile");

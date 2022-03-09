@@ -165,4 +165,13 @@ public interface CometApi extends Closeable {
      * @param workspace    the name of the model's workspace.
      */
     void deleteRegistryModel(String registryName, String workspace);
+
+    /**
+     * Deletes specific version of the registered model with given name.
+     *
+     * @param registryName the name of the model.
+     * @param workspace    the name of the model's workspace.
+     * @param version      the version of the registered model to be deleted.
+     */
+    void deleteRegistryModelVersion(String registryName, String workspace, String version);
 }
