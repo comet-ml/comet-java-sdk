@@ -12,7 +12,7 @@
         <dependency>
             <groupId>ml.comet</groupId>
             <artifactId>comet-java-client</artifactId>
-            <version>1.1.9</version>
+            <version>1.1.10</version>
         </dependency>
     </dependencies>
 ```
@@ -84,4 +84,7 @@ COMET_MAX_AUTH_RETRIES
 * You also can check 
   * [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
   * [MNIST classification experiment](comet-examples/src/main/java/ml/comet/examples/mnist/MnistExperimentExample.java)
+  * [Comet artifact examples](comet-examples/src/main/java/ml/comet/examples/ArtifactExample.java)
+  * [Log model example](comet-examples/src/main/java/ml/comet/examples/LogModelExample.java)
+  * [model registry/Comet API example](comet-examples/src/main/java/ml/comet/examples/RegistryModelExample.java)
 * For more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)

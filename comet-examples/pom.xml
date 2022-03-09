@@ -7,7 +7,7 @@
     <parent>
         <artifactId>comet-java-sdk</artifactId>
         <groupId>ml.comet</groupId>
-        <version>1.1.9-SNAPSHOT</version>
+        <version>1.1.10-SNAPSHOT</version>
     </parent>
 
     <properties>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.10</version>
+            <version>1.2.11</version>
         </dependency>
     </dependencies>
     <build>
