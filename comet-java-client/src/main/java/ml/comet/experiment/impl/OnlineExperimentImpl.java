@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -57,6 +58,8 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     private static final int SCHEDULED_EXECUTOR_TERMINATION_WAIT_SEC = 60;
     private static final int STD_OUT_LOGGER_FLUSH_WAIT_DELAY_MS = 2000;
 
+    private static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 3000;
+
     private final ScheduledExecutorService scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor();
 
@@ -66,7 +69,11 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     private StdOutLogger stdOutLogger;
     private StdOutLogger stdErrLogger;
     private boolean interceptStdout;
+
+    // The future representing scheduled heartbeat sender thread
     private ScheduledFuture<?> heartbeatSendFuture;
+    // The time instant to indicate when next heartbeat should be sent
+    private Instant nextHeartbeatInstant;
 
     // The flag to indicate if experiment end() was called and experiment shutdown initialized
     private final AtomicBoolean atShutdown = new AtomicBoolean();
@@ -566,8 +573,10 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
             this.logger.error(getString(FAILED_LOG_SYSTEM_DETAILS), ex);
         }
 
+        this.nextHeartbeatInstant = Instant.now();
         this.heartbeatSendFuture = this.scheduledExecutorService.scheduleAtFixedRate(
-                new OnlineExperimentImpl.HeartbeatPing(this), 1, 3, TimeUnit.SECONDS);
+                new OnlineExperimentImpl.HeartbeatPing(this),
+                500, 1000, TimeUnit.MILLISECONDS);
     }
 
     private void setupStdOutIntercept() {
@@ -607,13 +616,23 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
             return;
         }
         logger.debug("sendHeartbeat");
+        Instant nowInstant = Instant.now();
+        if (nowInstant.isBefore(this.nextHeartbeatInstant)) {
+            return;
+        }
+
         Optional<ExperimentStatusResponse> status = this.sendExperimentStatus();
         if (status.isPresent()) {
             long interval = status.get().getIsAliveBeatDurationMillis();
+            Instant now = Instant.now();
+            this.nextHeartbeatInstant = now.plusMillis(interval);
             if (logger.isDebugEnabled()) {
-                logger.debug("received heartbeat interval {}", interval);
+                logger.debug("received heartbeat interval {} ms at {}, next heartbeat at {}",
+                        interval, now, this.nextHeartbeatInstant);
             }
-            // TODO: implement logic to change heartbeat interval
+        } else {
+            // use default interval
+            this.nextHeartbeatInstant = Instant.now().plusMillis(DEFAULT_HEARTBEAT_INTERVAL_MS);
         }
     }
 
@@ -699,7 +718,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
         @Override
         public void run() {
-            onlineExperiment.sendHeartbeat();
+            this.onlineExperiment.sendHeartbeat();
         }
     }
 
