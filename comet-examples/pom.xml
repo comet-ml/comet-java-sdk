@@ -7,7 +7,7 @@
     <parent>
         <artifactId>comet-java-sdk</artifactId>
         <groupId>ml.comet</groupId>
-        <version>1.1.10-SNAPSHOT</version>
+        <version>1.1.11-SNAPSHOT</version>
     </parent>
 
     <properties>
@@ -40,7 +40,7 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>4.1.1</version>
+            <version>4.2.0</version>
         </dependency>
 
         <dependency>
