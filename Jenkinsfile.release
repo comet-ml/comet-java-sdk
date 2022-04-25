@@ -15,7 +15,7 @@ node {
 
 		stage("Run") {
             sh "export GPG_TTY=\$(tty)"
-            sh "COMET_BASE_URL=https://staging.comet.ml COMET_API_KEY=Vbc3cTFyjrWODd186oLEkHa2k COMET_PROJECT_NAME=java-sdk COMET_WORKSPACE_NAME=javasdktestuser mvn --batch-mode release:clean release:prepare release:perform"
+            sh "COMET_BASE_URL=https://www.comet-ml.com COMET_API_KEY=kGVsBzzr6JPnz3xQKBlFpag1y COMET_PROJECT_NAME=java-sdk COMET_WORKSPACE_NAME=test-javasdk mvn --batch-mode release:clean release:prepare release:perform"
 		}
 
 }
