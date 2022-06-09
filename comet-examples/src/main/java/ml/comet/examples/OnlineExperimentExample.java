@@ -51,7 +51,7 @@ public class OnlineExperimentExample implements BaseExample {
     }
 
     private static void run(OnlineExperiment experiment) throws Exception {
-        experiment.setExperimentName("Java-SDK 2.0.2");
+        experiment.setExperimentName("OnlineExperimentExample");
         experiment.nextStep();
 
         //metric can be a number, string , or double
