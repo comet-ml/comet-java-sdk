@@ -57,6 +57,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -64,6 +65,7 @@ import java.util.concurrent.ExecutionException;
 import static java.util.Optional.empty;
 import static ml.comet.experiment.impl.asset.AssetType.ALL;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.impl.asset.AssetType.TEXT_SAMPLE;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosed;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.artifactVersionStateNotClosedErrorOccurred;
 import static ml.comet.experiment.impl.constants.SdkErrorCodes.noArtifactFound;
@@ -452,6 +454,27 @@ abstract class BaseExperiment implements Experiment {
     @Override
     public void logCode(File file) {
         this.logCode(file, ExperimentContext.empty());
+    }
+
+    @Override
+    public void logText(String text, ExperimentContext context, Map<String, Object> metadata) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logging text {} with context {}", text, context);
+        }
+        AssetImpl asset = createAssetFromData(text.getBytes(StandardCharsets.UTF_8),
+                "auto-generated-in-the-backend", false,
+                Optional.ofNullable(metadata), Optional.of(TEXT_SAMPLE.type()));
+        this.logAsset(asset, context);
+    }
+
+    @Override
+    public void logText(String text, ExperimentContext context) {
+        this.logText(text, context, null);
+    }
+
+    @Override
+    public void logText(String text) {
+        this.logText(text, ExperimentContext.empty());
     }
 
     @Override
