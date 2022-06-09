@@ -28,7 +28,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
 import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
@@ -692,7 +692,7 @@ public class CometApiTest extends AssetsBaseTest {
     // UnZip model's file into temporary directory and check that expected model files are present
     private static void checkModelZipFile(Path zipFilePath, String... fileNames) throws IOException {
         Path tmpDir = Files.createTempDirectory("checkModelZipFile");
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFilePath.toFile()))) {
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zipFilePath.toFile().toPath()))) {
             ZipUtils.unzipToFolder(zis, tmpDir);
             checkModelFileInDir(tmpDir, fileNames);
         } finally {
@@ -705,14 +705,16 @@ public class CometApiTest extends AssetsBaseTest {
         List<String> fileNamesList = Arrays.asList(fileNames);
         Counters.PathCounters counters = PathUtils.countDirectory(dirPath);
         assertEquals(fileNames.length, counters.getFileCounter().get(), "wrong number of files in model's zip");
-        assertTrue(Files.walk(dirPath).allMatch(path -> {
-            if (Files.isRegularFile(path)) {
-                return fileNamesList.contains(path.getFileName().toString());
-            } else {
-                // we do not check directories
-                return true;
-            }
-        }), "expected model's file not found");
+        try (Stream<Path> dirPathStream = Files.walk(dirPath)) {
+            assertTrue(dirPathStream.allMatch(path -> {
+                if (Files.isRegularFile(path)) {
+                    return fileNamesList.contains(path.getFileName().toString());
+                } else {
+                    // we do not check directories
+                    return true;
+                }
+            }), "expected model's file not found");
+        }
     }
 
     private static void checkLatestModelVersionItem(RegistryModelOverview registryModel, String registryName,

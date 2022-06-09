@@ -104,7 +104,7 @@ public class StdOutLogger implements Runnable, Closeable {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(this.inputStream))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                experiment.logLine(line, offset.incrementAndGet(), !stdOut);
+                experiment.logLine(line.concat("\n"), offset.incrementAndGet(), !stdOut);
             }
         } catch (Throwable t) {
             // restore original
