@@ -143,14 +143,6 @@ abstract class BaseExperiment implements Experiment {
                    @NonNull final String baseUrl,
                    int maxAuthRetries,
                    final String experimentKey,
-                   @NonNull final Duration cleaningTimeout) {
-        this(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, StringUtils.EMPTY, StringUtils.EMPTY);
-    }
-
-    BaseExperiment(@NonNull final String apiKey,
-                   @NonNull final String baseUrl,
-                   int maxAuthRetries,
-                   final String experimentKey,
                    @NonNull final Duration cleaningTimeout,
                    final String projectName,
                    final String workspaceName) {
