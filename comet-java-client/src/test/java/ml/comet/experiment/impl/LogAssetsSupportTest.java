@@ -67,54 +67,54 @@ public class LogAssetsSupportTest extends AssetsBaseTest {
     }
 
     @Test
-    public void testLogAndGetAssets() {
-        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+    public void testLogAndGetAssets() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
 
-        // Make sure experiment has no assets
-        //
-        assertTrue(experiment.getAllAssetList().isEmpty());
+            // Make sure experiment has no assets
+            //
+            assertTrue(experiment.getAllAssetList().isEmpty());
 
-        // Upload few assets and wait for completion
-        //
-        OnlineExperimentTest.OnCompleteAction onComplete = new OnlineExperimentTest.OnCompleteAction();
-        experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)), IMAGE_FILE_NAME,
-                false, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
-        awaitForCondition(onComplete, "image file onComplete timeout", 30);
+            // Upload few assets and wait for completion
+            //
+            OnlineExperimentTest.OnCompleteAction onComplete = new OnlineExperimentTest.OnCompleteAction();
+            experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(IMAGE_FILE_NAME)), IMAGE_FILE_NAME,
+                    false, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
+            awaitForCondition(onComplete, "image file onComplete timeout", 30);
 
-        onComplete = new OnlineExperimentTest.OnCompleteAction();
-        experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
-                false, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
-        awaitForCondition(onComplete, "text file onComplete timeout", 30);
+            onComplete = new OnlineExperimentTest.OnCompleteAction();
+            experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
+                    false, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
+            awaitForCondition(onComplete, "text file onComplete timeout", 30);
 
-        // wait for assets become available and validate results
-        //
-        awaitForCondition(() -> experiment.getAllAssetList().size() == 2, "Assets was uploaded");
+            // wait for assets become available and validate results
+            //
+            awaitForCondition(() -> experiment.getAllAssetList().size() == 2, "Assets was uploaded");
 
-        List<LoggedExperimentAsset> assets = experiment.getAllAssetList();
-        validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
-        validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
+            List<LoggedExperimentAsset> assets = experiment.getAllAssetList();
+            validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
+            validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
 
-        // update one of the assets and validate
-        //
-        onComplete = new OnlineExperimentTest.OnCompleteAction();
-        experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)),
-                SOME_TEXT_FILE_NAME, true, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
-        awaitForCondition(onComplete, "update text file onComplete timeout", 30);
+            // update one of the assets and validate
+            //
+            onComplete = new OnlineExperimentTest.OnCompleteAction();
+            experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(ANOTHER_TEXT_FILE_NAME)),
+                    SOME_TEXT_FILE_NAME, true, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
+            awaitForCondition(onComplete, "update text file onComplete timeout", 30);
 
-        awaitForCondition(() -> {
-            List<LoggedExperimentAsset> assetList = experiment.getAllAssetList();
-            return assetList.stream()
-                    .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getLogicalPath()))
-                    .anyMatch(asset -> {
-                        ExperimentContext context = ((LoggedExperimentAssetImpl) asset).getContext();
-                        return ANOTHER_TEXT_FILE_SIZE == asset.getSize().orElse(0L)
-                                && Objects.equals(context.getStep(), TestUtils.SOME_FULL_CONTEXT.getStep())
-                                && context.getContext().equals(TestUtils.SOME_FULL_CONTEXT.getContext());
-                    });
+            awaitForCondition(() -> {
+                List<LoggedExperimentAsset> assetList = experiment.getAllAssetList();
+                return assetList.stream()
+                        .filter(asset -> SOME_TEXT_FILE_NAME.equals(asset.getLogicalPath()))
+                        .anyMatch(asset -> {
+                            ExperimentContext context = ((LoggedExperimentAssetImpl) asset).getContext();
+                            return ANOTHER_TEXT_FILE_SIZE == asset.getSize().orElse(0L)
+                                    && Objects.equals(context.getStep(), TestUtils.SOME_FULL_CONTEXT.getStep())
+                                    && context.getContext().equals(TestUtils.SOME_FULL_CONTEXT.getContext());
+                        });
 
-        }, "Asset was updated");
+            }, "Asset was updated");
 
-        experiment.end();
+        }
     }
 
     @ParameterizedTest(name = "[{index}] flat: {0}, recursive: {1}")
