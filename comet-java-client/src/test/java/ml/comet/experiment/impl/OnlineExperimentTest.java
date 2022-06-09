@@ -66,72 +66,75 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             new ExperimentContext(10, 101);
 
     @Test
-    public void testExperimentCreatedAndShutDown() {
-        OnlineExperiment experiment = createOnlineExperiment();
-        String experimentKey = experiment.getExperimentKey();
-        Optional<String> experimentLink = experiment.getExperimentLink();
+    public void testExperimentCreatedAndShutDown() throws Exception {
+        String experimentKey;
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            experimentKey = experiment.getExperimentKey();
+            Optional<String> experimentLink = experiment.getExperimentLink();
 
-        assertTrue(StringUtils.isNotBlank(experimentKey));
-        assertTrue(experimentLink.isPresent());
-        assertTrue(StringUtils.isNotBlank(experimentLink.get()));
+            assertTrue(StringUtils.isNotBlank(experimentKey));
+            assertTrue(experimentLink.isPresent());
+            assertTrue(StringUtils.isNotBlank(experimentLink.get()));
 
-        awaitForCondition(() -> experiment.getMetadata().isRunning(), "Experiment must become running");
+            awaitForCondition(() -> experiment.getMetadata().isRunning(), "Experiment must become running");
 
-        ExperimentMetadata metadata = experiment.getMetadata();
-        assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
-        assertEquals(experiment.getWorkspaceName(), metadata.getWorkspaceName());
-        assertEquals(experiment.getProjectName(), metadata.getProjectName());
-
-        experiment.end();
+            ExperimentMetadata metadata = experiment.getMetadata();
+            assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
+            assertEquals(experiment.getWorkspaceName(), metadata.getWorkspaceName());
+            assertEquals(experiment.getProjectName(), metadata.getProjectName());
+        }
 
         // use REST API to check experiment status
-        ApiExperiment apiExperiment = ApiExperimentImpl.builder(experimentKey).build();
-        awaitForCondition(() -> !apiExperiment.getMetadata().isRunning(),
-                "Experiment running status updated", 60);
-        assertFalse(apiExperiment.getMetadata().isRunning(), "Experiment must have status not running");
+        try (ApiExperiment apiExperiment = ApiExperimentImpl.builder(experimentKey).build()) {
+            awaitForCondition(() -> !apiExperiment.getMetadata().isRunning(),
+                    "Experiment running status updated", 60);
+            assertFalse(apiExperiment.getMetadata().isRunning(), "Experiment must have status not running");
 
-        apiExperiment.end();
+        }
     }
 
     @Test
-    public void testInitAndUpdateExistingExperiment() {
+    public void testInitAndUpdateExistingExperiment() throws Exception {
         // create dummy experiment and make sure it has default name assigned by backend
-        OnlineExperiment experiment = createOnlineExperiment();
-        experiment.end();
-        assertNotNull(experiment.getExperimentName());
+        String experimentKey;
+        String experimentName;
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            experiment.end();
+            assertNotNull(experiment.getExperimentName());
+
+            experimentKey = experiment.getExperimentKey();
+            experimentName = experiment.getExperimentName();
+        }
 
         // get previous experiment by key and check that update is working
-        String experimentKey = experiment.getExperimentKey();
+        try (OnlineExperiment updatedExperiment = onlineExperiment(experimentKey)) {
+            updatedExperiment.setExperimentName(SOME_NAME);
 
-        OnlineExperiment updatedExperiment = onlineExperiment(experimentKey);
-        updatedExperiment.setExperimentName(SOME_NAME);
-
-        awaitForCondition(
-                () -> SOME_NAME.equals(updatedExperiment.getMetadata().getExperimentName()),
-                "Experiment name updated timeout");
-        assertNotEquals(experiment.getExperimentName(), updatedExperiment.getExperimentName(),
-                "experiment name should be different");
-        updatedExperiment.end();
+            awaitForCondition(
+                    () -> SOME_NAME.equals(updatedExperiment.getMetadata().getExperimentName()),
+                    "Experiment name updated timeout");
+            assertNotEquals(experimentName, updatedExperiment.getExperimentName(),
+                    "experiment name should be different");
+        }
     }
 
     @Test
-    public void testSetAndGetExperimentName() {
-        OnlineExperiment experiment = createOnlineExperiment();
+    public void testSetAndGetExperimentName() throws Exception {
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
 
-        ExperimentMetadata metadata = experiment.getMetadata();
-        String generatedExperimentName = metadata.getExperimentName();
-        assertTrue(StringUtils.isNoneEmpty(generatedExperimentName));
+            ExperimentMetadata metadata = experiment.getMetadata();
+            String generatedExperimentName = metadata.getExperimentName();
+            assertTrue(StringUtils.isNoneEmpty(generatedExperimentName));
 
-        experiment.setExperimentName(SOME_NAME);
+            experiment.setExperimentName(SOME_NAME);
 
-        awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()),
-                "Experiment name update timeout");
+            awaitForCondition(() -> SOME_NAME.equals(experiment.getMetadata().getExperimentName()),
+                    "Experiment name update timeout");
 
-        ExperimentMetadata updatedMetadata = experiment.getMetadata();
-        assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
-        assertEquals(SOME_NAME, updatedMetadata.getExperimentName());
-
-        experiment.end();
+            ExperimentMetadata updatedMetadata = experiment.getMetadata();
+            assertEquals(experiment.getExperimentKey(), metadata.getExperimentKey());
+            assertEquals(SOME_NAME, updatedMetadata.getExperimentName());
+        }
     }
 
     @Test
@@ -195,136 +198,136 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     }
 
     @Test
-    public void testLogAndGetOther() {
-        OnlineExperiment experiment = createOnlineExperiment();
+    public void testLogAndGetOther() throws Exception {
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
 
-        // Check that experiment has no extra other data yet
-        //
-        List<Value> parameters = experiment.getLogOther();
-        assertEquals(1, parameters.size());
-        assertTrue(parameters.stream().anyMatch(p -> "Name".equals(p.getName())));
+            // Check that experiment has no extra other data yet
+            //
+            List<Value> parameters = experiment.getLogOther();
+            assertEquals(1, parameters.size());
+            assertTrue(parameters.stream().anyMatch(p -> "Name".equals(p.getName())));
 
-        // Log some other data
-        //
-        Map<String, Object> params = new HashMap<>();
-        params.put(SOME_PARAMETER, SOME_PARAMETER_VALUE);
-        params.put(ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
+            // Log some other data
+            //
+            Map<String, Object> params = new HashMap<>();
+            params.put(SOME_PARAMETER, SOME_PARAMETER_VALUE);
+            params.put(ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
 
-        params.forEach((key, value) -> {
+            params.forEach((key, value) -> {
+                OnCompleteAction onComplete = new OnCompleteAction();
+                ((OnlineExperimentImpl) experiment).logOther(key, value, Optional.of(onComplete));
+                awaitForCondition(onComplete, "logOtherAsync onComplete timeout");
+            });
+
+            // Get saved other data and check
+            //
+            awaitForCondition(() -> experiment.getLogOther().size() == 3, "get other timeout");
+
+            List<Value> updatedParameters = experiment.getLogOther();
+            params.forEach((k, v) -> validateValues(updatedParameters, k, v));
+
+        }
+    }
+
+    @Test
+    public void testLogAndGetHtml() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+
+            assertFalse(experiment.getHtml().isPresent());
+
+            // Create first HTML record
+            //
             OnCompleteAction onComplete = new OnCompleteAction();
-            ((OnlineExperimentImpl) experiment).logOther(key, value, Optional.of(onComplete));
-            awaitForCondition(onComplete, "logOtherAsync onComplete timeout");
-        });
+            experiment.logHtml(SOME_HTML, true, Optional.of(onComplete));
 
-        // Get saved other data and check
-        //
-        awaitForCondition(() -> experiment.getLogOther().size() == 3, "get other timeout");
+            // sleep to make sure the request was sent
+            awaitForCondition(onComplete, "onComplete timeout");
 
-        List<Value> updatedParameters = experiment.getLogOther();
-        params.forEach((k, v) -> validateValues(updatedParameters, k, v));
+            awaitForCondition(() -> {
+                Optional<String> html = experiment.getHtml();
+                return html.isPresent() && SOME_HTML.equals(html.get());
+            }, "Experiment SOME_HTML update timeout", 60);
 
-        experiment.end();
+            // Override first HTML record
+            //
+            onComplete = new OnCompleteAction();
+            experiment.logHtml(ANOTHER_HTML, true, Optional.of(onComplete));
+
+            // sleep to make sure the request was sent
+            awaitForCondition(onComplete, "onComplete timeout");
+
+            awaitForCondition(() -> {
+                Optional<String> html = experiment.getHtml();
+                return html.isPresent() && ANOTHER_HTML.equals(html.get());
+            }, "Experiment ANOTHER_HTML update timeout");
+
+            // Check that HTML record was not overridden but appended
+            //
+            onComplete = new OnCompleteAction();
+            experiment.logHtml(SOME_HTML, false, Optional.of(onComplete));
+
+            // sleep to make sure the request was sent
+            awaitForCondition(onComplete, "onComplete timeout");
+
+            awaitForCondition(() -> {
+                Optional<String> html = experiment.getHtml();
+                return html.isPresent() && JOINED_HTML.equals(html.get());
+            }, "Experiment JOINED_HTML update timeout");
+
+        }
     }
 
     @Test
-    public void testLogAndGetHtml() {
-        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+    public void testAddAndGetTag() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
 
-        assertFalse(experiment.getHtml().isPresent());
+            // Check that experiment has no TAGs
+            assertTrue(experiment.getTags().isEmpty());
 
-        // Create first HTML record
-        //
-        OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logHtml(SOME_HTML, true, Optional.of(onComplete));
+            // Add TAGs and wait for response
+            //
+            OnCompleteAction onComplete = new OnCompleteAction();
+            experiment.addTag(SOME_TEXT, Optional.of(onComplete));
+            awaitForCondition(onComplete, "onComplete timeout");
 
-        // sleep to make sure the request was sent
-        awaitForCondition(onComplete, "onComplete timeout");
+            onComplete = new OnCompleteAction();
+            experiment.addTag(ANOTHER_TAG, Optional.of(onComplete));
+            awaitForCondition(onComplete, "onComplete timeout");
 
-        awaitForCondition(() -> {
-            Optional<String> html = experiment.getHtml();
-            return html.isPresent() && SOME_HTML.equals(html.get());
-        }, "Experiment SOME_HTML update timeout", 60);
+            // Get new TAGs and check
+            //
+            awaitForCondition(() -> experiment.getTags().size() == 2, "Experiment get tags timeout");
 
-        // Override first HTML record
-        //
-        onComplete = new OnCompleteAction();
-        experiment.logHtml(ANOTHER_HTML, true, Optional.of(onComplete));
+            List<String> tags = experiment.getTags();
+            assertTrue(tags.contains(SOME_TEXT));
+            assertTrue(tags.contains(ANOTHER_TAG));
 
-        // sleep to make sure the request was sent
-        awaitForCondition(onComplete, "onComplete timeout");
-
-        awaitForCondition(() -> {
-            Optional<String> html = experiment.getHtml();
-            return html.isPresent() && ANOTHER_HTML.equals(html.get());
-        }, "Experiment ANOTHER_HTML update timeout");
-
-        // Check that HTML record was not overridden but appended
-        //
-        onComplete = new OnCompleteAction();
-        experiment.logHtml(SOME_HTML, false, Optional.of(onComplete));
-
-        // sleep to make sure the request was sent
-        awaitForCondition(onComplete, "onComplete timeout");
-
-        awaitForCondition(() -> {
-            Optional<String> html = experiment.getHtml();
-            return html.isPresent() && JOINED_HTML.equals(html.get());
-        }, "Experiment JOINED_HTML update timeout");
-
-        experiment.end();
+        }
     }
 
     @Test
-    public void testAddAndGetTag() {
-        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
+    public void testLogAndGetGraph() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
 
-        // Check that experiment has no TAGs
-        assertTrue(experiment.getTags().isEmpty());
+            // Check that experiment has no Graph
+            //
+            Optional<String> graph = experiment.getGraph();
+            assertTrue(!graph.isPresent() || graph.get().isEmpty());
 
-        // Add TAGs and wait for response
-        //
-        OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.addTag(SOME_TEXT, Optional.of(onComplete));
-        awaitForCondition(onComplete, "onComplete timeout");
+            // Log Graph and wait for response
+            //
+            OnCompleteAction onComplete = new OnCompleteAction();
+            experiment.logGraph(SOME_GRAPH, Optional.of(onComplete));
+            awaitForCondition(onComplete, "onComplete timeout");
 
-        onComplete = new OnCompleteAction();
-        experiment.addTag(ANOTHER_TAG, Optional.of(onComplete));
-        awaitForCondition(onComplete, "onComplete timeout");
+            // Get graph and check result
+            //
+            awaitForCondition(() -> {
+                Optional<String> graphOpt = experiment.getGraph();
+                return graphOpt.isPresent() && SOME_GRAPH.equals(graphOpt.get());
+            }, "Experiment get graph timeout");
 
-        // Get new TAGs and check
-        //
-        awaitForCondition(() -> experiment.getTags().size() == 2, "Experiment get tags timeout");
-
-        List<String> tags = experiment.getTags();
-        assertTrue(tags.contains(SOME_TEXT));
-        assertTrue(tags.contains(ANOTHER_TAG));
-
-        experiment.end();
-    }
-
-    @Test
-    public void testLogAndGetGraph() {
-        OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment();
-
-        // Check that experiment has no Graph
-        //
-        Optional<String> graph = experiment.getGraph();
-        assertTrue(!graph.isPresent() || graph.get().isEmpty());
-
-        // Log Graph and wait for response
-        //
-        OnCompleteAction onComplete = new OnCompleteAction();
-        experiment.logGraph(SOME_GRAPH, Optional.of(onComplete));
-        awaitForCondition(onComplete, "onComplete timeout");
-
-        // Get graph and check result
-        //
-        awaitForCondition(() -> {
-            Optional<String> graphOpt = experiment.getGraph();
-            return graphOpt.isPresent() && SOME_GRAPH.equals(graphOpt.get());
-        }, "Experiment get graph timeout");
-
-        experiment.end();
+        }
     }
 
     @Test
@@ -398,36 +401,36 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     }
 
     @Test
-    public void testLogAndGetGitMetadata() {
-        OnlineExperiment experiment = createOnlineExperiment();
+    public void testLogAndGetGitMetadata() throws Exception {
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
 
-        // Get GIT metadata and check that it is not set
-        //
-        GitMetaData gitMetadata = experiment.getGitMetadata();
-        assertNull(gitMetadata.getUser());
-        assertNull(gitMetadata.getBranch());
-        assertNull(gitMetadata.getOrigin());
+            // Get GIT metadata and check that it is not set
+            //
+            GitMetaData gitMetadata = experiment.getGitMetadata();
+            assertNull(gitMetadata.getUser());
+            assertNull(gitMetadata.getBranch());
+            assertNull(gitMetadata.getOrigin());
 
-        // Create and update GIT metadata and wait for response
-        //
-        OnCompleteAction onComplete = new OnCompleteAction();
-        GitMetaData request = new GitMetaData(
-                "user", "root", "branch", "parent", "origin");
-        ((OnlineExperimentImpl) experiment).logGitMetadataAsync(request, Optional.of(onComplete));
-        awaitForCondition(onComplete, "onComplete timeout");
+            // Create and update GIT metadata and wait for response
+            //
+            OnCompleteAction onComplete = new OnCompleteAction();
+            GitMetaData request = new GitMetaData(
+                    "user", "root", "branch", "parent", "origin");
+            ((OnlineExperimentImpl) experiment).logGitMetadataAsync(request, Optional.of(onComplete));
+            awaitForCondition(onComplete, "onComplete timeout");
 
-        // Get GIT metadata and check results
-        //
-        awaitForCondition(() -> request.getUser().equals(experiment.getGitMetadata().getUser()),
-                "Git metadata user timeout");
+            // Get GIT metadata and check results
+            //
+            awaitForCondition(() -> request.getUser().equals(experiment.getGitMetadata().getUser()),
+                    "Git metadata user timeout");
 
-        GitMetaData updatedMetadata = experiment.getGitMetadata();
-        assertEquals(updatedMetadata.getOrigin(), request.getOrigin());
-        assertEquals(updatedMetadata.getBranch(), request.getBranch());
-        assertEquals(updatedMetadata.getRoot(), request.getRoot());
-        assertEquals(updatedMetadata.getParent(), request.getParent());
+            GitMetaData updatedMetadata = experiment.getGitMetadata();
+            assertEquals(updatedMetadata.getOrigin(), request.getOrigin());
+            assertEquals(updatedMetadata.getBranch(), request.getBranch());
+            assertEquals(updatedMetadata.getRoot(), request.getRoot());
+            assertEquals(updatedMetadata.getParent(), request.getParent());
 
-        experiment.end();
+        }
     }
 
 
@@ -458,8 +461,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             awaitForCondition(() -> experiment.getOutput()
                     .filter(log -> log.contains(experiment.getExperimentKey()))
                     .filter(log -> log.contains(experiment.getProjectName()))
-                    .filter(log -> log.contains(LOGGED_LINE))
-                    .filter(log -> log.contains(LOGGED_ERROR_LINE))
+                    .filter(log -> log.contains(LOGGED_LINE.concat("\n")))
+                    .filter(log -> log.contains(LOGGED_ERROR_LINE.concat("\n")))
                     .filter(log -> !log.contains(NON_LOGGED_LINE))
                     .isPresent(), "Experiment logs added");
         } catch (Exception e) {
