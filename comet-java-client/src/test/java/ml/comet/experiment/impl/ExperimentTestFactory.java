@@ -1,5 +1,7 @@
 package ml.comet.experiment.impl;
 
+import ml.comet.experiment.ApiExperiment;
+import ml.comet.experiment.ExperimentBuilder;
 import ml.comet.experiment.OnlineExperiment;
 
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
@@ -21,10 +23,18 @@ public class ExperimentTestFactory {
     }
 
     static OnlineExperiment createOnlineExperiment() {
-        return OnlineExperimentImpl.builder()
-                .withApiKey(API_KEY)
+        return ExperimentBuilder.OnlineExperiment()
                 .withWorkspace(WORKSPACE_NAME)
                 .withProjectName(PROJECT_NAME)
+                .withApiKey(API_KEY)
+                .build();
+    }
+
+    static ApiExperiment createApiExperiment() {
+        return ExperimentBuilder.ApiExperiment()
+                .withProjectName(PROJECT_NAME)
+                .withWorkspace(WORKSPACE_NAME)
+                .withApiKey(API_KEY)
                 .build();
     }
 }
