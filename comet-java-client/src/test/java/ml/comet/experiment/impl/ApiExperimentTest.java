@@ -33,18 +33,15 @@ public class ApiExperimentTest {
     }
 
     @Test
-    public void testApiExperimentInitialized() {
-        OnlineExperiment experiment = createOnlineExperiment();
-        String experimentKey = experiment.getExperimentKey();
-        experiment.end();
+    public void testApiExperimentInitialized() throws Exception {
+        String experimentKey;
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            experimentKey = experiment.getExperimentKey();
+        }
 
-        ApiExperiment apiExperiment = ApiExperimentImpl.builder(experimentKey)
-                .withApiKey(API_KEY)
-                .build();
-
-        assertEquals(WORKSPACE_NAME, apiExperiment.getWorkspaceName());
-        assertEquals(PROJECT_NAME, apiExperiment.getProjectName());
-
-        apiExperiment.end();
+        try (ApiExperiment apiExperiment = ApiExperimentImpl.builder(experimentKey).withApiKey(API_KEY).build()) {
+            assertEquals(WORKSPACE_NAME, apiExperiment.getWorkspaceName());
+            assertEquals(PROJECT_NAME, apiExperiment.getProjectName());
+        }
     }
 }
