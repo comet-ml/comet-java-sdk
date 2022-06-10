@@ -6,6 +6,7 @@ import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometGeneralException;
+import ml.comet.experiment.impl.asset.LoggedExperimentAssetImpl;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -25,9 +26,12 @@ import java.util.function.BooleanSupplier;
 
 import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
+import static ml.comet.experiment.impl.TestUtils.SOME_CONTEXT_ID;
 import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
+import static ml.comet.experiment.impl.TestUtils.SOME_METADATA;
 import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.impl.asset.AssetType.TEXT_SAMPLE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_REGISTER_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
@@ -525,12 +529,68 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             experiment.logCode(SOME_TEXT, CODE_FILE_NAME, SOME_FULL_CONTEXT);
 
             awaitForCondition(() -> !experiment.getAssetList(SOURCE_CODE.type()).isEmpty(),
-                    "Experiment raw code added");
+                    "Experiment raw code not added");
             List<LoggedExperimentAsset> assets = experiment.getAssetList(SOURCE_CODE.type());
             validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
 
         } catch (Throwable t) {
             fail(t);
+        }
+    }
+
+    @Test
+    public void testLogAndGetText_contextOverride() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // check that no text was logged
+            //
+            assertTrue(experiment.getAllAssetList().isEmpty());
+
+            // log text with  context set
+            //
+            experiment.logText(SOME_TEXT, SOME_FULL_CONTEXT, SOME_METADATA);
+
+            awaitForCondition(() -> !experiment.getAssetList(TEXT_SAMPLE.type()).isEmpty(),
+                    "Experiment text not added");
+
+            List<LoggedExperimentAsset> assets = experiment.getAssetList(TEXT_SAMPLE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            LoggedExperimentAsset asset = assets.get(0);
+            assertEquals(TEXT_SAMPLE.type(), asset.getType(), "wrong asset type");
+            ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
+            assertEquals(SOME_FULL_CONTEXT.getStep(), assetContext.getStep(), "wrong asset's context step");
+            assertEquals(SOME_FULL_CONTEXT.getContext(), assetContext.getContext(), "wrong asset's context ID");
+            assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
+            assertEquals(SOME_TEXT.length(), asset.getSize().orElse(0L), "wrong asset size");
+        }
+    }
+
+    @Test
+    public void testLogAndGetText() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // check that no text was logged
+            //
+            assertTrue(experiment.getAllAssetList().isEmpty());
+
+            // log text with context set tto experiment
+            //
+            int expectedStep = 102;
+            experiment.setStep(expectedStep);
+            experiment.setContext(SOME_CONTEXT_ID);
+            experiment.logText(SOME_TEXT);
+
+            awaitForCondition(() -> !experiment.getAssetList(TEXT_SAMPLE.type()).isEmpty(),
+                    "Experiment text not added");
+
+            List<LoggedExperimentAsset> assets = experiment.getAssetList(TEXT_SAMPLE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            LoggedExperimentAsset asset = assets.get(0);
+            assertEquals(TEXT_SAMPLE.type(), asset.getType(), "wrong asset type");
+            ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
+            assertEquals(expectedStep, assetContext.getStep(), "wrong asset's context step");
+            assertEquals(SOME_CONTEXT_ID, assetContext.getContext(), "wrong asset's context ID");
+            assertEquals(SOME_TEXT.length(), asset.getSize().orElse(0L), "wrong asset size");
         }
     }
 
