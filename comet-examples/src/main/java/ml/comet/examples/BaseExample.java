@@ -24,6 +24,12 @@ interface BaseExample {
     String GRAPH_JSON_FILE = "graph.json";
     String CODE_FILE = "code_sample.py";
 
+    Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
+        put("metaInt", 10);
+        put("metaString", "test");
+        put("metaBoolean", true);
+    }};
+
     static void generateCharts(OnlineExperiment experiment) {
         long currentStep = experiment.getStep();
 
