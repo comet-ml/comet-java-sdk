@@ -51,6 +51,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     private static final String SOME_PARAMETER_VALUE = "122.0";
     private static final String ANOTHER_PARAMETER = "anotherParameter";
     private static final double ANOTHER_PARAMETER_VALUE = 123.0;
+    private static final String ONE_MORE_PARAMETER = "oneMoreParameter";
+    private static final String ONE_MORE_PARAMETER_VALUE = "42.0";
     private static final String SOME_HTML = "<!DOCTYPE html><html lang=\"en\"><body><p>some html</p></body></html>";
     private static final String ANOTHER_HTML = "<!DOCTYPE html><html lang=\"en\"><body><p>another html</p></body></html>";
     private static final String JOINED_HTML = ANOTHER_HTML + SOME_HTML;
@@ -140,14 +142,22 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     @Test
     public void testLogAndGetMetric() {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
-            // Test metric with full context (including context ID)
+            // Test log metric with base context's ID set directly to experiment
             //
+            experiment.setContext(TestUtils.SOME_CONTEXT_ID);
             OnCompleteAction onComplete = new OnCompleteAction();
+            experiment.logMetric(
+                    ONE_MORE_PARAMETER, ONE_MORE_PARAMETER_VALUE, ExperimentContext.empty(), Optional.of(onComplete));
+            awaitForCondition(onComplete, "logMetricAsync onComplete timeout");
+
+            // Test log metric with full context (including context ID) override
+            //
+            onComplete = new OnCompleteAction();
             experiment.logMetric(
                     SOME_PARAMETER, SOME_PARAMETER_VALUE, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
             awaitForCondition(onComplete, "logMetricAsync onComplete timeout");
 
-            // Test metric with partial context (without context ID)
+            // Test log metric with partial context (without context ID) override
             //
             experiment.setContext(StringUtils.EMPTY);
             onComplete = new OnCompleteAction();
@@ -157,9 +167,11 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             // Wait for metrics to become available and check results
             //
-            awaitForCondition(() -> experiment.getMetrics().size() == 2, "experiment metrics get timeout");
+            awaitForCondition(() -> experiment.getMetrics().size() == 3, "experiment metrics get timeout");
 
             List<Value> metrics = experiment.getMetrics();
+            validateValues(metrics, fullMetricName(ONE_MORE_PARAMETER,
+                    ExperimentContext.builder().withContext(TestUtils.SOME_CONTEXT_ID).build()), ONE_MORE_PARAMETER_VALUE);
             validateValues(metrics, fullMetricName(SOME_PARAMETER, TestUtils.SOME_FULL_CONTEXT), SOME_PARAMETER_VALUE);
             validateValues(metrics, fullMetricName(ANOTHER_PARAMETER, SOME_PARTIAL_CONTEXT), ANOTHER_PARAMETER_VALUE);
         } catch (Throwable throwable) {
@@ -170,10 +182,17 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     @Test
     public void testLogAndGetParameter() {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // Test log parameter with base context's ID set directly to experiment
+            //
+            experiment.setContext(TestUtils.SOME_CONTEXT_ID);
+            OnCompleteAction onComplete = new OnCompleteAction();
+            experiment.logParameter(
+                    ONE_MORE_PARAMETER, ONE_MORE_PARAMETER_VALUE, ExperimentContext.empty(), Optional.of(onComplete));
+            awaitForCondition(onComplete, "logMetricAsync onComplete timeout");
 
             // Test log parameter with full context
             //
-            OnCompleteAction onComplete = new OnCompleteAction();
+            onComplete = new OnCompleteAction();
             experiment.logParameter(
                     SOME_PARAMETER, SOME_PARAMETER_VALUE, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
             awaitForCondition(onComplete, "logParameterAsync onComplete timeout");
@@ -187,8 +206,9 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             // Wait for parameters to become available and check results
             //
-            awaitForCondition(() -> experiment.getParameters().size() == 2, "experiment parameters get timeout");
+            awaitForCondition(() -> experiment.getParameters().size() == 3, "experiment parameters get timeout");
             List<Value> params = experiment.getParameters();
+            validateValues(params, ONE_MORE_PARAMETER, ONE_MORE_PARAMETER_VALUE);
             validateValues(params, SOME_PARAMETER, SOME_PARAMETER_VALUE);
             validateValues(params, ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
 
@@ -379,7 +399,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     }
 
     @Test
-    public void testSetsContext() {
+    public void testUploadAsset() {
         try (OnlineExperiment experiment = createOnlineExperiment()) {
             assertTrue(experiment.getAllAssetList().isEmpty());
 
@@ -546,7 +566,6 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
     static void validateValues(List<Value> valueList, String name, Object value) {
         String stringValue = value.toString();
-        System.out.println(name + ":" + value);
         assertTrue(valueList.stream()
                 .peek(System.out::println)
                 .filter(m -> name.equals(m.getName()))

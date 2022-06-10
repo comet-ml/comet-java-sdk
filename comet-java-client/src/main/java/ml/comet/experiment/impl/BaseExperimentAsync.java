@@ -88,8 +88,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
         this.baseContext = ExperimentContext.empty();
     }
 
-    void updateContext(ExperimentContext context) {
-        this.baseContext.mergeFrom(context);
+    ExperimentContext mergeWithBaseContextIfEmpty(ExperimentContext context) {
+        if (context.isEmpty()) {
+            return new ExperimentContext(this.baseContext);
+        } else {
+            return context;
+        }
     }
 
     /**
@@ -104,13 +108,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logMetric(@NonNull String metricName, @NonNull Object metricValue,
                    @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
+        ExperimentContext ctx = mergeWithBaseContextIfEmpty(context);
 
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logMetricAsync {} = {}, context: {}", metricName, metricValue, context);
+            getLogger().debug("logMetricAsync {} = {}, context: {}", metricName, metricValue, ctx);
         }
 
-        MetricRest metricRequest = createLogMetricRequest(metricName, metricValue, this.baseContext);
+        MetricRest metricRequest = createLogMetricRequest(metricName, metricValue, ctx);
         this.sendAsynchronously(getRestApiClient()::logMetric, metricRequest, onComplete);
     }
 
@@ -126,13 +130,13 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     void logParameter(@NonNull String parameterName, @NonNull Object paramValue,
                       @NonNull ExperimentContext context, @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
+        ExperimentContext ctx = mergeWithBaseContextIfEmpty(context);
 
         if (getLogger().isDebugEnabled()) {
-            getLogger().debug("logParameterAsync {} = {}, context: {}", parameterName, paramValue, context);
+            getLogger().debug("logParameterAsync {} = {}, context: {}", parameterName, paramValue, ctx);
         }
 
-        ParameterRest paramRequest = createLogParamRequest(parameterName, paramValue, this.baseContext);
+        ParameterRest paramRequest = createLogParamRequest(parameterName, paramValue, ctx);
         this.sendAsynchronously(getRestApiClient()::logParameter, paramRequest, onComplete);
     }
 
@@ -316,10 +320,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
             getLogger().warn(getString(LOG_ASSET_FOLDER_EMPTY, folder));
             return;
         }
-        this.updateContext(context);
-        // make deep copy of the current experiment context to avoid side effects
-        // if base experiment context become updated while operation is still in progress
-        ExperimentContext assetContext = new ExperimentContext(this.baseContext);
+        ExperimentContext assetContext = mergeWithBaseContextIfEmpty(context);
 
         AtomicInteger successfullyLoggedCount = new AtomicInteger();
         try {
@@ -381,10 +382,10 @@ abstract class BaseExperimentAsync extends BaseExperiment {
     void logRemoteAsset(@NonNull URI uri, Optional<String> logicalPath, boolean overwrite,
                         @NonNull Optional<Map<String, Object>> metadata, @NonNull ExperimentContext context,
                         @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
+        ExperimentContext ctx = mergeWithBaseContextIfEmpty(context);
 
         RemoteAssetImpl asset = AssetUtils.createRemoteAsset(uri, logicalPath, overwrite, metadata, empty());
-        this.logAssetAsync(getRestApiClient()::logRemoteAsset, asset, onComplete);
+        this.logAssetAsync(getRestApiClient()::logRemoteAsset, asset, ctx, onComplete);
 
         if (Objects.equals(asset.getLogicalPath(), AssetUtils.REMOTE_FILE_NAME_DEFAULT)) {
             getLogger().warn(
@@ -509,6 +510,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param assetType    the type of the asset.
      * @param groupingName optional name of group this asset should belong.
      * @param metadata     the optional metadata to associate.
+     * @param context      the experiment context to be associated with given assets.
      * @param onComplete   The optional action to be invoked when this operation asynchronously completes.
      *                     Can be {@code null} if not interested in completion signal.
      */
@@ -519,11 +521,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                            @NonNull Optional<Map<String, Object>> metadata,
                            @NonNull ExperimentContext context,
                            @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
 
         AssetImpl asset = createAssetFromData(data, fileName, overwrite, metadata, assetType);
         groupingName.ifPresent(asset::setGroupingName);
-        this.logAssetAsync(asset, onComplete);
+        ExperimentContext ctx = mergeWithBaseContextIfEmpty(context);
+
+        this.logAssetAsync(asset, ctx, onComplete);
     }
 
     /**
@@ -535,6 +538,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * @param assetType    the type of the asset.
      * @param groupingName optional name of group this asset should belong.
      * @param metadata     the optional metadata to associate.
+     * @param context      the experiment context to be associated with given assets.
      * @param onComplete   The optional action to be invoked when this operation asynchronously completes.
      *                     Can be {@code null} if not interested in completion signal.
      */
@@ -545,11 +549,12 @@ abstract class BaseExperimentAsync extends BaseExperiment {
                            @NonNull Optional<Map<String, Object>> metadata,
                            @NonNull ExperimentContext context,
                            @NonNull Optional<Action> onComplete) {
-        this.updateContext(context);
 
         AssetImpl asset = createAssetFromFile(file, Optional.of(fileName), overwrite, metadata, assetType);
         groupingName.ifPresent(asset::setGroupingName);
-        this.logAssetAsync(asset, onComplete);
+        ExperimentContext ctx = mergeWithBaseContextIfEmpty(context);
+
+        this.logAssetAsync(asset, ctx, onComplete);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -565,27 +570,31 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      * Asynchronously logs provided asset and signals upload completion if {@code onComplete} action provided.
      *
      * @param asset      the {@link Asset} to be uploaded.
+     * @param context    the experiment context to be associated with given assets.
      * @param onComplete the optional {@link Action} to be called upon operation completed,
      *                   either successful or failure.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private void logAssetAsync(@NonNull final Asset asset, @NonNull Optional<Action> onComplete) {
-        this.logAssetAsync(getRestApiClient()::logAsset, asset, onComplete);
+    private void logAssetAsync(@NonNull final Asset asset, @NonNull ExperimentContext context,
+                               @NonNull Optional<Action> onComplete) {
+        this.logAssetAsync(getRestApiClient()::logAsset, asset, context, onComplete);
     }
 
     /**
      * Attempts to log provided {@link AssetImpl} or its subclass asynchronously using specified log function.
      *
+     * @param <T>        the {@link AssetImpl} or its subclass.
      * @param func       the function to be invoked to send asset to the backend.
      * @param asset      the {@link AssetImpl} or subclass to be sent.
+     * @param context    the experiment context to be associated with given assets.
      * @param onComplete The optional action to be invoked when this operation
      *                   asynchronously completes. Can be empty if not interested in completion signal.
-     * @param <T>        the {@link AssetImpl} or its subclass.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private <T extends Asset> void logAssetAsync(@NonNull final BiFunction<T, String, Single<RestApiResponse>> func,
-                                                 @NonNull final T asset, @NonNull Optional<Action> onComplete) {
-        ((AssetImpl) asset).setContext(this.baseContext);
+                                                 @NonNull final T asset, @NonNull ExperimentContext context,
+                                                 @NonNull Optional<Action> onComplete) {
+        ((AssetImpl) asset).setContext(context);
         Single<RestApiResponse> single = this.sendAssetAsync(func, asset);
 
         if (onComplete.isPresent()) {

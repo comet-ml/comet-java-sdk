@@ -284,12 +284,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logMetric(String metricName, Object metricValue) {
-        this.logMetric(metricName, metricValue, this.baseContext);
+        this.logMetric(metricName, metricValue, ExperimentContext.empty());
     }
 
     @Override
     public void logParameter(@NonNull String parameterName, @NonNull Object paramValue) {
-        this.logParameter(parameterName, paramValue, this.baseContext);
+        this.logParameter(parameterName, paramValue, ExperimentContext.empty());
     }
 
     @Override
@@ -368,7 +368,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logAssetFolder(@NonNull File folder, boolean logFilePath, boolean recursive) {
-        this.logAssetFolder(folder, logFilePath, recursive, this.baseContext);
+        this.logAssetFolder(folder, logFilePath, recursive, ExperimentContext.empty());
     }
 
     @Override
@@ -404,12 +404,12 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void uploadAsset(@NonNull File asset, @NonNull String logicalPath, boolean overwrite) {
-        this.uploadAsset(asset, logicalPath, overwrite, this.baseContext);
+        this.uploadAsset(asset, logicalPath, overwrite, ExperimentContext.empty());
     }
 
     @Override
     public void uploadAsset(@NonNull File asset, boolean overwrite) {
-        this.uploadAsset(asset, asset.getName(), overwrite, this.baseContext);
+        this.uploadAsset(asset, asset.getName(), overwrite, ExperimentContext.empty());
     }
 
     @Override
@@ -422,7 +422,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logRemoteAsset(@NonNull URI uri, String logicalPath, boolean overwrite, Map<String, Object> metadata) {
-        this.logRemoteAsset(uri, logicalPath, overwrite, metadata, this.baseContext);
+        this.logRemoteAsset(uri, logicalPath, overwrite, metadata, ExperimentContext.empty());
     }
 
     @Override
@@ -432,7 +432,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logRemoteAsset(@NonNull URI uri, boolean overwrite) {
-        this.logRemoteAsset(uri, null, overwrite, null, this.baseContext);
+        this.logRemoteAsset(uri, null, overwrite, null, ExperimentContext.empty());
     }
 
     @Override
@@ -454,12 +454,27 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
 
     @Override
     public void logCode(@NonNull String code, @NonNull String logicalPath) {
-        this.logCode(code, logicalPath, this.baseContext);
+        this.logCode(code, logicalPath, ExperimentContext.empty());
     }
 
     @Override
     public void logCode(@NonNull File file) {
-        this.logCode(file, this.baseContext);
+        this.logCode(file, ExperimentContext.empty());
+    }
+
+    @Override
+    public void logText(String text, ExperimentContext context, Map<String, Object> metadata) {
+
+    }
+
+    @Override
+    public void logText(String text, ExperimentContext context) {
+
+    }
+
+    @Override
+    public void logText(String text) {
+        this.logText(text, ExperimentContext.empty());
     }
 
     @Override
@@ -487,7 +502,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logModelFolder(@NonNull String modelName, @NonNull File folder,
                                boolean logFilePath, Map<String, Object> metadata) {
-        this.logModelFolder(modelName, folder, logFilePath, metadata, this.baseContext);
+        this.logModelFolder(modelName, folder, logFilePath, metadata, ExperimentContext.empty());
     }
 
     @Override
@@ -513,7 +528,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logModel(@NonNull String modelName, @NonNull File file, @NonNull String logicalPath,
                          boolean overwrite, Map<String, Object> metadata) {
-        this.logModel(modelName, file, logicalPath, overwrite, metadata, this.baseContext);
+        this.logModel(modelName, file, logicalPath, overwrite, metadata, ExperimentContext.empty());
     }
 
     @Override
@@ -546,7 +561,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logModel(@NonNull String modelName, byte[] data, @NonNull String logicalPath, boolean overwrite,
                          Map<String, Object> metadata) {
-        this.logModel(modelName, data, logicalPath, overwrite, metadata, this.baseContext);
+        this.logModel(modelName, data, logicalPath, overwrite, metadata, ExperimentContext.empty());
     }
 
     @Override
