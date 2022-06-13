@@ -7,18 +7,22 @@ import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.asset.RemoteAssetImpl;
+import ml.comet.experiment.impl.rest.CurveData;
+import ml.comet.experiment.model.Curve;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static ml.comet.experiment.impl.asset.AssetType.CURVE;
 import static ml.comet.experiment.impl.asset.AssetType.POINTS_3D;
 import static ml.comet.experiment.impl.asset.AssetType.UNKNOWN;
 
@@ -126,6 +130,20 @@ public class AssetUtils {
         asset.setFileExtension(FilenameUtils.getExtension(logicalPath));
 
         return updateAsset(asset, overwrite, metadata, type);
+    }
+
+    /**
+     * Creates {@code Asset} from provided {@code Curve} instance.
+     *
+     * @param curve     the {@code Curve} instance with data points.
+     * @param overwrite if {@code true} mark as override
+     * @return the instance of the {@link AssetImpl} with file-like data.
+     */
+    public static AssetImpl createAssetFromCurve(@NonNull Curve curve, boolean overwrite) {
+        CurveData data = CurveData.from(curve);
+        String json = JsonUtils.toJson(data);
+        return createAssetFromData(json.getBytes(StandardCharsets.UTF_8), curve.getName(), overwrite,
+                Optional.empty(), Optional.of(CURVE.type()));
     }
 
     /**
