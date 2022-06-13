@@ -18,7 +18,9 @@ import java.util.Optional;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
+import static ml.comet.experiment.impl.config.CometConfig.COMET_PROJECT_NAME;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
+import static ml.comet.experiment.impl.config.CometConfig.COMET_WORKSPACE_NAME;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_CLEANUP_PROMPT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 
@@ -35,8 +37,10 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
             final Logger logger,
             final String baseUrl,
             int maxAuthRetries,
-            final Duration cleaningTimeout) {
-        super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout);
+            final Duration cleaningTimeout,
+            final String projectName,
+            final String workspaceName) {
+        super(apiKey, baseUrl, maxAuthRetries, experimentKey, cleaningTimeout, projectName, workspaceName);
         if (logger != null) {
             this.logger = logger;
         }
@@ -45,6 +49,8 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
     @Override
     void init() {
         super.init();
+
+        registerExperiment();
     }
 
     @Override
@@ -114,6 +120,8 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
         private String experimentKey;
         private String apiKey;
         private Logger logger;
+        private String projectName;
+        private String workspace;
 
         private ApiExperimentBuilderImpl() {
         }
@@ -127,6 +135,18 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
         @Override
         public ApiExperimentImpl.ApiExperimentBuilderImpl withApiKey(@NonNull final String anApiKey) {
             this.apiKey = anApiKey;
+            return this;
+        }
+
+        @Override
+        public ApiExperimentImpl.ApiExperimentBuilderImpl withProjectName(@NonNull String projectName) {
+            this.projectName = projectName;
+            return this;
+        }
+
+        @Override
+        public ApiExperimentImpl.ApiExperimentBuilderImpl withWorkspace(@NonNull String workspace) {
+            this.workspace = workspace;
             return this;
         }
 
@@ -147,11 +167,18 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
             if (StringUtils.isBlank(this.apiKey)) {
                 this.apiKey = COMET_API_KEY.getString();
             }
+            if (StringUtils.isBlank(this.projectName)) {
+                this.projectName = COMET_PROJECT_NAME.getOptionalString().orElse(null);
+            }
+            if (StringUtils.isBlank(this.workspace)) {
+                this.workspace = COMET_WORKSPACE_NAME.getOptionalString().orElse(null);
+            }
             ApiExperimentImpl experiment = new ApiExperimentImpl(
                     this.apiKey, this.experimentKey, this.logger,
                     COMET_BASE_URL.getString(),
                     COMET_MAX_AUTH_RETRIES.getInt(),
-                    COMET_TIMEOUT_CLEANING_SECONDS.getDuration());
+                    COMET_TIMEOUT_CLEANING_SECONDS.getDuration(),
+                    this.projectName, this.workspace);
             try {
                 // initialize experiment
                 experiment.init();

@@ -22,6 +22,7 @@ public class TestUtils {
         put("someString", "test string");
         put("someBoolean", true);
     }};
+    public static final String SOME_CONTEXT_ID = "SOME_CONTEXT_ID";
 
     static final ExperimentContext SOME_FULL_CONTEXT =
             new ExperimentContext(10, 101, "train");

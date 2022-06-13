@@ -14,4 +14,20 @@ public interface ApiExperimentBuilder extends BaseCometBuilder<ApiExperiment> {
      * @return the builder configured with specified key of the previous experiment.
      */
     ApiExperimentBuilder withExistingExperimentKey(String experimentKey);
+
+    /**
+     * Set project name for the experiment.
+     *
+     * @param projectName The project under which the experiment should run
+     * @return the builder configured with specified project name.
+     */
+    ApiExperimentBuilder withProjectName(String projectName);
+
+    /**
+     * Set workspace for the project.
+     *
+     * @param workspace The workspace under which the experiment should be run.
+     * @return the builder configured with specified workspace name.
+     */
+    ApiExperimentBuilder withWorkspace(String workspace);
 }

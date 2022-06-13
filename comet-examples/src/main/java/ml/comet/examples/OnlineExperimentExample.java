@@ -71,6 +71,12 @@ public class OnlineExperimentExample implements BaseExample {
         experiment.logParameter("batch_size", "500");
         experiment.logParameter("learning_rate", 12);
 
+        experiment.logText("Sample text",
+                ExperimentContext.builder()
+                        .withContext("train")
+                        .withStep(12).build(),
+                SOME_METADATA);
+
         // upload assets
         //
         experiment.uploadAsset(getResourceFile(CHART_IMAGE_FILE), "amazing chart.png", false);

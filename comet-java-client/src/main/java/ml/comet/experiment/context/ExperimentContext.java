@@ -83,6 +83,35 @@ public final class ExperimentContext {
     }
 
     /**
+     * Allows to check if this is empty context, i.e., has no value set.
+     *
+     * @return {@code true} if this is empty context.
+     */
+    public boolean isEmpty() {
+        return Objects.isNull(this.step) && Objects.isNull(this.epoch) && StringUtils.isBlank(this.context);
+    }
+
+    /**
+     * Indicates whether provided context object equals to this one.
+     *
+     * @param obj the instance of {@code ExperimentContext} to check.
+     * @return {@code true} if provided context object equals to this one.
+     */
+    public boolean equals(Object obj) {
+        if (Objects.isNull(obj) || !(obj instanceof ExperimentContext)) {
+            return false;
+        }
+
+        if (this == obj) {
+            return true;
+        }
+        ExperimentContext ctx = (ExperimentContext) obj;
+        return Objects.equals(this.context, ctx.context)
+                && Objects.equals(this.epoch, ctx.epoch)
+                && Objects.equals(this.step, ctx.step);
+    }
+
+    /**
      * The factory to return empty {@link ExperimentContext} instance.
      *
      * @return the empty {@link ExperimentContext}

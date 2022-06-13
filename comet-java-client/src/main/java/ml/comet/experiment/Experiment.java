@@ -10,6 +10,7 @@ import ml.comet.experiment.model.Value;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -306,6 +307,20 @@ public interface Experiment extends AutoCloseable {
      * @param file Asset with source code to be sent
      */
     void logCode(File file);
+
+    /**
+     * Allows to log additional textual data associated with Comet Experiment.
+     * These strings appear on the Text Tab in the Comet UI.
+     *
+     * @param text     the text data to be logged.
+     * @param context  the current experiment context to be associated.
+     * @param metadata the additional metadata for the text.
+     */
+    void logText(String text, ExperimentContext context, Map<String, Object> metadata);
+
+    void logText(String text, ExperimentContext context);
+
+    void logText(String text);
 
     /**
      * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.

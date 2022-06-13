@@ -49,8 +49,9 @@ public class LogAssetsSupportTest extends AssetsBaseTest {
 
             String secondAssetExpectedFileName = "secondAssetFile.extension";
             URI secondAssetLink = new URI("s3://bucket/folder/" + secondAssetExpectedFileName);
+            experiment.setContext(TestUtils.SOME_CONTEXT_ID);
             experiment.logRemoteAsset(secondAssetLink, empty(), false, empty(),
-                    TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
+                    ExperimentContext.empty(), Optional.of(onComplete));
 
             awaitForCondition(onComplete, "second remote asset onComplete timeout", 30);
 
@@ -59,8 +60,11 @@ public class LogAssetsSupportTest extends AssetsBaseTest {
             awaitForCondition(() -> experiment.getAllAssetList().size() == 2, "Assets was uploaded");
             List<LoggedExperimentAsset> assets = experiment.getAllAssetList();
 
-            validateRemoteAssetLink(assets, firstAssetLink, firstAssetFileName, TestUtils.SOME_METADATA);
-            validateRemoteAssetLink(assets, secondAssetLink, secondAssetExpectedFileName, null);
+            validateRemoteAssetLink(assets, firstAssetLink, firstAssetFileName, TestUtils.SOME_METADATA,
+                    new ExperimentContext(TestUtils.SOME_FULL_CONTEXT.getStep(), 0,
+                            TestUtils.SOME_FULL_CONTEXT.getContext()));
+            validateRemoteAssetLink(assets, secondAssetLink, secondAssetExpectedFileName, null,
+                    new ExperimentContext(0, 0, TestUtils.SOME_CONTEXT_ID));
         } catch (Exception e) {
             fail(e);
         }
@@ -82,8 +86,9 @@ public class LogAssetsSupportTest extends AssetsBaseTest {
             awaitForCondition(onComplete, "image file onComplete timeout", 30);
 
             onComplete = new OnlineExperimentTest.OnCompleteAction();
+            experiment.setContext(TestUtils.SOME_CONTEXT_ID);
             experiment.logAssetFileAsync(Objects.requireNonNull(TestUtils.getFile(SOME_TEXT_FILE_NAME)), SOME_TEXT_FILE_NAME,
-                    false, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
+                    false, ExperimentContext.empty(), Optional.of(onComplete));
             awaitForCondition(onComplete, "text file onComplete timeout", 30);
 
             // wait for assets become available and validate results
@@ -92,7 +97,8 @@ public class LogAssetsSupportTest extends AssetsBaseTest {
 
             List<LoggedExperimentAsset> assets = experiment.getAllAssetList();
             validateAsset(assets, IMAGE_FILE_NAME, IMAGE_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
-            validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE, TestUtils.SOME_FULL_CONTEXT);
+            validateAsset(assets, SOME_TEXT_FILE_NAME, SOME_TEXT_FILE_SIZE,
+                    new ExperimentContext(0, 0, TestUtils.SOME_CONTEXT_ID));
 
             // update one of the assets and validate
             //
@@ -155,19 +161,28 @@ public class LogAssetsSupportTest extends AssetsBaseTest {
     }
 
     static void validateRemoteAssetLink(List<LoggedExperimentAsset> assets, URI uri,
-                                        String fileName, Map<String, Object> metadata) {
+                                        String fileName, Map<String, Object> metadata,
+                                        ExperimentContext context) {
         if (Objects.nonNull(metadata)) {
             assertTrue(assets.stream()
                     .filter(asset -> Objects.equals(uri, asset.getLink().orElse(null)))
                     .allMatch(asset -> asset.isRemote()
                             && Objects.equals(asset.getLogicalPath(), fileName)
-                            && Objects.equals(asset.getMetadata(), metadata)));
+                            && Objects.equals(asset.getMetadata(), metadata)
+                    ));
         } else {
             assertTrue(assets.stream()
                     .filter(asset -> Objects.equals(uri, asset.getLink().orElse(null)))
                     .allMatch(asset -> asset.isRemote()
                             && Objects.equals(asset.getLogicalPath(), fileName)
-                            && asset.getMetadata().isEmpty()));
+                            && asset.getMetadata().isEmpty()
+                    ));
         }
+        // check context
+        assertTrue(assets.stream()
+                .filter(asset -> Objects.equals(uri, asset.getLink().orElse(null)))
+                .allMatch(asset -> asset.getExperimentContext().isPresent()
+                        && Objects.equals(asset.getExperimentContext().get(), context)
+                ));
     }
 }

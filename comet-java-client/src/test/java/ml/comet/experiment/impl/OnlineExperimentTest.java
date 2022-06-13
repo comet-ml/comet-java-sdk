@@ -6,6 +6,7 @@ import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometGeneralException;
+import ml.comet.experiment.impl.asset.LoggedExperimentAssetImpl;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -25,9 +26,12 @@ import java.util.function.BooleanSupplier;
 
 import static ml.comet.experiment.impl.ExperimentTestFactory.API_KEY;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
+import static ml.comet.experiment.impl.TestUtils.SOME_CONTEXT_ID;
 import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
+import static ml.comet.experiment.impl.TestUtils.SOME_METADATA;
 import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
+import static ml.comet.experiment.impl.asset.AssetType.TEXT_SAMPLE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_REGISTER_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
 import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
@@ -51,6 +55,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     private static final String SOME_PARAMETER_VALUE = "122.0";
     private static final String ANOTHER_PARAMETER = "anotherParameter";
     private static final double ANOTHER_PARAMETER_VALUE = 123.0;
+    private static final String ONE_MORE_PARAMETER = "oneMoreParameter";
+    private static final String ONE_MORE_PARAMETER_VALUE = "42.0";
     private static final String SOME_HTML = "<!DOCTYPE html><html lang=\"en\"><body><p>some html</p></body></html>";
     private static final String ANOTHER_HTML = "<!DOCTYPE html><html lang=\"en\"><body><p>another html</p></body></html>";
     private static final String JOINED_HTML = ANOTHER_HTML + SOME_HTML;
@@ -140,14 +146,22 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     @Test
     public void testLogAndGetMetric() {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
-            // Test metric with full context (including context ID)
+            // Test log metric with base context's ID set directly to experiment
             //
+            experiment.setContext(TestUtils.SOME_CONTEXT_ID);
             OnCompleteAction onComplete = new OnCompleteAction();
+            experiment.logMetric(
+                    ONE_MORE_PARAMETER, ONE_MORE_PARAMETER_VALUE, ExperimentContext.empty(), Optional.of(onComplete));
+            awaitForCondition(onComplete, "logMetricAsync onComplete timeout");
+
+            // Test log metric with full context (including context ID) override
+            //
+            onComplete = new OnCompleteAction();
             experiment.logMetric(
                     SOME_PARAMETER, SOME_PARAMETER_VALUE, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
             awaitForCondition(onComplete, "logMetricAsync onComplete timeout");
 
-            // Test metric with partial context (without context ID)
+            // Test log metric with partial context (without context ID) override
             //
             experiment.setContext(StringUtils.EMPTY);
             onComplete = new OnCompleteAction();
@@ -157,9 +171,11 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             // Wait for metrics to become available and check results
             //
-            awaitForCondition(() -> experiment.getMetrics().size() == 2, "experiment metrics get timeout");
+            awaitForCondition(() -> experiment.getMetrics().size() == 3, "experiment metrics get timeout");
 
             List<Value> metrics = experiment.getMetrics();
+            validateValues(metrics, fullMetricName(ONE_MORE_PARAMETER,
+                    ExperimentContext.builder().withContext(TestUtils.SOME_CONTEXT_ID).build()), ONE_MORE_PARAMETER_VALUE);
             validateValues(metrics, fullMetricName(SOME_PARAMETER, TestUtils.SOME_FULL_CONTEXT), SOME_PARAMETER_VALUE);
             validateValues(metrics, fullMetricName(ANOTHER_PARAMETER, SOME_PARTIAL_CONTEXT), ANOTHER_PARAMETER_VALUE);
         } catch (Throwable throwable) {
@@ -170,10 +186,17 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     @Test
     public void testLogAndGetParameter() {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // Test log parameter with base context's ID set directly to experiment
+            //
+            experiment.setContext(TestUtils.SOME_CONTEXT_ID);
+            OnCompleteAction onComplete = new OnCompleteAction();
+            experiment.logParameter(
+                    ONE_MORE_PARAMETER, ONE_MORE_PARAMETER_VALUE, ExperimentContext.empty(), Optional.of(onComplete));
+            awaitForCondition(onComplete, "logMetricAsync onComplete timeout");
 
             // Test log parameter with full context
             //
-            OnCompleteAction onComplete = new OnCompleteAction();
+            onComplete = new OnCompleteAction();
             experiment.logParameter(
                     SOME_PARAMETER, SOME_PARAMETER_VALUE, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
             awaitForCondition(onComplete, "logParameterAsync onComplete timeout");
@@ -187,8 +210,9 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             // Wait for parameters to become available and check results
             //
-            awaitForCondition(() -> experiment.getParameters().size() == 2, "experiment parameters get timeout");
+            awaitForCondition(() -> experiment.getParameters().size() == 3, "experiment parameters get timeout");
             List<Value> params = experiment.getParameters();
+            validateValues(params, ONE_MORE_PARAMETER, ONE_MORE_PARAMETER_VALUE);
             validateValues(params, SOME_PARAMETER, SOME_PARAMETER_VALUE);
             validateValues(params, ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
 
@@ -379,7 +403,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
     }
 
     @Test
-    public void testSetsContext() {
+    public void testUploadAsset() {
         try (OnlineExperiment experiment = createOnlineExperiment()) {
             assertTrue(experiment.getAllAssetList().isEmpty());
 
@@ -505,12 +529,68 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             experiment.logCode(SOME_TEXT, CODE_FILE_NAME, SOME_FULL_CONTEXT);
 
             awaitForCondition(() -> !experiment.getAssetList(SOURCE_CODE.type()).isEmpty(),
-                    "Experiment raw code added");
+                    "Experiment raw code not added");
             List<LoggedExperimentAsset> assets = experiment.getAssetList(SOURCE_CODE.type());
             validateAsset(assets, CODE_FILE_NAME, SOME_TEXT_FILE_SIZE, SOME_FULL_CONTEXT);
 
         } catch (Throwable t) {
             fail(t);
+        }
+    }
+
+    @Test
+    public void testLogAndGetText_contextOverride() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // check that no text was logged
+            //
+            assertTrue(experiment.getAllAssetList().isEmpty());
+
+            // log text with  context set
+            //
+            experiment.logText(SOME_TEXT, SOME_FULL_CONTEXT, SOME_METADATA);
+
+            awaitForCondition(() -> !experiment.getAssetList(TEXT_SAMPLE.type()).isEmpty(),
+                    "Experiment text not added");
+
+            List<LoggedExperimentAsset> assets = experiment.getAssetList(TEXT_SAMPLE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            LoggedExperimentAsset asset = assets.get(0);
+            assertEquals(TEXT_SAMPLE.type(), asset.getType(), "wrong asset type");
+            ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
+            assertEquals(SOME_FULL_CONTEXT.getStep(), assetContext.getStep(), "wrong asset's context step");
+            assertEquals(SOME_FULL_CONTEXT.getContext(), assetContext.getContext(), "wrong asset's context ID");
+            assertEquals(SOME_METADATA, asset.getMetadata(), "wrong metadata");
+            assertEquals(SOME_TEXT.length(), asset.getSize().orElse(0L), "wrong asset size");
+        }
+    }
+
+    @Test
+    public void testLogAndGetText() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // check that no text was logged
+            //
+            assertTrue(experiment.getAllAssetList().isEmpty());
+
+            // log text with context set tto experiment
+            //
+            int expectedStep = 102;
+            experiment.setStep(expectedStep);
+            experiment.setContext(SOME_CONTEXT_ID);
+            experiment.logText(SOME_TEXT);
+
+            awaitForCondition(() -> !experiment.getAssetList(TEXT_SAMPLE.type()).isEmpty(),
+                    "Experiment text not added");
+
+            List<LoggedExperimentAsset> assets = experiment.getAssetList(TEXT_SAMPLE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            LoggedExperimentAsset asset = assets.get(0);
+            assertEquals(TEXT_SAMPLE.type(), asset.getType(), "wrong asset type");
+            ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
+            assertEquals(expectedStep, assetContext.getStep(), "wrong asset's context step");
+            assertEquals(SOME_CONTEXT_ID, assetContext.getContext(), "wrong asset's context ID");
+            assertEquals(SOME_TEXT.length(), asset.getSize().orElse(0L), "wrong asset size");
         }
     }
 
@@ -546,7 +626,6 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
     static void validateValues(List<Value> valueList, String name, Object value) {
         String stringValue = value.toString();
-        System.out.println(name + ":" + value);
         assertTrue(valueList.stream()
                 .peek(System.out::println)
                 .filter(m -> name.equals(m.getName()))
