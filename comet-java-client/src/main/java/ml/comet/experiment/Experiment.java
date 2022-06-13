@@ -4,6 +4,7 @@ import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.model.Curve;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -321,6 +322,19 @@ public interface Experiment extends AutoCloseable {
     void logText(String text, ExperimentContext context);
 
     void logText(String text);
+
+    /**
+     * Allows to log x/y curve into your Comet experiment. This can be, for example, the time-series data, etc.
+     *
+     * @param curve     the {@code Curve} object holding the data points.
+     * @param overwrite allows to override the previously logged curve with the same name.
+     * @param context   the experiment context to be associated with data record (step, epoch, context ID).
+     */
+    void logCurve(Curve curve, boolean overwrite, ExperimentContext context);
+
+    void logCurve(Curve curve, boolean overwrite);
+
+    void logCurve(Curve curve);
 
     /**
      * Upload an asset to be associated with the experiment, for example the trained weights of a neural net.
