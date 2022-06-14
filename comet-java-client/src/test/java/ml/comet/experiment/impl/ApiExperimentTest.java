@@ -22,6 +22,7 @@ import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createApiExperiment;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
 import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
+import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
 import static ml.comet.experiment.impl.TestUtils.createCurve;
 import static ml.comet.experiment.impl.asset.AssetType.CURVE;
 import static ml.comet.experiment.impl.asset.AssetType.TEXT_SAMPLE;
@@ -160,12 +161,10 @@ public class ApiExperimentTest {
             Curve curve = createCurve(fileName, pointsCount * 2);
             apiExperiment.logCurve(curve, true, SOME_FULL_CONTEXT);
 
+            awaitForCondition(() -> apiExperiment.getAssetList(CURVE.type()).size() == 1,
+                    "Curve was not logged or overwritten");
+
             List<LoggedExperimentAsset> assets = apiExperiment.getAssetList(CURVE.type());
-            if (assets.size() > 1) {
-                for (LoggedExperimentAsset asset : assets) {
-                    System.out.println(asset.getLogicalPath());
-                }
-            }
             assertEquals(1, assets.size(), "wrong number of assets returned");
 
             long newSize = assets.get(0).getSize().orElse((long) -1);

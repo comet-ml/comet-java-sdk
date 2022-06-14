@@ -659,8 +659,8 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             experiment.logCurve(curve, true, SOME_FULL_CONTEXT);
 
-            awaitForCondition(() -> !experiment.getAssetList(CURVE.type()).isEmpty(),
-                    "Curve was not logged");
+            awaitForCondition(() -> experiment.getAssetList(CURVE.type()).size() == 1,
+                    "Curve was not logged or overwritten");
 
             List<LoggedExperimentAsset> assets = experiment.getAssetList(CURVE.type());
             assertEquals(1, assets.size(), "wrong number of assets returned");
