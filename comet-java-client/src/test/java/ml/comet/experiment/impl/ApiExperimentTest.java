@@ -1,6 +1,7 @@
 package ml.comet.experiment.impl;
 
 import ml.comet.experiment.ApiExperiment;
+import ml.comet.experiment.ExperimentBuilder;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
@@ -129,9 +130,11 @@ public class ApiExperimentTest {
 
     @Test
     public void testLogCurveOverwrite() throws Exception {
+        String experimentKey;
+        String fileName = "someCurve";
+        int pointsCount = 10;
+        long size;
         try (ApiExperiment apiExperiment = createApiExperiment()) {
-            String fileName = "someCurve";
-            int pointsCount = 10;
             Curve curve = createCurve(fileName, pointsCount);
             apiExperiment.logCurve(curve, false, SOME_FULL_CONTEXT);
 
@@ -139,15 +142,21 @@ public class ApiExperimentTest {
             List<LoggedExperimentAsset> assets = apiExperiment.getAssetList(CURVE.type());
             assertEquals(1, assets.size(), "wrong number of assets returned");
 
-            long size = assets.get(0).getSize().orElse((long) -1);
+            size = assets.get(0).getSize().orElse((long) -1);
             assertTrue(size > 0, "wrong asset size");
 
+            experimentKey = apiExperiment.getExperimentKey();
+        }
+
+        // create new experiment and overwrite curve
+        try (ApiExperiment apiExperiment = ExperimentBuilder.ApiExperiment()
+                .withExistingExperimentKey(experimentKey).withApiKey(API_KEY).build()) {
             // overwrite created curve with bigger ones
             //
-            curve = createCurve(fileName, pointsCount * 2);
+            Curve curve = createCurve(fileName, pointsCount * 2);
             apiExperiment.logCurve(curve, true, SOME_FULL_CONTEXT);
 
-            assets = apiExperiment.getAssetList(CURVE.type());
+            List<LoggedExperimentAsset> assets = apiExperiment.getAssetList(CURVE.type());
             assertEquals(1, assets.size(), "wrong number of assets returned");
 
             long newSize = assets.get(0).getSize().orElse((long) -1);
