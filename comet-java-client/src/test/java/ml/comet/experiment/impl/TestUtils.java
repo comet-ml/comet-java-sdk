@@ -1,6 +1,8 @@
 package ml.comet.experiment.impl;
 
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.model.Curve;
+import ml.comet.experiment.model.DataPoint;
 import org.awaitility.Awaitility;
 
 import java.io.File;
@@ -66,5 +68,13 @@ public class TestUtils {
                 .pollDelay(1, SECONDS)
                 .pollInterval(300L, MILLISECONDS)
                 .until(booleanSupplier::getAsBoolean);
+    }
+
+    public static Curve createCurve(String name, int pointsCount) {
+        DataPoint[] dataPoints = new DataPoint[pointsCount];
+        for (int i = 0; i < pointsCount; i++) {
+            dataPoints[i] = DataPoint.of(i, i * 10);
+        }
+        return new Curve(dataPoints, name);
     }
 }

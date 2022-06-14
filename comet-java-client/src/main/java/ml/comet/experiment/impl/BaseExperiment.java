@@ -41,6 +41,7 @@ import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.ExceptionUtils;
 import ml.comet.experiment.impl.utils.FileUtils;
 import ml.comet.experiment.impl.utils.SystemUtils;
+import ml.comet.experiment.model.Curve;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -95,6 +96,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_UPSERT_AR
 import static ml.comet.experiment.impl.resources.LogMessages.GET_ARTIFACT_FAILED_UNEXPECTEDLY;
 import static ml.comet.experiment.impl.resources.LogMessages.REMOTE_ASSET_CANNOT_BE_DOWNLOADED;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromCurve;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
 import static ml.comet.experiment.impl.utils.RestApiUtils.createArtifactUpsertRequest;
@@ -450,7 +452,7 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logText(String text, ExperimentContext context, Map<String, Object> metadata) {
+    public void logText(@NonNull String text, @NonNull ExperimentContext context, Map<String, Object> metadata) {
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("logging text {} with context {}", text, context);
         }
@@ -461,13 +463,32 @@ abstract class BaseExperiment implements Experiment {
     }
 
     @Override
-    public void logText(String text, ExperimentContext context) {
+    public void logText(String text, @NonNull ExperimentContext context) {
         this.logText(text, context, null);
     }
 
     @Override
     public void logText(String text) {
         this.logText(text, ExperimentContext.empty());
+    }
+
+    @Override
+    public void logCurve(@NonNull Curve curve, boolean overwrite, @NonNull ExperimentContext context) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("logging curve {} with context {}", curve, context);
+        }
+        AssetImpl asset = createAssetFromCurve(curve, overwrite);
+        this.logAsset(asset, context);
+    }
+
+    @Override
+    public void logCurve(@NonNull Curve curve, boolean overwrite) {
+        this.logCurve(curve, overwrite, ExperimentContext.empty());
+    }
+
+    @Override
+    public void logCurve(@NonNull Curve curve) {
+        this.logCurve(curve, false);
     }
 
     @Override

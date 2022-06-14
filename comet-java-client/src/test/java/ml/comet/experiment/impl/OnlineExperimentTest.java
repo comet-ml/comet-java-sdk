@@ -7,6 +7,7 @@ import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.LoggedExperimentAssetImpl;
+import ml.comet.experiment.model.Curve;
 import ml.comet.experiment.model.ExperimentMetadata;
 import ml.comet.experiment.model.GitMetaData;
 import ml.comet.experiment.model.Value;
@@ -30,6 +31,8 @@ import static ml.comet.experiment.impl.TestUtils.SOME_CONTEXT_ID;
 import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
 import static ml.comet.experiment.impl.TestUtils.SOME_METADATA;
 import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
+import static ml.comet.experiment.impl.TestUtils.createCurve;
+import static ml.comet.experiment.impl.asset.AssetType.CURVE;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.asset.AssetType.TEXT_SAMPLE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_REGISTER_EXPERIMENT;
@@ -591,6 +594,79 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             assertEquals(expectedStep, assetContext.getStep(), "wrong asset's context step");
             assertEquals(SOME_CONTEXT_ID, assetContext.getContext(), "wrong asset's context ID");
             assertEquals(SOME_TEXT.length(), asset.getSize().orElse(0L), "wrong asset size");
+        }
+    }
+
+    @Test
+    public void testLogAndGetCurve() throws Exception {
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            // check that no curve was logged
+            //
+            assertTrue(experiment.getAllAssetList().isEmpty());
+
+            String fileName = "someCurve";
+            int pointsCount = 10;
+            Curve curve = createCurve(fileName, pointsCount);
+
+            experiment.logCurve(curve, false, SOME_FULL_CONTEXT);
+
+            awaitForCondition(() -> !experiment.getAssetList(CURVE.type()).isEmpty(),
+                    "Curve was not logged");
+
+            // check that CURVE asset was saved as expected
+            List<LoggedExperimentAsset> assets = experiment.getAssetList(CURVE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            LoggedExperimentAsset asset = assets.get(0);
+            assertEquals(CURVE.type(), asset.getType(), "wrong type");
+            assertEquals(fileName, asset.getLogicalPath(), "wrong asset path");
+            assertEquals(0, asset.getMetadata().size(), "no metadata expected");
+            ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
+            assertEquals(SOME_FULL_CONTEXT.getStep(), assetContext.getStep(), "wrong context step");
+            assertEquals(SOME_FULL_CONTEXT.getContext(), assetContext.getContext(), "wrong context ID");
+        }
+    }
+
+    @Test
+    public void testLogAndGetCurveOverwrite() throws Exception {
+        String experimentKey;
+        String fileName = "someCurve";
+        int pointsCount = 10;
+        long size;
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
+            Curve curve = createCurve(fileName, pointsCount);
+
+            experiment.logCurve(curve, false, SOME_FULL_CONTEXT);
+
+            awaitForCondition(() -> !experiment.getAssetList(CURVE.type()).isEmpty(),
+                    "Curve was not logged");
+
+            // check that CURVE asset was saved as expected
+            List<LoggedExperimentAsset> assets = experiment.getAssetList(CURVE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            size = assets.get(0).getSize().orElse((long) -1);
+            assertTrue(size > 0, "wrong asset size");
+
+            experimentKey = experiment.getExperimentKey();
+        }
+
+        // create new experiment and overwrite curve
+        try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment(experimentKey)) {
+            // overwrite created curve with bigger ones
+            //
+            Curve curve = createCurve(fileName, pointsCount * 2);
+
+            experiment.logCurve(curve, true, SOME_FULL_CONTEXT);
+
+            awaitForCondition(() -> experiment.getAssetList(CURVE.type()).size() == 1,
+                    "Curve was not logged or overwritten");
+
+            List<LoggedExperimentAsset> assets = experiment.getAssetList(CURVE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            long newSize = assets.get(0).getSize().orElse((long) -1);
+            assertTrue(newSize > size);
         }
     }
 

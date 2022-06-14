@@ -5,6 +5,7 @@ import ml.comet.experiment.asset.RemoteAsset;
 import ml.comet.experiment.impl.TestUtils;
 import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.AssetType;
+import ml.comet.experiment.model.Curve;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -33,14 +34,18 @@ import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
+import static ml.comet.experiment.impl.TestUtils.createCurve;
 import static ml.comet.experiment.impl.asset.AssetType.ASSET;
+import static ml.comet.experiment.impl.asset.AssetType.CURVE;
 import static ml.comet.experiment.impl.asset.AssetType.NOTEBOOK;
 import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.utils.AssetUtils.REMOTE_FILE_NAME_DEFAULT;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromCurve;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromData;
 import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromFile;
 import static ml.comet.experiment.impl.utils.AssetUtils.createRemoteAsset;
 import static ml.comet.experiment.impl.utils.AssetUtils.updateAsset;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -213,6 +218,21 @@ public class AssetUtilsTest {
         assertEquals(data, asset.getFileLikeData().orElse(null));
         assertEquals(fileName, asset.getLogicalPath());
         assertEquals(expected, asset.getType());
+    }
+
+    @Test
+    public void testCreateAssetFromCurve() {
+        String json = "{\"name\":\"someCurve\",\"x\":[0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0],\"y\":[0.0,10.0,20.0,30.0,40.0,50.0,60.0,70.0,80.0,90.0]}";
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        String fileName = "someCurve";
+        Curve curve = createCurve(fileName, 10);
+
+        AssetImpl asset = createAssetFromCurve(curve, true);
+        assertNotNull(asset);
+        assertArrayEquals(data, asset.getFileLikeData().orElse(null));
+        assertEquals(fileName, asset.getLogicalPath());
+        assertEquals(CURVE.type(), asset.getType());
+        assertTrue(asset.getOverwrite());
     }
 
     @Test

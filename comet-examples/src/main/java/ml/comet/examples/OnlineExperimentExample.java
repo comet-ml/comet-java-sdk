@@ -3,6 +3,7 @@ package ml.comet.examples;
 import ml.comet.experiment.ExperimentBuilder;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.context.ExperimentContext;
+import ml.comet.experiment.model.Curve;
 import org.apache.commons.io.file.PathUtils;
 
 import java.net.URI;
@@ -76,6 +77,10 @@ public class OnlineExperimentExample implements BaseExample {
                         .withContext("train")
                         .withStep(12).build(),
                 SOME_METADATA);
+
+        Curve curve = BaseExample.buildCurve("Sample curve", 100);
+        experiment.logCurve(curve, false);
+
 
         // upload assets
         //

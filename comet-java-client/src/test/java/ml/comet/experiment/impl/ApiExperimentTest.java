@@ -6,6 +6,7 @@ import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometGeneralException;
 import ml.comet.experiment.impl.asset.LoggedExperimentAssetImpl;
+import ml.comet.experiment.model.Curve;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -20,6 +21,10 @@ import static ml.comet.experiment.impl.ExperimentTestFactory.PROJECT_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createApiExperiment;
 import static ml.comet.experiment.impl.ExperimentTestFactory.createOnlineExperiment;
+import static ml.comet.experiment.impl.TestUtils.SOME_FULL_CONTEXT;
+import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
+import static ml.comet.experiment.impl.TestUtils.createCurve;
+import static ml.comet.experiment.impl.asset.AssetType.CURVE;
 import static ml.comet.experiment.impl.asset.AssetType.TEXT_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -100,6 +105,70 @@ public class ApiExperimentTest {
             ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
             assertEquals(0, assetContext.getStep(), "no context step expected");
             assertTrue(StringUtils.isBlank(assetContext.getContext()), "no context ID expected");
+        }
+    }
+
+    @Test
+    public void testLogCurve() throws Exception {
+        try (ApiExperiment apiExperiment = createApiExperiment()) {
+            // check that no curve was logged
+            assertTrue(apiExperiment.getAllAssetList().isEmpty());
+
+            String fileName = "someCurve";
+            Curve curve = createCurve(fileName, 10);
+            apiExperiment.logCurve(curve, true, SOME_FULL_CONTEXT);
+
+            // check that CURVE asset was saved as expected
+            List<LoggedExperimentAsset> assets = apiExperiment.getAssetList(CURVE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            LoggedExperimentAsset asset = assets.get(0);
+            assertEquals(CURVE.type(), asset.getType(), "wrong asset type");
+            assertEquals(fileName, asset.getLogicalPath(), "wrong asset path");
+            assertEquals(0, asset.getMetadata().size(), "no metadata expected");
+            ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
+            assertEquals(SOME_FULL_CONTEXT.getStep(), assetContext.getStep(), "wrong context step");
+            assertEquals(SOME_FULL_CONTEXT.getContext(), assetContext.getContext(), "wrong context ID");
+        }
+    }
+
+    @Test
+    public void testLogCurveOverwrite() throws Exception {
+        String experimentKey;
+        String fileName = "someCurve";
+        int pointsCount = 10;
+        long size;
+        try (ApiExperiment apiExperiment = createApiExperiment()) {
+            Curve curve = createCurve(fileName, pointsCount);
+            apiExperiment.logCurve(curve, false, SOME_FULL_CONTEXT);
+
+            // check that CURVE asset was saved as expected
+            List<LoggedExperimentAsset> assets = apiExperiment.getAssetList(CURVE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            LoggedExperimentAsset asset = assets.get(0);
+            assertEquals(fileName, asset.getLogicalPath(), "wrong asset path");
+            size = asset.getSize().orElse((long) -1);
+            assertTrue(size > 0, "wrong asset size");
+
+            experimentKey = apiExperiment.getExperimentKey();
+        }
+
+        // create new experiment and overwrite curve
+        try (ApiExperiment apiExperiment = createApiExperiment(experimentKey)) {
+            // overwrite created curve with bigger ones
+            //
+            Curve curve = createCurve(fileName, pointsCount * 2);
+            apiExperiment.logCurve(curve, true, SOME_FULL_CONTEXT);
+
+            awaitForCondition(() -> apiExperiment.getAssetList(CURVE.type()).size() == 1,
+                    "Curve was not logged or overwritten");
+
+            List<LoggedExperimentAsset> assets = apiExperiment.getAssetList(CURVE.type());
+            assertEquals(1, assets.size(), "wrong number of assets returned");
+
+            long newSize = assets.get(0).getSize().orElse((long) -1);
+            assertTrue(newSize > size);
         }
     }
 }
