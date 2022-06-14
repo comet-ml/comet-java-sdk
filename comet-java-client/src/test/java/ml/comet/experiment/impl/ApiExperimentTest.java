@@ -123,6 +123,7 @@ public class ApiExperimentTest {
 
             LoggedExperimentAsset asset = assets.get(0);
             assertEquals(CURVE.type(), asset.getType(), "wrong asset type");
+            assertEquals(fileName, asset.getLogicalPath(), "wrong asset path");
             assertEquals(0, asset.getMetadata().size(), "no metadata expected");
             ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
             assertEquals(SOME_FULL_CONTEXT.getStep(), assetContext.getStep(), "wrong context step");
@@ -144,7 +145,9 @@ public class ApiExperimentTest {
             List<LoggedExperimentAsset> assets = apiExperiment.getAssetList(CURVE.type());
             assertEquals(1, assets.size(), "wrong number of assets returned");
 
-            size = assets.get(0).getSize().orElse((long) -1);
+            LoggedExperimentAsset asset = assets.get(0);
+            assertEquals(fileName, asset.getLogicalPath(), "wrong asset path");
+            size = asset.getSize().orElse((long) -1);
             assertTrue(size > 0, "wrong asset size");
 
             experimentKey = apiExperiment.getExperimentKey();
@@ -158,6 +161,11 @@ public class ApiExperimentTest {
             apiExperiment.logCurve(curve, true, SOME_FULL_CONTEXT);
 
             List<LoggedExperimentAsset> assets = apiExperiment.getAssetList(CURVE.type());
+            if (assets.size() > 1) {
+                for (LoggedExperimentAsset asset : assets) {
+                    System.out.println(asset.getLogicalPath());
+                }
+            }
             assertEquals(1, assets.size(), "wrong number of assets returned");
 
             long newSize = assets.get(0).getSize().orElse((long) -1);

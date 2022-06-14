@@ -619,6 +619,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             LoggedExperimentAsset asset = assets.get(0);
             assertEquals(CURVE.type(), asset.getType(), "wrong type");
+            assertEquals(fileName, asset.getLogicalPath(), "wrong asset path");
             assertEquals(0, asset.getMetadata().size(), "no metadata expected");
             ExperimentContext assetContext = ((LoggedExperimentAssetImpl) asset).getContext();
             assertEquals(SOME_FULL_CONTEXT.getStep(), assetContext.getStep(), "wrong context step");
