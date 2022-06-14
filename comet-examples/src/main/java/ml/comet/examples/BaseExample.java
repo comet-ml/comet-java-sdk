@@ -1,6 +1,8 @@
 package ml.comet.examples;
 
 import ml.comet.experiment.OnlineExperiment;
+import ml.comet.experiment.model.Curve;
+import ml.comet.experiment.model.DataPoint;
 import org.apache.commons.io.file.PathUtils;
 
 import java.io.IOException;
@@ -10,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.lang.Math.log;
 import static ml.comet.examples.Utils.getResourceFile;
 import static ml.comet.examples.Utils.readResourceToString;
 
@@ -77,5 +80,13 @@ interface BaseExample {
         metadata.put("someString", "test string");
         metadata.put("someBoolean", true);
         return metadata;
+    }
+
+    static Curve buildCurve(String name, int pointsCount) {
+        DataPoint[] dataPoints = new DataPoint[pointsCount];
+        for (int i = 0; i < pointsCount; i++) {
+            dataPoints[i] = DataPoint.of(i, (float) log((i + 1) * 10));
+        }
+        return new Curve(dataPoints, name);
     }
 }

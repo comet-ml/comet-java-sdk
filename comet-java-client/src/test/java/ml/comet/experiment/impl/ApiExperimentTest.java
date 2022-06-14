@@ -1,7 +1,6 @@
 package ml.comet.experiment.impl;
 
 import ml.comet.experiment.ApiExperiment;
-import ml.comet.experiment.ExperimentBuilder;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.asset.LoggedExperimentAsset;
 import ml.comet.experiment.context.ExperimentContext;
