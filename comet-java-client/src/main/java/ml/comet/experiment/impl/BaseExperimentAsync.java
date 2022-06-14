@@ -575,7 +575,7 @@ abstract class BaseExperimentAsync extends BaseExperiment {
      *                   either successful or failure.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private void logAssetAsync(@NonNull final Asset asset, @NonNull ExperimentContext context,
+    void logAssetAsync(@NonNull final Asset asset, @NonNull ExperimentContext context,
                                @NonNull Optional<Action> onComplete) {
         this.logAssetAsync(getRestApiClient()::logAsset, asset, context, onComplete);
     }

@@ -111,6 +111,9 @@ public class ApiExperimentTest {
     @Test
     public void testLogCurve() throws Exception {
         try (ApiExperiment apiExperiment = createApiExperiment()) {
+            // check that no curve was logged
+            assertTrue(apiExperiment.getAllAssetList().isEmpty());
+
             String fileName = "someCurve";
             Curve curve = createCurve(fileName, 10);
             apiExperiment.logCurve(curve, true, SOME_FULL_CONTEXT);
@@ -149,8 +152,7 @@ public class ApiExperimentTest {
         }
 
         // create new experiment and overwrite curve
-        try (ApiExperiment apiExperiment = ExperimentBuilder.ApiExperiment()
-                .withExistingExperimentKey(experimentKey).withApiKey(API_KEY).build()) {
+        try (ApiExperiment apiExperiment = createApiExperiment(experimentKey)) {
             // overwrite created curve with bigger ones
             //
             Curve curve = createCurve(fileName, pointsCount * 2);

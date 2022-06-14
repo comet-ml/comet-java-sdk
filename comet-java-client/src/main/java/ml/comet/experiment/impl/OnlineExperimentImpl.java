@@ -9,9 +9,11 @@ import ml.comet.experiment.artifact.ArtifactException;
 import ml.comet.experiment.artifact.LoggedArtifact;
 import ml.comet.experiment.context.ExperimentContext;
 import ml.comet.experiment.exception.CometApiException;
+import ml.comet.experiment.impl.asset.AssetImpl;
 import ml.comet.experiment.impl.asset.AssetType;
 import ml.comet.experiment.impl.log.StdOutLogger;
 import ml.comet.experiment.impl.rest.ExperimentStatusResponse;
+import ml.comet.experiment.model.Curve;
 import ml.comet.experiment.model.GitMetaData;
 import org.awaitility.Awaitility;
 import org.slf4j.Logger;
@@ -47,12 +49,14 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_CLEAN_EXP
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_ASSET_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_CODE_ASSET;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_CURVE_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_MODEL_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_MODEL_FOLDER;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_REMOTE_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_LOG_TEXT_ASSET;
 import static ml.comet.experiment.impl.resources.LogMessages.TIMEOUT_FOR_EXPERIMENT_INVENTORY_CLEANUP;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
+import static ml.comet.experiment.impl.utils.AssetUtils.createAssetFromCurve;
 
 /**
  * The implementation of the {@link OnlineExperiment} to work with Comet API asynchronously.
@@ -483,6 +487,24 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
     @Override
     public void logText(String text) {
         this.logText(text, ExperimentContext.empty());
+    }
+
+    @Override
+    public void logCurve(@NonNull Curve curve, boolean overwrite, @NonNull ExperimentContext context) {
+        AssetImpl asset = createAssetFromCurve(curve, overwrite);
+        this.executeLogAction(() -> this.logAssetAsync(
+                        asset, context, this.getLogAssetOnCompleteAction()),
+                this.assetsInProgress, getString(FAILED_TO_LOG_CURVE_ASSET));
+    }
+
+    @Override
+    public void logCurve(@NonNull Curve curve, boolean overwrite) {
+        this.logCurve(curve, overwrite, ExperimentContext.empty());
+    }
+
+    @Override
+    public void logCurve(@NonNull Curve curve) {
+        this.logCurve(curve, false);
     }
 
     @Override

@@ -30,10 +30,24 @@ public class ExperimentTestFactory {
                 .build();
     }
 
+    static OnlineExperiment createOnlineExperiment(String experimentKey) {
+        return ExperimentBuilder.OnlineExperiment()
+                .withExistingExperimentKey(experimentKey)
+                .withApiKey(API_KEY)
+                .build();
+    }
+
     static ApiExperiment createApiExperiment() {
         return ExperimentBuilder.ApiExperiment()
                 .withProjectName(PROJECT_NAME)
                 .withWorkspace(WORKSPACE_NAME)
+                .withApiKey(API_KEY)
+                .build();
+    }
+
+    static ApiExperiment createApiExperiment(String experimentKey) {
+        return ExperimentBuilder.ApiExperiment()
+                .withExistingExperimentKey(experimentKey)
                 .withApiKey(API_KEY)
                 .build();
     }
