@@ -1,4 +1,4 @@
-# https://www.comet.ml official Java SDK    
+# https://www.comet.com official Java SDK    
 [![version](https://img.shields.io/github/v/tag/comet-ml/comet-java-sdk.svg?sort=semver)](https://github.com/comet-ml/comet-java-sdk/releases/latest) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ml.comet/comet-java-client) [![license](https://img.shields.io/github/license/comet-ml/comet-java-sdk.svg)](https://github.com/comet-ml/comet-java-sdk/blob/master/LICENSE) [![javadoc](https://javadoc.io/badge2/ml.comet/comet-java-client/javadoc.svg)](https://javadoc.io/doc/ml.comet/comet-java-client) [![yaricom/goNEAT](https://tokei.rs/b1/github/comet-ml/comet-java-sdk?category=lines)](https://github.com/comet-ml/comet-java-sdk) 
 
 | Branch | Tests                                                                                      | Coverage                                                                                                                             | Linting                                                                    | Code Security                                                                    |
@@ -82,9 +82,10 @@ COMET_MAX_AUTH_RETRIES
 ### Examples
 
 * You also can check 
-  * [sample experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
+  * [Sample Online Experiment](comet-examples/src/main/java/ml/comet/examples/OnlineExperimentExample.java)
   * [MNIST classification experiment](comet-examples/src/main/java/ml/comet/examples/mnist/MnistExperimentExample.java)
   * [Comet artifact examples](comet-examples/src/main/java/ml/comet/examples/ArtifactExample.java)
   * [Log model example](comet-examples/src/main/java/ml/comet/examples/LogModelExample.java)
-  * [model registry/Comet API example](comet-examples/src/main/java/ml/comet/examples/RegistryModelExample.java)
+  * [Model registry/Comet API example](comet-examples/src/main/java/ml/comet/examples/RegistryModelExample.java)
+  * [Comet API example](comet-examples/src/main/java/ml/comet/examples/ApiExamples.java)
 * For more usage examples refer to [tests](comet-java-client/src/test/java/ml/comet/experiment)
