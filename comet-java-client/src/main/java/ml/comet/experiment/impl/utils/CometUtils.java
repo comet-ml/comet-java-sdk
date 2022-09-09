@@ -80,14 +80,14 @@ public final class CometUtils {
     }
 
     /**
-     * Creates full name of the metric as it is returned by backend.
+     * Creates full name of the metric/parameter as it is returned by backend.
      *
-     * @param name    the short name of the metric
+     * @param name    the short name of the metric/parameter
      * @param context the experiment context associated with metric
      * @return the full name of the metric, which can be prefixed by context ID if present in the
      * provided {@code context} parameter.
      */
-    public static String fullMetricName(@NonNull String name, @NonNull ExperimentContext context) {
+    public static String fullMetricParameterName(@NonNull String name, @NonNull ExperimentContext context) {
         if (StringUtils.isEmpty(context.getContext())) {
             return name;
         } else {

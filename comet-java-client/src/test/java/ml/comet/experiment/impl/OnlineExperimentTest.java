@@ -37,7 +37,7 @@ import static ml.comet.experiment.impl.asset.AssetType.SOURCE_CODE;
 import static ml.comet.experiment.impl.asset.AssetType.TEXT_SAMPLE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_REGISTER_EXPERIMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
-import static ml.comet.experiment.impl.utils.CometUtils.fullMetricName;
+import static ml.comet.experiment.impl.utils.CometUtils.fullMetricParameterName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -177,10 +177,10 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             awaitForCondition(() -> experiment.getMetrics().size() == 3, "experiment metrics get timeout");
 
             List<Value> metrics = experiment.getMetrics();
-            validateValues(metrics, fullMetricName(ONE_MORE_PARAMETER,
+            validateValues(metrics, fullMetricParameterName(ONE_MORE_PARAMETER,
                     ExperimentContext.builder().withContext(TestUtils.SOME_CONTEXT_ID).build()), ONE_MORE_PARAMETER_VALUE);
-            validateValues(metrics, fullMetricName(SOME_PARAMETER, TestUtils.SOME_FULL_CONTEXT), SOME_PARAMETER_VALUE);
-            validateValues(metrics, fullMetricName(ANOTHER_PARAMETER, SOME_PARTIAL_CONTEXT), ANOTHER_PARAMETER_VALUE);
+            validateValues(metrics, fullMetricParameterName(SOME_PARAMETER, TestUtils.SOME_FULL_CONTEXT), SOME_PARAMETER_VALUE);
+            validateValues(metrics, fullMetricParameterName(ANOTHER_PARAMETER, SOME_PARTIAL_CONTEXT), ANOTHER_PARAMETER_VALUE);
         } catch (Throwable throwable) {
             fail(throwable);
         }
@@ -191,7 +191,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
         try (OnlineExperimentImpl experiment = (OnlineExperimentImpl) createOnlineExperiment()) {
             // Test log parameter with base context's ID set directly to experiment
             //
-            experiment.setContext(TestUtils.SOME_CONTEXT_ID);
+            experiment.setContext(SOME_CONTEXT_ID);
             OnCompleteAction onComplete = new OnCompleteAction();
             experiment.logParameter(
                     ONE_MORE_PARAMETER, ONE_MORE_PARAMETER_VALUE, ExperimentContext.empty(), Optional.of(onComplete));
@@ -201,7 +201,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             //
             onComplete = new OnCompleteAction();
             experiment.logParameter(
-                    SOME_PARAMETER, SOME_PARAMETER_VALUE, TestUtils.SOME_FULL_CONTEXT, Optional.of(onComplete));
+                    SOME_PARAMETER, SOME_PARAMETER_VALUE, SOME_FULL_CONTEXT, Optional.of(onComplete));
             awaitForCondition(onComplete, "logParameterAsync onComplete timeout");
 
             // Test log parameter with partial context
@@ -215,8 +215,9 @@ public class OnlineExperimentTest extends AssetsBaseTest {
             //
             awaitForCondition(() -> experiment.getParameters().size() == 3, "experiment parameters get timeout");
             List<Value> params = experiment.getParameters();
-            validateValues(params, ONE_MORE_PARAMETER, ONE_MORE_PARAMETER_VALUE);
-            validateValues(params, SOME_PARAMETER, SOME_PARAMETER_VALUE);
+            validateValues(params, fullMetricParameterName(ONE_MORE_PARAMETER, new ExperimentContext(SOME_CONTEXT_ID)),
+                    ONE_MORE_PARAMETER_VALUE);
+            validateValues(params, fullMetricParameterName(SOME_PARAMETER, SOME_FULL_CONTEXT), SOME_PARAMETER_VALUE);
             validateValues(params, ANOTHER_PARAMETER, ANOTHER_PARAMETER_VALUE);
 
         } catch (Throwable throwable) {

@@ -21,6 +21,15 @@ public final class ExperimentContext {
     /**
      * Creates new instance with specified parameters.
      *
+     * @param context the current context identifier of the data log operation.
+     */
+    public ExperimentContext(String context) {
+        this.context = context;
+    }
+
+    /**
+     * Creates new instance with specified parameters.
+     *
      * @param step    the current step of the experiment.
      * @param epoch   the current epoch of the experiment.
      * @param context the current context identifier of the data log operation.
