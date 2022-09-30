@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static ml.comet.experiment.impl.config.CometConfig.COMET_API_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_BASE_URL;
+import static ml.comet.experiment.impl.config.CometConfig.COMET_EXPERIMENT_KEY;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_MAX_AUTH_RETRIES;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_PROJECT_NAME;
 import static ml.comet.experiment.impl.config.CometConfig.COMET_TIMEOUT_CLEANING_SECONDS;
@@ -172,6 +173,9 @@ public final class ApiExperimentImpl extends BaseExperiment implements ApiExperi
             }
             if (StringUtils.isBlank(this.workspace)) {
                 this.workspace = COMET_WORKSPACE_NAME.getOptionalString().orElse(null);
+            }
+            if (StringUtils.isBlank(this.experimentKey)) {
+                this.experimentKey = COMET_EXPERIMENT_KEY.getOptionalString().orElse(null);
             }
             ApiExperimentImpl experiment = new ApiExperimentImpl(
                     this.apiKey, this.experimentKey, this.logger,

@@ -51,6 +51,11 @@ public final class CometConfig {
     public static final ConfigItem COMET_PROJECT_NAME =
             new ConfigItem("project", "COMET_PROJECT_NAME", instance);
     /**
+     * The key of the existing Comet experiment.
+     */
+    public static final ConfigItem COMET_EXPERIMENT_KEY =
+            new ConfigItem("experimentKey", "COMET_EXPERIMENT_KEY", instance);
+    /**
      * The Comet workspace name.
      */
     public static final ConfigItem COMET_WORKSPACE_NAME =
