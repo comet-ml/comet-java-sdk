@@ -56,10 +56,10 @@ public class OnlineExperimentExample implements BaseExample {
         experiment.nextStep();
 
         //metric can be a number, string , or double
-        experiment.logMetric("strMetric", "123");
+        experiment.logMetric("strMetric", "123", 1);
         experiment.logMetric("numMetric", 123, 123, 4);
         experiment.nextEpoch();
-        experiment.logMetric("doubleMetric", 123.5d);
+        experiment.logMetric("doubleMetric", 123.5d, 1);
 
         experiment.setEpoch(3);
 

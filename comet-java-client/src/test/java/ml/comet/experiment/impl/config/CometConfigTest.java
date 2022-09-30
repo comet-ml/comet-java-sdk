@@ -125,4 +125,18 @@ public class CometConfigTest {
         assertNotNull(timeout);
         assertEquals(timeout.getSeconds(), 3600);
     }
+
+    @Test
+    public void testReadAllConfigVariables() {
+        CometConfig.applyConfigOverride(fullCometConfig);
+        String defaultStringValue = "full";
+
+        assertEquals(defaultStringValue, CometConfig.COMET_API_KEY.getString());
+        assertEquals(defaultStringValue, CometConfig.COMET_PROJECT_NAME.getString());
+        assertEquals(defaultStringValue, CometConfig.COMET_EXPERIMENT_KEY.getString());
+        assertEquals(defaultStringValue, CometConfig.COMET_WORKSPACE_NAME.getString());
+        assertEquals("https://www.comet.ml", CometConfig.COMET_BASE_URL.getString());
+        assertEquals(5, CometConfig.COMET_MAX_AUTH_RETRIES.getInt());
+        assertEquals(60, CometConfig.COMET_TIMEOUT_CLEANING_SECONDS.getInt());
+    }
 }

@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 
 import static java.lang.Math.log;
 import static ml.comet.examples.Utils.getResourceFile;
@@ -35,17 +36,24 @@ interface BaseExample {
 
     static void generateCharts(OnlineExperiment experiment) {
         long currentStep = experiment.getStep();
+        Random rd = new Random();
 
         for (int i = 1; i < 15; i++) {
-            experiment.logMetric("numMetric", 123 + i, currentStep + i, getUpdatedEpochValue(experiment));
+            int value = (int) (Math.sin(i) * 20.0);
+            experiment.logMetric("numMetricChart", value,
+                    currentStep + i, getUpdatedEpochValue(experiment));
         }
 
         for (int i = 1; i < 15; i++) {
-            experiment.logMetric("strMetric", "123" + i, currentStep + i, getUpdatedEpochValue(experiment));
+            float value = rd.nextFloat() * 100;
+            experiment.logMetric("strMetricChart", String.valueOf(value),
+                    currentStep + i, getUpdatedEpochValue(experiment));
         }
 
         for (int i = 1; i < 15; i++) {
-            experiment.logMetric("doubleMetric", 123.12d + i, currentStep + i, getUpdatedEpochValue(experiment));
+            double value = Math.cos(i);
+            experiment.logMetric("doubleMetricChart", 123.12d + value,
+                    currentStep + i, getUpdatedEpochValue(experiment));
         }
     }
 
