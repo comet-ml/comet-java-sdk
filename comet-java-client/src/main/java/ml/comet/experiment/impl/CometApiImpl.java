@@ -172,8 +172,8 @@ public final class CometApiImpl implements CometApi {
     public List<ExperimentMetadata> getExperiments(@NonNull String workspaceName) {
         return this.getAllProjects(workspaceName)
                 .stream()
-                .collect(ArrayList::new, (metadataList, project) -> this.getAllExperiments(project.getProjectId()),
-                        ArrayList::addAll);
+                .map(project -> this.getAllExperiments(project.getProjectId()))
+                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
     }
 
     @Override
@@ -191,15 +191,21 @@ public final class CometApiImpl implements CometApi {
         }
 
         if (StringUtils.isBlank(experimentNamePattern)) {
-            // no experiment name pattern provided
+            // no experiment name pattern provided - all experiments under project
             return this.getExperiments(workspaceName, projectName);
         }
 
         // return list of experiments with names matching provided regex
+        Pattern p = Pattern.compile(experimentNamePattern);
         return this.getExperiments(workspaceName, projectName)
                 .stream()
-                .filter(experimentMetadata ->
-                        Pattern.matches(experimentNamePattern, experimentMetadata.getExperimentName()))
+                .filter(experimentMetadata -> {
+                            if (StringUtils.isEmpty(experimentMetadata.getExperimentName())) {
+                                return false;
+                            } else {
+                                return p.matcher(experimentMetadata.getExperimentName()).matches();
+                            }
+                        })
                 .collect(Collectors.toList());
     }
 
