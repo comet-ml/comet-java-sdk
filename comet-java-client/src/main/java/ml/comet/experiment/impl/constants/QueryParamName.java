@@ -20,6 +20,7 @@ public enum QueryParamName {
     OVERWRITE("overwrite"), // boolean
     PROJECT_ID("projectId"), // string
     WORKSPACE_NAME("workspaceName"), // string
+    PROJECT_NAME("projectName"), // string
 
     WORKSPACE("workspace"), // string
     PROJECT("project"), // string

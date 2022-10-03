@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipInputStream;
 
@@ -151,6 +152,55 @@ public final class CometApiImpl implements CometApi {
                 .collect(ArrayList::new,
                         (metadataList, metadataRest) -> metadataList.add(metadataRest.toExperimentMetadata()),
                         ArrayList::addAll);
+    }
+
+    @Override
+    public List<ExperimentMetadata> getExperiments(@NonNull String workspaceName, @NonNull String projectName) {
+        return restApiClient.getAllExperiments(projectName, workspaceName)
+                .doOnError(ex -> this.logger.error(
+                        "Failed to read experiments found in the project {} of workspace {}",
+                        projectName, workspaceName, ex))
+                .blockingGet()
+                .getExperiments()
+                .stream()
+                .collect(ArrayList::new,
+                        (metadataList, metadataRest) -> metadataList.add(metadataRest.toExperimentMetadata()),
+                        ArrayList::addAll);
+    }
+
+    @Override
+    public List<ExperimentMetadata> getExperiments(@NonNull String workspaceName) {
+        return this.getAllProjects(workspaceName)
+                .stream()
+                .collect(ArrayList::new, (metadataList, project) -> this.getAllExperiments(project.getProjectId()),
+                        ArrayList::addAll);
+    }
+
+    @Override
+    public List<ExperimentMetadata> getExperiments(
+            @NonNull String workspaceName, String projectName, String experimentNamePattern) {
+
+        if (StringUtils.isBlank(projectName)) {
+            // no project name provided
+            if (!StringUtils.isBlank(experimentNamePattern)) {
+                throw new IllegalArgumentException(
+                        "you must specify projectName when experimentNamePattern is provided");
+            }
+            // get experiments for all projects in the workspace
+            return this.getExperiments(workspaceName);
+        }
+
+        if (StringUtils.isBlank(experimentNamePattern)) {
+            // no experiment name pattern provided
+            return this.getExperiments(workspaceName, projectName);
+        }
+
+        // return list of experiments with names matching provided regex
+        return this.getExperiments(workspaceName, projectName)
+                .stream()
+                .filter(experimentMetadata ->
+                        Pattern.matches(experimentNamePattern, experimentMetadata.getExperimentName()))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -393,8 +443,8 @@ public final class CometApiImpl implements CometApi {
         Optional<ModelVersionOverview> versionOverviewOptional = this.getRegistryModelVersion(
                 registryName, workspace, version);
         if (!versionOverviewOptional.isPresent()) {
-           throw new ModelVersionNotFoundException(
-                   getString(REGISTRY_MODEL_VERSION_NOT_FOUND, version, workspace, registryName));
+            throw new ModelVersionNotFoundException(
+                    getString(REGISTRY_MODEL_VERSION_NOT_FOUND, version, workspace, registryName));
         }
 
         // update model version details

@@ -47,6 +47,20 @@ public interface CometApi extends Closeable {
     List<ExperimentMetadata> getAllExperiments(String projectId);
 
     /**
+     * Gets metadata of all experiments matching the following searching criteria.
+     *
+     * @param workspaceName         the name of workspace where experiments defined.
+     * @param projectName           the name of project associated with experiments (optional).
+     * @param experimentNamePattern the regex pattern for name of specific experiment (optional).
+     * @return the list of metadata objects associated with experiments matching provided search criteria.
+     */
+    List<ExperimentMetadata> getExperiments(String workspaceName, String projectName, String experimentNamePattern);
+
+    List<ExperimentMetadata> getExperiments(String workspaceName, String projectName);
+
+    List<ExperimentMetadata> getExperiments(String workspaceName);
+
+    /**
      * Register model defined in the specified experiment in the Comet's model registry.
      *
      * @param model         the {@link Model} to be registered.

@@ -115,6 +115,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.IS_REMOTE;
 import static ml.comet.experiment.impl.constants.QueryParamName.MODEL_ITEM_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.MODEL_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
+import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.http.ConnectionUtils.checkResponseStatus;
@@ -162,6 +163,13 @@ final class RestApiClient implements Disposable {
     Single<GetExperimentsResponse> getAllExperiments(String projectId) {
         return singleFromSyncGetWithRetries(
                 EXPERIMENTS, Collections.singletonMap(PROJECT_ID, projectId), GetExperimentsResponse.class);
+    }
+
+    Single<GetExperimentsResponse> getAllExperiments(String projectName, String workspaceName) {
+        HashMap<QueryParamName, String> params = new HashMap<>();
+        params.put(WORKSPACE_NAME, workspaceName);
+        params.put(PROJECT_NAME, projectName);
+        return singleFromSyncGetWithRetries(EXPERIMENTS, params, GetExperimentsResponse.class);
     }
 
     Single<ExperimentMetadataRest> getMetadata(String experimentKey) {
