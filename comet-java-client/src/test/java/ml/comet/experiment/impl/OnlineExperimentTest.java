@@ -133,7 +133,7 @@ public class OnlineExperimentTest extends AssetsBaseTest {
 
             ExperimentMetadata metadata = experiment.getMetadata();
             String generatedExperimentName = metadata.getExperimentName();
-            assertTrue(StringUtils.isNoneEmpty(generatedExperimentName));
+            assertTrue(StringUtils.isNotEmpty(generatedExperimentName));
 
             experiment.setExperimentName(SOME_NAME);
 

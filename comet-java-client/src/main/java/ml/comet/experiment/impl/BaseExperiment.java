@@ -797,7 +797,7 @@ abstract class BaseExperiment implements Experiment {
             getLogger().debug("get metadata for experiment {}", this.experimentKey);
         }
 
-        return loadRemote(restApiClient::getMetadata, "METADATA").toExperimentMetadata();
+        return loadRemote(restApiClient::getExperimentMetadata, "METADATA").toExperimentMetadata();
     }
 
     @Override

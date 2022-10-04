@@ -2,6 +2,7 @@ package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Observable;
 import ml.comet.experiment.CometApi;
+import ml.comet.experiment.ExperimentNotFoundException;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.rest.RegistryModelItemOverview;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
@@ -115,9 +117,63 @@ public class CometApiTest extends AssetsBaseTest {
 
         List<ExperimentMetadata> experiments = experimentsOpt.get();
         assertFalse(experiments.isEmpty());
-        boolean experimentExists = experiments.stream()
-                .anyMatch(experiment -> SHARED_EXPERIMENT.getExperimentKey().equals(experiment.getExperimentKey()));
-        assertTrue(experimentExists);
+        assertExperimentInList(SHARED_EXPERIMENT.getExperimentKey(), experiments);
+    }
+
+    @Test
+    public void testGetExperiments_Workspace() {
+        List<ExperimentMetadata> experiments = COMET_API.getExperiments(WORKSPACE_NAME);
+        assertFalse(experiments.isEmpty());
+        assertExperimentInList(SHARED_EXPERIMENT.getExperimentKey(), experiments);
+    }
+
+    @Test
+    public void testGetExperiments_Workspace_Project() {
+        List<ExperimentMetadata> experiments = COMET_API.getExperiments(WORKSPACE_NAME, PROJECT_NAME);
+        assertFalse(experiments.isEmpty());
+        assertExperimentInList(SHARED_EXPERIMENT.getExperimentKey(), experiments);
+    }
+
+    @Test
+    public void testGetExperiments() throws Exception {
+        String experimentName = UUID.randomUUID().toString();
+        String experimentKey;
+        try (OnlineExperiment experiment = createOnlineExperiment()) {
+            experiment.setExperimentName(experimentName);
+            experimentKey = experiment.getExperimentKey();
+
+            // wait for experiment name to be updated
+            awaitForCondition(() -> experimentName.equals(experiment.getMetadata().getExperimentName()),
+                    "Experiment name update timeout");
+        }
+
+        List<ExperimentMetadata> experiments = COMET_API.getExperiments(WORKSPACE_NAME, PROJECT_NAME, experimentName);
+        assertEquals(1, experiments.size(), "one experiment expected");
+
+        ExperimentMetadata experimentMetadata = experiments.get(0);
+        assertEquals(experimentKey, experimentMetadata.getExperimentKey());
+    }
+
+    @Test
+    public void testGetExperiments_emptyProject_with_experimentName() {
+        assertThrows(IllegalArgumentException.class, () ->
+                COMET_API.getExperiments(WORKSPACE_NAME, null, "someExperiment*."));
+    }
+
+    @Test
+    public void testGetExperimentMetadata() {
+        ExperimentMetadata experimentMetadata = COMET_API.getExperimentMetadata(SHARED_EXPERIMENT.getExperimentKey());
+
+        assertEquals(SHARED_EXPERIMENT.getExperimentKey(), experimentMetadata.getExperimentKey());
+        assertEquals(SHARED_EXPERIMENT.getExperimentName(), experimentMetadata.getExperimentName());
+        assertEquals(SHARED_EXPERIMENT.getProjectName(), PROJECT_NAME);
+        assertEquals(SHARED_EXPERIMENT.getWorkspaceName(), WORKSPACE_NAME);
+    }
+
+    @Test
+    public void testGetExperimentMetadata_not_found() {
+        assertThrows(ExperimentNotFoundException.class, () ->
+                COMET_API.getExperimentMetadata("not existing experiment key"));
     }
 
     @Test
@@ -638,7 +694,7 @@ public class CometApiTest extends AssetsBaseTest {
         // try to delete version of not existing model
         //
         String modelName = "not existing model";
-        assertThrows(CometApiException.class, ()->
+        assertThrows(CometApiException.class, () ->
                 COMET_API.deleteRegistryModelVersion(modelName, SHARED_EXPERIMENT.getWorkspaceName(),
                         DEFAULT_MODEL_VERSION));
     }
@@ -653,7 +709,7 @@ public class CometApiTest extends AssetsBaseTest {
 
         // try to delete not existing version of the model
         //
-        assertThrows(ModelVersionNotFoundException.class, ()->
+        assertThrows(ModelVersionNotFoundException.class, () ->
                 COMET_API.deleteRegistryModelVersion(modelName, SHARED_EXPERIMENT.getWorkspaceName(),
                         "1.0.1"));
     }
@@ -751,5 +807,11 @@ public class CometApiTest extends AssetsBaseTest {
 
         awaitForCondition(() -> !SHARED_EXPERIMENT.getAssetList(MODEL_ELEMENT.type()).isEmpty(),
                 "Failed to get logged model file");
+    }
+
+    private static void assertExperimentInList(String experimentKey, List<ExperimentMetadata> experiments) {
+        boolean experimentExists = experiments.stream()
+                .anyMatch(experiment -> experimentKey.equals(experiment.getExperimentKey()));
+        assertTrue(experimentExists);
     }
 }
