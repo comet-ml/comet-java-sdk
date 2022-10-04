@@ -428,9 +428,14 @@ public class Connection implements Closeable {
                 return Optional.empty();
             } catch (Throwable e) {
                 // unexpected error - throw or return
-                this.logger.error("Failed to execute request: {}, unexpected error", request, e);
-                if (throwOnFailure) {
-                    throw new CometApiException("failed to execute request, unexpected error", e);
+                if (e instanceof InterruptedException) {
+                    // ignore InterruptedException as it can be thrown during shutdown - just debug it
+                    this.logger.debug("Failed to execute request: {}, unexpected error: {}", request, e);
+                } else {
+                    this.logger.error("Failed to execute request: {}, unexpected error", request, e);
+                    if (throwOnFailure) {
+                        throw new CometApiException("failed to execute request, unexpected error", e);
+                    }
                 }
                 return Optional.empty();
             }

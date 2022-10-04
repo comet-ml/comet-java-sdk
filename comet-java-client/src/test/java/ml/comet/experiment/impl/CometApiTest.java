@@ -2,6 +2,7 @@ package ml.comet.experiment.impl;
 
 import io.reactivex.rxjava3.core.Observable;
 import ml.comet.experiment.CometApi;
+import ml.comet.experiment.ExperimentNotFoundException;
 import ml.comet.experiment.OnlineExperiment;
 import ml.comet.experiment.exception.CometApiException;
 import ml.comet.experiment.impl.rest.RegistryModelItemOverview;
@@ -157,6 +158,22 @@ public class CometApiTest extends AssetsBaseTest {
     public void testGetExperiments_emptyProject_with_experimentName() {
         assertThrows(IllegalArgumentException.class, () ->
                 COMET_API.getExperiments(WORKSPACE_NAME, null, "someExperiment*."));
+    }
+
+    @Test
+    public void testGetExperimentMetadata() {
+        ExperimentMetadata experimentMetadata = COMET_API.getExperimentMetadata(SHARED_EXPERIMENT.getExperimentKey());
+
+        assertEquals(SHARED_EXPERIMENT.getExperimentKey(), experimentMetadata.getExperimentKey());
+        assertEquals(SHARED_EXPERIMENT.getExperimentName(), experimentMetadata.getExperimentName());
+        assertEquals(SHARED_EXPERIMENT.getProjectName(), PROJECT_NAME);
+        assertEquals(SHARED_EXPERIMENT.getWorkspaceName(), WORKSPACE_NAME);
+    }
+
+    @Test
+    public void testGetExperimentMetadata_not_found() {
+        assertThrows(ExperimentNotFoundException.class, () ->
+                COMET_API.getExperimentMetadata("not existing experiment key"));
     }
 
     @Test

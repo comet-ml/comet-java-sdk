@@ -61,6 +61,15 @@ public interface CometApi extends Closeable {
     List<ExperimentMetadata> getExperiments(String workspaceName);
 
     /**
+     * Allows to load metadata of the particular Comet experiment using provided {@code experimentKey}.
+     *
+     * @param experimentKey the ID of the Comet experiment.
+     * @return the initialized {@code ExperimentMetadata}.
+     * @throws ExperimentNotFoundException if Comet experiment with specified {@code experimentKey} not found.
+     */
+    ExperimentMetadata getExperimentMetadata(String experimentKey) throws ExperimentNotFoundException;
+
+    /**
      * Register model defined in the specified experiment in the Comet's model registry.
      *
      * @param model         the {@link Model} to be registered.

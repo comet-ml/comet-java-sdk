@@ -172,8 +172,11 @@ final class RestApiClient implements Disposable {
         return singleFromSyncGetWithRetries(EXPERIMENTS, params, GetExperimentsResponse.class);
     }
 
-    Single<ExperimentMetadataRest> getMetadata(String experimentKey) {
-        return singleFromSyncGetWithRetries(GET_METADATA, experimentKey, ExperimentMetadataRest.class);
+    Single<ExperimentMetadataRest> getExperimentMetadata(String experimentKey) {
+        return singleFromSyncGetWithRetries(GET_METADATA,
+                Collections.singletonMap(EXPERIMENT_KEY, experimentKey),
+                true,
+                ExperimentMetadataRest.class);
     }
 
     Single<GitMetadataRest> getGitMetadata(String experimentKey) {
@@ -503,7 +506,7 @@ final class RestApiClient implements Disposable {
         return this.connection.sendPostWithRetries(request, endpoint, throwOnFailure)
                 .map(body -> Single.just(JsonUtils.fromJson(body, clazz)))
                 .orElse(Single.error(new CometApiException(
-                        String.format("No response was returned by endpoint: %s", endpoint))));
+                        getString(NO_RESPONSE_RETURNED_BY_REMOTE_ENDPOINT, endpoint))));
     }
 
     private Single<RestApiResponse> singleFromSyncPostWithRetriesEmptyBody(@NonNull Object payload,
@@ -549,7 +552,7 @@ final class RestApiClient implements Disposable {
         return this.connection.sendGetWithRetries(endpoint, queryParams, throwOnFailure)
                 .map(body -> Single.just(JsonUtils.fromJson(body, clazz)))
                 .orElse(Single.error(new CometApiException(
-                        String.format("No response was returned by endpoint: %s", endpoint))));
+                        getString(NO_RESPONSE_RETURNED_BY_REMOTE_ENDPOINT, endpoint))));
     }
 
     private static RestApiResponse mapResponse(Response response) {

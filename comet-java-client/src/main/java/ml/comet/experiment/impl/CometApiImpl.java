@@ -5,6 +5,7 @@ import io.reactivex.rxjava3.core.Single;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import ml.comet.experiment.CometApi;
+import ml.comet.experiment.ExperimentNotFoundException;
 import ml.comet.experiment.builder.BaseCometBuilder;
 import ml.comet.experiment.builder.CometApiBuilder;
 import ml.comet.experiment.exception.CometApiException;
@@ -67,6 +68,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTR
 import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_TO_DIR;
 import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTRY_MODEL_TO_FILE;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
+import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_WITH_KEY_NOT_FOUND;
 import static ml.comet.experiment.impl.resources.LogMessages.EXTRACTED_N_REGISTRY_MODEL_FILES;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_REGISTRY_MODEL_VERSION;
@@ -200,13 +202,29 @@ public final class CometApiImpl implements CometApi {
         return this.getExperiments(workspaceName, projectName)
                 .stream()
                 .filter(experimentMetadata -> {
-                            if (StringUtils.isEmpty(experimentMetadata.getExperimentName())) {
-                                return false;
-                            } else {
-                                return p.matcher(experimentMetadata.getExperimentName()).matches();
-                            }
-                        })
+                    if (StringUtils.isEmpty(experimentMetadata.getExperimentName())) {
+                        return false;
+                    } else {
+                        return p.matcher(experimentMetadata.getExperimentName()).matches();
+                    }
+                })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public ExperimentMetadata getExperimentMetadata(@NonNull final String experimentKey)
+            throws ExperimentNotFoundException {
+        try {
+            return this.restApiClient
+                    .getExperimentMetadata(experimentKey)
+                    .blockingGet()
+                    .toExperimentMetadata();
+        } catch (CometApiException ex) {
+            if (ex.getStatusCode() == 400) {
+                throw new ExperimentNotFoundException(getString(EXPERIMENT_WITH_KEY_NOT_FOUND, experimentKey));
+            }
+            throw ex;
+        }
     }
 
     @Override
@@ -239,7 +257,7 @@ public final class CometApiImpl implements CometApi {
         modelImpl.setExperimentModelId(details.get().getExperimentModelId());
 
         // check if model already registered in the experiment's workspace records
-        Boolean modelInRegistry = this.restApiClient.getMetadata(experimentKey)
+        Boolean modelInRegistry = this.restApiClient.getExperimentMetadata(experimentKey)
                 .concatMap(experimentMetadataRest -> {
                     modelImpl.setWorkspace(experimentMetadataRest.getWorkspaceName());
                     return this.restApiClient.getRegistryModelsForWorkspace(experimentMetadataRest.getWorkspaceName());
