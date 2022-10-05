@@ -9,7 +9,7 @@ import ml.comet.experiment.model.Value;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Provides variety of examples of data logging using REST API client.
@@ -24,7 +24,7 @@ import java.util.Optional;
  * Make sure to provide correct values above.
  */
 public class ApiExamples {
-    static final String someExperimentName = "some-experiment-name";
+    static final String randomExperimentName = UUID.randomUUID().toString();
 
     /**
      * The main entry point to the example.
@@ -38,45 +38,70 @@ public class ApiExamples {
     private static void run() throws Exception {
         // create test experiment
         //
-        String projectName;
-        String workspaceName;
+        String experimentProjectName;
+        String experimentWorkspaceName;
+        String experimentKey;
         try (OnlineExperiment experiment = ExperimentBuilder
                 .OnlineExperiment()
                 .interceptStdout()
                 .build()) {
 
-            experiment.setExperimentName(someExperimentName);
+            experiment.setExperimentName(randomExperimentName);
             experiment.logMetric("some-metric", 10);
 
-            projectName = experiment.getProjectName();
-            workspaceName = experiment.getWorkspaceName();
+            experimentProjectName = experiment.getProjectName();
+            experimentWorkspaceName = experiment.getWorkspaceName();
+            experimentKey = experiment.getExperimentKey();
         }
 
-        // get test experiment by name
+        // Comet API usage examples
         //
         try (CometApi api = ExperimentBuilder.CometApi().build()) {
-            // get project where experiment saved
-            List<Project> projects = api.getAllProjects(workspaceName);
-            Optional<Project> optionalProject = projects.stream()
-                    .filter(project -> project.getProjectName().equals(projectName))
-                    .findAny();
-            if (!optionalProject.isPresent()) {
-                return;
-            }
-            Project project = optionalProject.get();
-            System.out.printf("Looking for experiments in project: %s\n---------\n", project);
+            // get all workspaces available for the user
+            //
+            System.out.println("===== All user's workspaces =====");
+            List<String> availableWorkspaces = api.getAllWorkspaces();
+            availableWorkspaces.forEach(System.out::println);
+            System.out.println("=====\n");
 
-            // list all experiments in the project and select the one we are looking for
+            // get all projects under particular workspace
+            //
+            String workspace = availableWorkspaces.get(0);
+            System.out.printf("===== Projects in workspace: '%s' =====\n", workspace);
+            List<Project> projects = api.getAllProjects(workspace);
+            projects.forEach(System.out::println);
+            System.out.println("=====\n");
+
+            // get all experiments under particular project
+            //
+            Project project = projects.get(0);
+            System.out.printf("===== First 10 Experiments in project: '%s' =====\n", project.getProjectName());
             List<ExperimentMetadata> experiments = api.getAllExperiments(project.getProjectId());
-            Optional<ExperimentMetadata> experimentMetadata = experiments.stream()
-                    .peek(System.out::println)
-                    .filter(meta -> Objects.equals(meta.getExperimentName(), someExperimentName))
-                    .findAny();
-            if (experimentMetadata.isPresent()) {
-                displayExperiment(experimentMetadata.get());
+            experiments.stream()
+                    .filter(experimentMetadata -> !Objects.isNull(experimentMetadata.getExperimentName()))
+                    .limit(10)
+                    .forEach(System.out::println);
+            System.out.println("=====\n");
+
+            // get experiment(-s) by name/regex (using the one we created above)
+            //
+            System.out.printf("===== Experiment(-s) by name/regex '%s' in workspace/project: '%s/%s' =====\n",
+                    randomExperimentName, experimentWorkspaceName, experimentProjectName);
+            experiments = api.getExperiments(experimentWorkspaceName, experimentProjectName, randomExperimentName);
+            if (experiments.size() == 1) {
+                displayExperiment(experiments.get(0));
             } else {
-                System.out.printf("Failed to find experiment with name: %s\n", someExperimentName);
+                System.out.printf("*** No, or more than one experiment was found. Found: %d experiments.\n",
+                        experiments.size());
             }
+            System.out.println("=====\n");
+
+            // get experiment's meta-data by experiment key
+            //
+            System.out.printf("===== Experiment's metadata by experiment key: '%s' =====\n", experimentKey);
+            ExperimentMetadata metadata = api.getExperimentMetadata(experimentKey);
+            System.out.println(metadata);
+            System.out.println("=====\n");
         }
     }
 
