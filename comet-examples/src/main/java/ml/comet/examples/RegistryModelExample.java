@@ -203,6 +203,17 @@ public class RegistryModelExample {
                     newComment, newStages);
             System.out.printf("Model version details was successfully updated for: %s\n", SOME_MODEL_VERSION_UP);
 
+            // read the number of registered models
+            //
+            Optional<Integer> modelsCount = api.getRegistryModelsCount(experiment.getWorkspaceName());
+            if (modelsCount.isPresent()) {
+                System.out.printf("The number of registered models under workspace '%s' is: %d\n",
+                        experiment.getWorkspaceName(), modelsCount.get());
+            } else {
+                System.out.printf("Failed to get registered models count. The workspace '%s' doesn't exists.\n",
+                        experiment.getWorkspaceName());
+            }
+
             // delete registry model version
             //
             System.out.printf("Deleting registry model version '%s/%s:%s'.\n",
