@@ -130,6 +130,15 @@ public interface CometApi extends Closeable {
     List<String> getRegistryModelVersions(String registryName, String workspace);
 
     /**
+     * Returns the number of models registered in the specified workspace that is available to the current user.
+     *
+     * @param workspace the name of the workspace.
+     * @return the {@code Optional} number of models registered in the specified workspace.
+     * If workspace doesn't exist the empty {@code Optional} returned.
+     */
+    Optional<Integer> getRegistryModelsCount(String workspace);
+
+    /**
      * Adds or updates notes associated with the registry model.
      *
      * @param notes        the notes to be associated.

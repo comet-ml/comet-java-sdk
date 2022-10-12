@@ -478,6 +478,37 @@ public class CometApiTest extends AssetsBaseTest {
     }
 
     @Test
+    public void testGetRegistryModelsCount() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // register model with defaults
+        //
+        registerModelWithDefaults(modelName);
+
+        // wait for registry model to be processed by backend
+        //
+        Awaitility.await("failed to get registry model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(modelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        // get models count and do assert
+        //
+        Optional<Integer> modelsCount = COMET_API.getRegistryModelsCount(SHARED_EXPERIMENT.getWorkspaceName());
+        assertTrue(modelsCount.isPresent());
+        // there could be more than one model registered from other tests
+        assertTrue(modelsCount.get() > 1);
+    }
+
+    @Test
+    public void testGetRegistryModelsCount_not_existing_workspace() {
+        String notExistingWorkspace = "not existing workspace";
+        Optional<Integer> modelsCount = COMET_API.getRegistryModelsCount(notExistingWorkspace);
+        assertFalse(modelsCount.isPresent());
+    }
+
+    @Test
     public void testUpdateRegistryModelNotes() {
         String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
 

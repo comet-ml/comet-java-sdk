@@ -41,6 +41,7 @@ import ml.comet.experiment.impl.rest.MetricRest;
 import ml.comet.experiment.impl.rest.MinMaxResponse;
 import ml.comet.experiment.impl.rest.OutputUpdate;
 import ml.comet.experiment.impl.rest.ParameterRest;
+import ml.comet.experiment.impl.rest.RegistryModelCountResponse;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelCreateResponse;
 import ml.comet.experiment.impl.rest.RegistryModelDetailsResponse;
@@ -94,6 +95,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_METADATA;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_METRICS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_PARAMETERS;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODELS_COUNT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_DETAILS;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_LIST;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.GET_REGISTRY_MODEL_NOTES;
@@ -373,6 +375,12 @@ final class RestApiClient implements Disposable {
         queryParams.put(MODEL_NAME, modelName);
         return singleFromSyncGetWithRetries(GET_REGISTRY_MODEL_DETAILS, queryParams, true,
                 RegistryModelDetailsResponse.class);
+    }
+
+    Single<RegistryModelCountResponse> getRegistryModelsCount(String workspaceName) {
+        return this.singleFromSyncGetWithRetries(GET_REGISTRY_MODELS_COUNT,
+                Collections.singletonMap(WORKSPACE_NAME, workspaceName), true,
+                RegistryModelCountResponse.class);
     }
 
     Single<RestApiResponse> downloadRegistryModel(

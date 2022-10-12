@@ -14,6 +14,7 @@ import ml.comet.experiment.impl.http.Connection;
 import ml.comet.experiment.impl.http.ConnectionInitializer;
 import ml.comet.experiment.impl.rest.ExperimentModelListResponse;
 import ml.comet.experiment.impl.rest.ExperimentModelResponse;
+import ml.comet.experiment.impl.rest.RegistryModelCountResponse;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelDetailsResponse;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
@@ -74,6 +75,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_RE
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_REGISTRY_MODEL_VERSION;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_FIND_EXPERIMENT_MODEL_BY_NAME;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODELS_COUNT;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_DETAILS;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_NOTES;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_GET_REGISTRY_MODEL_VERSIONS;
@@ -393,6 +395,22 @@ public final class CometApiImpl implements CometApi {
                 ArrayList::new,
                 (strings, modelVersionOverview) -> strings.add(modelVersionOverview.getVersion()),
                 ArrayList::addAll);
+    }
+
+    @Override
+    public Optional<Integer> getRegistryModelsCount(@NonNull String workspace) {
+        try {
+            RegistryModelCountResponse countResponse = this.restApiClient
+                    .getRegistryModelsCount(workspace)
+                    .blockingGet();
+            return Optional.of(countResponse.getRegistryModelCount());
+        } catch (CometApiException ex) {
+            this.logger.error(getString(FAILED_TO_GET_REGISTRY_MODELS_COUNT, workspace), ex);
+            if (ex.getStatusCode() == 400) {
+                return Optional.empty();
+            }
+            throw ex;
+        }
     }
 
     @Override
