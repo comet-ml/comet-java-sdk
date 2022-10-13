@@ -34,7 +34,7 @@ public interface OnlineExperimentBuilder extends BaseCometBuilder<OnlineExperime
     /**
      * Set the URL of your comet installation.
      *
-     * @param urlOverride full url of comet installation. Default is https://www.comet.ml
+     * @param urlOverride full url of comet installation. Default is https://www.comet.com
      * @return the builder configured with specified URL of the Comet installation.
      */
     OnlineExperimentBuilder withUrlOverride(String urlOverride);

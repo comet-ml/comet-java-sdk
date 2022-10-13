@@ -16,6 +16,7 @@ import ml.comet.experiment.impl.rest.ExperimentModelListResponse;
 import ml.comet.experiment.impl.rest.ExperimentModelResponse;
 import ml.comet.experiment.impl.rest.RegistryModelCountResponse;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelDeleteRequest;
 import ml.comet.experiment.impl.rest.RegistryModelDetailsResponse;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelNotesResponse;
@@ -23,6 +24,7 @@ import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RegistryModelUpdateItemRequest;
 import ml.comet.experiment.impl.rest.RegistryModelUpdateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelVersionStageAddRequest;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.utils.CometUtils;
 import ml.comet.experiment.impl.utils.ExceptionUtils;
@@ -71,6 +73,7 @@ import static ml.comet.experiment.impl.resources.LogMessages.DOWNLOADING_REGISTR
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_WITH_KEY_NOT_FOUND;
 import static ml.comet.experiment.impl.resources.LogMessages.EXTRACTED_N_REGISTRY_MODEL_FILES;
+import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_ADD_REGISTRY_MODEL_VERSION_STAGE;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_REGISTRY_MODEL;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DELETE_REGISTRY_MODEL_VERSION;
 import static ml.comet.experiment.impl.resources.LogMessages.FAILED_TO_DOWNLOAD_REGISTRY_MODEL;
@@ -506,10 +509,28 @@ public final class CometApiImpl implements CometApi {
     }
 
     @Override
+    public void addRegistryModelVersionStage(@NonNull String registryName, @NonNull String workspace,
+                                             @NonNull String version, @NonNull String stage) {
+        // get version details
+        Optional<ModelVersionOverview> versionOverviewOptional = this.getRegistryModelVersion(
+                registryName, workspace, version);
+        if (!versionOverviewOptional.isPresent()) {
+            throw new ModelVersionNotFoundException(
+                    getString(REGISTRY_MODEL_VERSION_NOT_FOUND, version, workspace, registryName));
+        }
+
+        String errorMessage = getString(
+                FAILED_TO_ADD_REGISTRY_MODEL_VERSION_STAGE, stage, workspace, registryName, version);
+        this.executeSyncRequest(this.restApiClient::addRegistryModelVersionStage,
+                new RegistryModelVersionStageAddRequest(versionOverviewOptional.get().getRegistryModelItemId(), stage),
+                errorMessage);
+    }
+
+    @Override
     public void deleteRegistryModel(@NonNull String registryName, @NonNull String workspace) {
-        RestApiResponse response = this.restApiClient.deleteRegistryModel(registryName, workspace)
-                .blockingGet();
-        this.checkRestApiResponse(response, getString(FAILED_TO_DELETE_REGISTRY_MODEL, registryName, workspace));
+        String errorMsg = getString(FAILED_TO_DELETE_REGISTRY_MODEL, registryName, workspace);
+        this.executeSyncRequest(this.restApiClient::deleteRegistryModel,
+                new RegistryModelDeleteRequest(registryName, workspace), errorMsg);
     }
 
     @Override
@@ -523,9 +544,8 @@ public final class CometApiImpl implements CometApi {
                     getString(REGISTRY_MODEL_VERSION_NOT_FOUND, version, workspace, registryName));
         }
         String errorMsg = getString(FAILED_TO_DELETE_REGISTRY_MODEL_VERSION, workspace, registryName, version);
-        RestApiResponse response = this.executeSyncRequest(this.restApiClient::deleteRegistryModelVersion,
+        this.executeSyncRequest(this.restApiClient::deleteRegistryModelVersion,
                 versionOverviewOptional.get().getRegistryModelItemId(), errorMsg);
-        this.checkRestApiResponse(response, errorMsg);
     }
 
     /**

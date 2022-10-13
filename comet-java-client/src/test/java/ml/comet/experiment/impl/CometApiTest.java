@@ -638,6 +638,55 @@ public class CometApiTest extends AssetsBaseTest {
     }
 
     @Test
+    public void testAddRegistryModelVersionStage() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // register model with defaults
+        //
+        registerModelWithDefaults(modelName);
+
+        // wait for registry model to be processed by backend
+        //
+        Awaitility.await("failed to get registry model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(modelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        String stage = "testAddRegistryModelVersionStage";
+        COMET_API.addRegistryModelVersionStage(
+                modelName, SHARED_EXPERIMENT.getWorkspaceName(), DEFAULT_MODEL_VERSION, stage);
+
+        // get registry model and check that it was updated
+        //
+        Awaitility.await("failed to get registry model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(modelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        Optional<ModelOverview> overviewOptional = COMET_API.getRegistryModelDetails(modelName,
+                SHARED_EXPERIMENT.getWorkspaceName());
+
+        assertTrue(overviewOptional.isPresent(), "model expected");
+        ModelOverview modelOverview = overviewOptional.get();
+        assertNotNull(modelOverview.getVersions(), "versions list expected");
+        assertEquals(1, modelOverview.getVersions().size(), "wrong versions list size");
+
+        ModelVersionOverview versionOverview = modelOverview.getVersions().get(0);
+        boolean stageFound = versionOverview.getStages()
+                .stream()
+                .anyMatch(s -> Objects.equals(stage, s));
+        assertTrue(stageFound);
+
+        // check error when attempting to add the same stage again
+        //
+        assertThrows(CometApiException.class, () ->
+                COMET_API.addRegistryModelVersionStage(
+                        modelName, SHARED_EXPERIMENT.getWorkspaceName(), DEFAULT_MODEL_VERSION, stage));
+    }
+
+    @Test
     public void testDeleteRegistryModel() {
         String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
 

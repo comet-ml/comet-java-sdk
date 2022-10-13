@@ -36,11 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayName("ApiExperimentTest INTEGRATION")
 @Tag("integration")
 public class ApiExperimentTest {
-    static Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
+    static final Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
         put("someString", "string");
         put("someInt", 10);
     }};
-    static String SOME_TEXT = "this is some text to be used";
+    static final String SOME_TEXT = "this is some text to be used";
 
     @Test
     public void testApiExperimentInitializedWithInvalidValues() {

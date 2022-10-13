@@ -755,7 +755,7 @@ public final class OnlineExperimentImpl extends BaseExperimentAsync implements O
      * The runnable to be invoked to send periodic heartbeat ping to mark this experiment as still running.
      */
     static class HeartbeatPing implements Runnable {
-        OnlineExperimentImpl onlineExperiment;
+        final OnlineExperimentImpl onlineExperiment;
 
         HeartbeatPing(OnlineExperimentImpl onlineExperiment) {
             this.onlineExperiment = onlineExperiment;

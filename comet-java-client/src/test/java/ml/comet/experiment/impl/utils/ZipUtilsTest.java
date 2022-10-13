@@ -4,7 +4,6 @@ import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +29,7 @@ public class ZipUtilsTest {
         Path tmpDir = Files.createTempDirectory("testUnzipToFolder");
         File modelFile = getFile(MODEL_ZIP_FILE_NAME);
         assertNotNull(modelFile, "model's ZIP file not found");
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(modelFile))) {
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(modelFile.toPath()))) {
             int files = ZipUtils.unzipToFolder(zis, tmpDir);
             assertEquals(MODEL_FILES_NUMBER, files, "wrong files number");
             // Check that all files/folders from ZIP was properly deflated
