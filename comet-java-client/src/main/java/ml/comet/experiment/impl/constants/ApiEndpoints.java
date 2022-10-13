@@ -30,6 +30,7 @@ public final class ApiEndpoints {
     public static final String UPDATE_REGISTRY_MODEL_VERSION = UPDATE_API_URL + "/registry-model/item/update";
     public static final String DELETE_REGISTRY_MODEL = UPDATE_API_URL + "/registry-model/delete";
     public static final String DELETE_REGISTRY_MODEL_ITEM = UPDATE_API_URL + "/registry-model/item/delete";
+    public static final String ADD_REGISTRY_MODEL_VERSION_STAGE = UPDATE_API_URL + "/registry-model/item/stage";
 
     public static final String READ_API_URL = "/api/rest/v2";
     public static final String GET_ASSETS_LIST = READ_API_URL + "/experiment/asset/list";

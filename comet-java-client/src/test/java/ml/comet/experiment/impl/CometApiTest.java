@@ -54,6 +54,7 @@ import static ml.comet.experiment.impl.TestUtils.awaitForCondition;
 import static ml.comet.experiment.impl.asset.AssetType.MODEL_ELEMENT;
 import static ml.comet.experiment.impl.resources.LogMessages.EXPERIMENT_HAS_NO_MODELS;
 import static ml.comet.experiment.impl.resources.LogMessages.getString;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -635,6 +636,55 @@ public class CometApiTest extends AssetsBaseTest {
         ModelVersionOverview versionOverview = modelOverview.getVersions().get(0);
         assertEquals(comment, versionOverview.getComment(), "wrong comment");
         assertEquals(stages, versionOverview.getStages(), "wrong stages");
+    }
+
+    @Test
+    public void testAddRegistryModelVersionStage() {
+        String modelName = String.format("%s-%d", SOME_MODEL_NAME, System.currentTimeMillis());
+
+        // register model with defaults
+        //
+        registerModelWithDefaults(modelName);
+
+        // wait for registry model to be processed by backend
+        //
+        Awaitility.await("failed to get registry model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(modelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        String stage = "testAddRegistryModelVersionStage";
+        COMET_API.addRegistryModelVersionStage(
+                modelName, SHARED_EXPERIMENT.getWorkspaceName(), DEFAULT_MODEL_VERSION, stage);
+
+        // get registry model and check that it was updated
+        //
+        Awaitility.await("failed to get registry model")
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> COMET_API.getRegistryModelDetails(modelName,
+                        SHARED_EXPERIMENT.getWorkspaceName()).isPresent());
+
+        Optional<ModelOverview> overviewOptional = COMET_API.getRegistryModelDetails(modelName,
+                SHARED_EXPERIMENT.getWorkspaceName());
+
+        assertTrue(overviewOptional.isPresent(), "model expected");
+        ModelOverview modelOverview = overviewOptional.get();
+        assertNotNull(modelOverview.getVersions(), "versions list expected");
+        assertEquals(1, modelOverview.getVersions().size(), "wrong versions list size");
+
+        ModelVersionOverview versionOverview = modelOverview.getVersions().get(0);
+        boolean stageFound = versionOverview.getStages()
+                .stream()
+                .anyMatch(s -> Objects.equals(stage, s));
+        assertTrue(stageFound);
+
+        // check error when attempting to add the same stage again
+        //
+        assertThrows(CometApiException.class, () ->
+                COMET_API.addRegistryModelVersionStage(
+                        modelName, SHARED_EXPERIMENT.getWorkspaceName(), DEFAULT_MODEL_VERSION, stage));
     }
 
     @Test

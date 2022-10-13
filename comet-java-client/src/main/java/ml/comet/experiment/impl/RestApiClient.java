@@ -44,6 +44,7 @@ import ml.comet.experiment.impl.rest.ParameterRest;
 import ml.comet.experiment.impl.rest.RegistryModelCountResponse;
 import ml.comet.experiment.impl.rest.RegistryModelCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelCreateResponse;
+import ml.comet.experiment.impl.rest.RegistryModelDeleteRequest;
 import ml.comet.experiment.impl.rest.RegistryModelDetailsResponse;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelItemCreateResponse;
@@ -52,6 +53,7 @@ import ml.comet.experiment.impl.rest.RegistryModelNotesUpdateRequest;
 import ml.comet.experiment.impl.rest.RegistryModelOverviewListResponse;
 import ml.comet.experiment.impl.rest.RegistryModelUpdateItemRequest;
 import ml.comet.experiment.impl.rest.RegistryModelUpdateRequest;
+import ml.comet.experiment.impl.rest.RegistryModelVersionStageAddRequest;
 import ml.comet.experiment.impl.rest.RestApiResponse;
 import ml.comet.experiment.impl.rest.SetSystemDetailsRequest;
 import ml.comet.experiment.impl.rest.TagsResponse;
@@ -74,6 +76,7 @@ import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_LOG_OTHER;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_METRIC;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_OUTPUT;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_PARAMETER;
+import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_REGISTRY_MODEL_VERSION_STAGE;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_START_END_TIME;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.ADD_TAG;
 import static ml.comet.experiment.impl.constants.ApiEndpoints.CREATE_REGISTRY_MODEL;
@@ -118,6 +121,7 @@ import static ml.comet.experiment.impl.constants.QueryParamName.MODEL_ITEM_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.MODEL_NAME;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_ID;
 import static ml.comet.experiment.impl.constants.QueryParamName.PROJECT_NAME;
+import static ml.comet.experiment.impl.constants.QueryParamName.STAGE;
 import static ml.comet.experiment.impl.constants.QueryParamName.TYPE;
 import static ml.comet.experiment.impl.constants.QueryParamName.WORKSPACE_NAME;
 import static ml.comet.experiment.impl.http.ConnectionUtils.checkResponseStatus;
@@ -383,6 +387,13 @@ final class RestApiClient implements Disposable {
                 RegistryModelCountResponse.class);
     }
 
+    Single<RestApiResponse> addRegistryModelVersionStage(RegistryModelVersionStageAddRequest request) {
+        Map<QueryParamName, String> queryParams = new HashMap<>();
+        queryParams.put(MODEL_ITEM_ID, request.getRegistryModelItemId());
+        queryParams.put(STAGE, request.getStage());
+        return this.singleFromSyncGetWithRetries(ADD_REGISTRY_MODEL_VERSION_STAGE, queryParams);
+    }
+
     Single<RestApiResponse> downloadRegistryModel(
             final OutputStream output, String workspace, String registryName, final DownloadModelOptions options) {
         Map<QueryParamName, String> queryParams = downloadModelParams(workspace, registryName, options);
@@ -409,10 +420,10 @@ final class RestApiClient implements Disposable {
         return singleFromAsyncPost(request, UPDATE_REGISTRY_MODEL_VERSION);
     }
 
-    Single<RestApiResponse> deleteRegistryModel(String modelName, String workspaceName) {
+    Single<RestApiResponse> deleteRegistryModel(RegistryModelDeleteRequest request) {
         Map<QueryParamName, String> queryParams = new HashMap<>();
-        queryParams.put(WORKSPACE_NAME, workspaceName);
-        queryParams.put(MODEL_NAME, modelName);
+        queryParams.put(WORKSPACE_NAME, request.getWorkspace());
+        queryParams.put(MODEL_NAME, request.getRegistryModelName());
         return singleFromSyncGetWithRetries(DELETE_REGISTRY_MODEL, queryParams);
     }
 
