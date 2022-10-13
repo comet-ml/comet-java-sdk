@@ -34,10 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @DisplayName("Downloaded Artifact")
 public class DownloadedArtifactImplTest extends AssetsBaseTest {
-    static String SOME_VERSION_STRING = "1.0.0";
-    static String SOME_UP_VERSION_STRING = "1.1.0";
-    static String SOME_DOWN_VERSION_STRING = "0.1.0";
-    static Semver SOME_VERSION = new Semver(SOME_VERSION_STRING);
+    static final String SOME_VERSION_STRING = "1.0.0";
+    static final String SOME_UP_VERSION_STRING = "1.1.0";
+    static final String SOME_DOWN_VERSION_STRING = "0.1.0";
+    static final Semver SOME_VERSION = new Semver(SOME_VERSION_STRING);
 
     @Test
     @DisplayName("is created with new")
@@ -187,7 +187,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
                 File assetFile;
                 File anotherAssetFile;
                 String logicalPath;
-                boolean overwrite = true;
+                final boolean overwrite = true;
 
                 @BeforeEach
                 void updateFileAsset(){
@@ -222,7 +222,7 @@ public class DownloadedArtifactImplTest extends AssetsBaseTest {
                 URI remoteUri;
                 URI anotherRemoteUri;
                 String logicalPath;
-                boolean overwrite = true;
+                final boolean overwrite = true;
 
                 @BeforeEach
                 void updateRemoteAsset() throws URISyntaxException {

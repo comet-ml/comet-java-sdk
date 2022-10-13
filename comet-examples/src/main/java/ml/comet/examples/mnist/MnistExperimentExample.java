@@ -48,6 +48,7 @@ public final class MnistExperimentExample {
      * The number of epochs to perform.
      */
     @Parameter(names = {"--epochs", "-e"}, description = "number of epochs to perform")
+    final
     int numEpochs = 2;
 
     /**

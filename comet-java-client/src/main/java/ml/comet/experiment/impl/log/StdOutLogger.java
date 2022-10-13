@@ -20,11 +20,11 @@ import java.util.concurrent.atomic.AtomicLong;
 public class StdOutLogger implements Runnable, Closeable {
     final AtomicLong offset = new AtomicLong();
 
-    OutputStream outputStream;
-    InputStream inputStream;
-    PrintStream original;
-    OnlineExperiment experiment;
-    boolean stdOut;
+    final OutputStream outputStream;
+    final InputStream inputStream;
+    final PrintStream original;
+    final OnlineExperiment experiment;
+    final boolean stdOut;
 
     /**
      * Creates logger instance that captures StdOut stream for a given OnlineExperiment.

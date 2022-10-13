@@ -12,9 +12,9 @@ import static ml.comet.experiment.impl.config.CometConfig.COMET_WORKSPACE_NAME;
  * The factory to create initialized experiment instances for testing.
  */
 public class ExperimentTestFactory {
-    static String API_KEY;
-    static String PROJECT_NAME;
-    static String WORKSPACE_NAME;
+    static final String API_KEY;
+    static final String PROJECT_NAME;
+    static final String WORKSPACE_NAME;
 
     static {
         API_KEY = COMET_API_KEY.getString();

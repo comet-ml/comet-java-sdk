@@ -75,7 +75,7 @@ import static ml.comet.experiment.impl.utils.RestApiUtils.createTagRequest;
  * using asynchronous networking.
  */
 abstract class BaseExperimentAsync extends BaseExperiment {
-    ExperimentContext baseContext;
+    final ExperimentContext baseContext;
 
     BaseExperimentAsync(@NonNull final String apiKey,
                         @NonNull final String baseUrl,

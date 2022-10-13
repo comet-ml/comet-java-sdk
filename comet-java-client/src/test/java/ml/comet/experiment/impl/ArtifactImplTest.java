@@ -35,20 +35,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayName("Artifact")
 public class ArtifactImplTest extends AssetsBaseTest {
 
-    static String SOME_ARTIFACT_NAME = "artifactName";
-    static String SOME_ARTIFACT_TYPE = "artifactType";
-    static List<String> SOME_ALIASES = Arrays.asList("one", "two", "three", "three");
-    static Set<String> UNIQUE_ALIASES = new HashSet<>(SOME_ALIASES);
-    static List<String> SOME_TAGS = Arrays.asList("tag_1", "tag_2", "tag_3", "tag_3");
-    static Set<String> UNIQUE_TAGS = new HashSet<>(SOME_TAGS);
-    static String SOME_VERSION = "1.2.3-beta.4+sha899d8g79f87";
-    static String INVALID_VERSION = "1.2";
-    static Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
+    static final String SOME_ARTIFACT_NAME = "artifactName";
+    static final String SOME_ARTIFACT_TYPE = "artifactType";
+    static final List<String> SOME_ALIASES = Arrays.asList("one", "two", "three", "three");
+    static final Set<String> UNIQUE_ALIASES = new HashSet<>(SOME_ALIASES);
+    static final List<String> SOME_TAGS = Arrays.asList("tag_1", "tag_2", "tag_3", "tag_3");
+    static final Set<String> UNIQUE_TAGS = new HashSet<>(SOME_TAGS);
+    static final String SOME_VERSION = "1.2.3-beta.4+sha899d8g79f87";
+    static final String INVALID_VERSION = "1.2";
+    static final Map<String, Object> SOME_METADATA = new HashMap<String, Object>() {{
         put("someString", "string");
         put("someInt", 10);
     }};
-    static String SOME_REMOTE_ASSET_LINK = "s3://bucket/folder/someFile";
-    static String SOME_REMOTE_ASSET_NAME = "someRemoteAsset";
+    static final String SOME_REMOTE_ASSET_LINK = "s3://bucket/folder/someFile";
+    static final String SOME_REMOTE_ASSET_NAME = "someRemoteAsset";
 
     @Test
     @DisplayName("is created with newArtifact()")
@@ -143,7 +143,7 @@ public class ArtifactImplTest extends AssetsBaseTest {
         class AfterAddingFileAssetTest {
             File assetFile;
             String assetFileName;
-            boolean overwrite = true;
+            final boolean overwrite = true;
 
             @BeforeEach
             void addFileAsset() {
@@ -175,7 +175,7 @@ public class ArtifactImplTest extends AssetsBaseTest {
         class AfterAddingFileLikeAssetTest {
             byte[] data;
             String assetFileName;
-            boolean overwrite = true;
+            final boolean overwrite = true;
 
             @BeforeEach
             void addFileLikeAsset() {
@@ -207,7 +207,7 @@ public class ArtifactImplTest extends AssetsBaseTest {
         class AfterAddingRemoteAssetTest {
             URI uri;
             String assetFileName;
-            boolean overwrite = true;
+            final boolean overwrite = true;
 
             @BeforeEach
             void addRemoteAsset() throws URISyntaxException {
@@ -238,8 +238,8 @@ public class ArtifactImplTest extends AssetsBaseTest {
         @Nested
         @DisplayName("after adding assets folder")
         class AfterAddingAssetsFolderTest {
-            boolean logFilePath = true;
-            boolean recursive = true;
+            final boolean logFilePath = true;
+            final boolean recursive = true;
 
             @BeforeEach
             void addAssetsFolder() throws IOException {
