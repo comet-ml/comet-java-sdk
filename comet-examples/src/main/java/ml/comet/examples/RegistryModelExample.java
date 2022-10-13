@@ -44,6 +44,7 @@ public class RegistryModelExample {
     static final String SOME_MODEL_VERSION = "1.0.0";
     static final String SOME_MODEL_VERSION_UP = "1.0.1";
     static final String STAGE_PRODUCTION = "production";
+    static final String STAGE_STAGING = "staging";
     static final String SOME_NOTES = "some model notes";
 
     /**
@@ -146,6 +147,13 @@ public class RegistryModelExample {
             } else {
                 System.out.printf("Overview of the model '%s' not found\n", registryName);
             }
+
+            // add stage to the model
+            //
+            System.out.printf("Adding stage `%s' to the registered model version '%s:%s'\n",
+                    STAGE_STAGING, registryName, SOME_MODEL_VERSION_UP);
+            api.addRegistryModelVersionStage(registryName, experiment.getWorkspaceName(),
+                    SOME_MODEL_VERSION_UP, STAGE_STAGING);
 
             // get details about model version
             //
