@@ -7,7 +7,7 @@
     <parent>
         <artifactId>comet-java-sdk</artifactId>
         <groupId>ml.comet</groupId>
-        <version>1.1.13-SNAPSHOT</version>
+        <version>1.1.14-SNAPSHOT</version>
     </parent>
 
     <properties>
