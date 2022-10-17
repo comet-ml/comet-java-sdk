@@ -15,7 +15,7 @@ node {
     stage("Run") {
         sh "export GPG_TTY=\$(tty)"
         withCredentials([string(credentialsId: 'test-javasdk-comet-api-key', variable: 'COMET_API_KEY')]) {
-            sh "COMET_BASE_URL=https://www.comet-ml.com COMET_PROJECT_NAME=java-sdk COMET_WORKSPACE_NAME=test-javasdk mvn --batch-mode release:clean release:prepare release:perform"
+            sh "COMET_BASE_URL=https://www.comet.com COMET_PROJECT_NAME=java-sdk COMET_WORKSPACE_NAME=test-javasdk mvn --batch-mode release:clean release:prepare release:perform"
         }
     }
 
